@@ -104,7 +104,7 @@ namespace RepoImageMan
 
                 for (int i = 0; i < srcRow.Length; i++)
                 {
-                    dstRow[i] = srcRow[i];
+                    dstRow[i] |= srcRow[i];
                 }
             }
             void SurroundCommodity(DesignImageCommodity<TPixel> com)
