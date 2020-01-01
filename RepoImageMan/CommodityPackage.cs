@@ -1,0 +1,186 @@
+﻿using Dapper;
+using SixLabors.ImageSharp.PixelFormats;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Data.SQLite;
+using System.IO;
+using System.IO.Compression;
+using System.Threading;
+using System.Threading.Tasks;
+namespace RepoImageMan
+{
+    /// <summary>
+    /// Expects a .sqlite and .zip files next to each other
+    /// </summary>
+    public sealed partial class CommodityPackage : IDisposable
+    {
+        private readonly SemaphoreSlim _commoditiesLock = new SemaphoreSlim(1);
+        private readonly SemaphoreSlim _imagesLock = new SemaphoreSlim(1);
+
+        private readonly ConcurrentDictionary<Type, object> _labelsCaches = new ConcurrentDictionary<Type, object>();
+        internal ImageCommodityLabelCache<TPixel> GetLabelsCache<TPixel>() where TPixel : unmanaged, IPixel<TPixel>
+            => _labelsCaches.GetOrAdd(typeof(TPixel), tp => new ImageCommodityLabelCache<TPixel>()) as ImageCommodityLabelCache<TPixel>;
+
+        private readonly ZipArchive _packageArchive;
+        private readonly string ConnectionString;
+        internal SQLiteConnection GetConnection()
+        {
+            var con = new SQLiteConnection(ConnectionString);
+            con.Execute(@"PRAGMA foreign_keys = ON");
+            return con;
+        }
+
+        internal CommodityPackage(string connectionString, ZipArchive packageArchive)
+        {
+            ConnectionString = connectionString;
+            _packageArchive = packageArchive;
+        }
+
+        private readonly List<Commodity> _commodities = new List<Commodity>();
+        public IReadOnlyList<Commodity> Commodities => _commodities;
+
+        private readonly List<CImage> _images = new List<CImage>();
+        public IReadOnlyList<CImage> Images => _images;
+
+        public delegate void ImageModifiedEventHandler(CommodityPackage sender, CImage image);
+        public event ImageModifiedEventHandler? ImageAdded;
+        /// <summary>
+        /// Will create an image with all values set to default and you can initialize it then call <see cref="CImage.Save"/>.
+        /// </summary>
+        public async Task<CImage> AddImage()
+        {
+            await using var con = GetConnection();
+            await con.OpenAsync().ConfigureAwait(false);
+            await con.ExecuteAsync("INSERT INTO CImage DEFAULT VALUES;").ConfigureAwait(false);
+            var newImage = await CImage.Load((int)con.LastInsertRowId, this).ConfigureAwait(false);
+            await _imagesLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                _packageArchive.CreateEntry(newImage.PackageEntryName, CompressionLevel.NoCompression);
+                _images.Add(newImage);
+            }
+            finally
+            {
+                _imagesLock.Release();
+            }
+            ImageAdded?.Invoke(this, newImage);
+            return newImage;
+        }
+        /// <summary>
+        /// Will be raised when an image is about to be deleted from this <see cref="CommodityPackage"/>.
+        /// </summary>
+        public event ImageModifiedEventHandler? ImageRemoved;
+        /// <summary>
+        /// To be called only by <see cref="CImage.Delete"/> to remove it from my list and raise corresponding events.
+        /// </summary>
+        /// <param name="image">The image to delete.</param>
+        internal async Task RemoveImage(CImage image)
+        {
+            await _imagesLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                _packageArchive.GetEntry(image.PackageEntryName).Delete();
+                _images.Remove(image);
+            }
+            finally
+            {
+                _imagesLock.Release();
+            }
+            ImageRemoved?.Invoke(this, image);
+        }
+
+        public delegate void CommodityModifiedEventHandler(CommodityPackage sender, Commodity com);
+        /// <summary>
+        /// Will be raised when a new <see cref="Commodity"/>(or <see cref="ImageCommodity"/>) is added to this <see cref="CommodityPackage"/>.
+        /// </summary>
+        public event CommodityModifiedEventHandler? CommodityAdded;
+        /// <summary>
+        /// Will create a commodity with all values set to default and you can initialize it then call <see cref="Commodity.Save"/>.
+        /// </summary>
+        public async Task<Commodity> AddCommodity()
+        {
+            await using var con = GetConnection();
+            await con.OpenAsync().ConfigureAwait(false);
+            await con.ExecuteAsync("INSERT INTO Commodity(Position) VALUES((COALESCE((SELECT MAX(Position) FROM Commodity), 0) + 1));").ConfigureAwait(false);
+
+            var newCom = await Commodity.Load((int)con.LastInsertRowId, this).ConfigureAwait(false);
+            await _commoditiesLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                _commodities.Add(newCom);
+            }
+            finally
+            {
+                _commoditiesLock.Release();
+            }
+            CommodityAdded?.Invoke(this, newCom);
+            return newCom;
+        }
+        /// <summary>
+        /// Will be raised when a <see cref="Commodity"/>(or <see cref="ImageCommodity"/>) is deleted from this <see cref="CommodityPackage"/>.
+        /// </summary>
+        public event CommodityModifiedEventHandler? CommodityRemoved;
+        /// <summary>
+        /// To be called only by <see cref="Commodity.Delete"/> to remove it from <see cref="Commodities"/> and raise corresponding events. 
+        /// </summary>
+        /// <param name="com">The <see cref="Commodity"/> to delete.</param>
+        internal async Task RemoveCommodity(Commodity com)
+        {
+            await _commoditiesLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                _commodities.Remove(com);
+            }
+            finally
+            {
+                _commoditiesLock.Release();
+            }
+            CommodityRemoved?.Invoke(this, com);
+        }
+        /// <summary>
+        /// To be called only by <see cref="CImage.AddCommodity"/> to add the new <see cref="ImageCommodity"/> to <see cref="Commodities"/> and raise corresponding events. 
+        /// </summary>
+        /// <param name="com">The newly created <see cref="ImageCommodity"/>.</param>
+        internal async Task AddImageCommodity(ImageCommodity com)
+        {
+            await _commoditiesLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                _commodities.Add(com);
+            }
+            finally
+            {
+                _commoditiesLock.Release();
+            }
+            CommodityAdded?.Invoke(this, com);
+        }
+        internal Stream OpenImageStream(CImage image) => _packageArchive.GetEntry(image.PackageEntryName).Open();
+
+        #region IDisposable Support
+        private bool _disposedValue = false; // To detect redundant calls
+
+        public void Dispose()
+        {
+            if (!_disposedValue)
+            {
+                _disposedValue = true;
+                CommodityAdded = null;
+                CommodityRemoved = null;
+                ImageAdded = null;
+                ImageRemoved = null;
+                foreach (var img in Images) { img.Dispose(); }
+                foreach (var com in Commodities) { com.Dispose(); }
+                _images.Clear();
+                _commodities.Clear();
+                _packageArchive.Dispose();
+                _labelsCaches.Clear();
+                _commoditiesLock.Dispose();
+                _imagesLock.Dispose();
+            }
+        }
+        #endregion
+
+        public Task Delete() { throw new NotImplementedException(); }
+    }
+}

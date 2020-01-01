@@ -1,0 +1,16 @@
+﻿<Window x:Class="Tester.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Tester"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="750" Width="1000">
+    <Grid>
+        <Image Name="imgBox" HorizontalAlignment="Stretch" Height="600" Width="950" Margin="10,10,10,10" VerticalAlignment="Top" MouseDown="imgBox_MouseDown"/>
+        <Button Name="btnCreatePackage" Content="Create Package" HorizontalAlignment="Left" Margin="10,649,0,0" VerticalAlignment="Top" Click="btnCreatePackage_Click"/>
+        <Button Name="btnOpenPackage" Content="Open Package" HorizontalAlignment="Left" Margin="112,649,0,0" VerticalAlignment="Top" Click="btnOpenPackage_Click"/>
+        <Button Name="btnBindFirstImage" Content="Bind First Image" HorizontalAlignment="Left" Margin="197,649,0,0" VerticalAlignment="Top" Click="btnBindFirstImage_Click"/>
+        <Button Name="btnSaveCustom" Content="Save Custom" HorizontalAlignment="Left" Margin="302,649,0,0" VerticalAlignment="Top" Click="btnSaveCustom_Click"/>
+    </Grid>
+</Window>
