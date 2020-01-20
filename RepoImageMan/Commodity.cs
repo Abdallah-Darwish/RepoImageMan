@@ -11,7 +11,7 @@ namespace RepoImageMan
     {
         public delegate void CommodityDeletedEventHandler(Commodity sender);
         /// <summary>
-        /// Occures BEFORE this <see cref="Commodity"/> is about to be removed from the <see cref="Package"/>.
+        /// Occurs BEFORE this <see cref="Commodity"/> is about to be removed from the <see cref="Package"/>.
         /// </summary>
         public event CommodityDeletedEventHandler? Deleting;
         /// <summary>
@@ -39,7 +39,7 @@ namespace RepoImageMan
         /// Order or position of this <see cref="Commodity"/> in the <see cref="Package"/>.
         /// Its unique and has no gaps.
         /// </summary>
-        /// <remarks>Gave position to <see cref="Commodity"/> instead of <see cref="CImage"/> beacuse of the commodities with no images.</remarks>
+        /// <remarks>Gave position to <see cref="Commodity"/> instead of <see cref="CImage"/> because of the commodities with no images.</remarks>
         public int Position { get; private set; }
 
 
@@ -53,7 +53,7 @@ namespace RepoImageMan
         /// Less than 2(ex: <see cref="int.MinValue"/>) to set it as the firts commodity.
         /// Any value higher than maximum position(ex: <see cref="int.MaxValue"/>) in db to set it as last.
         /// </param>
-        /// <remarks>One oparation accross pkg because of the UNIQUE constraint on column Position</remarks>
+        /// <remarks>One operation across pkg because of the UNIQUE constraint on column Position</remarks>
         public async ValueTask SetPosition(int newPosition)
         {
             if (newPosition == Position) { return; }
@@ -107,6 +107,12 @@ namespace RepoImageMan
             Package = package;
             Id = id;
         }
+        /// <summary>
+        /// Loads a commodity from the package correctly.
+        /// </summary>
+        /// <param name="id">Id of the commodity to load.</param>
+        /// <param name="package">The package that contains the commodity to load.</param>
+        /// <remarks>Don't use for loading an <see cref="ImageCommodity"/>.</remarks>
         internal static async Task<Commodity> Load(int id, CommodityPackage package)
         {
             var res = new Commodity(id, package);
@@ -173,7 +179,7 @@ namespace RepoImageMan
 
 
         /// <summary>
-        /// Saves all the properities of the <see cref="Commodity"/> to the <see cref="CommodityPackage"/>.
+        /// Saves all the properties of the <see cref="Commodity"/> to the <see cref="CommodityPackage"/>.
         /// </summary>
         public virtual async Task Save()
         {
@@ -181,7 +187,7 @@ namespace RepoImageMan
             await con.ExecuteAsync("UPDATE Commodity SET name = @Name, wholePrice = @WholePrice, partialPrice = @PartialPrice, cost = @Cost WHERE id = @Id", this).ConfigureAwait(false);
         }
         /// <summary>
-        /// Re-reads all <see cref="Commodity"/> properities from the <see cref="CommodityPackage"/>.
+        /// Re-reads all <see cref="Commodity"/> properties from the <see cref="CommodityPackage"/>.
         /// Will raise <see cref="PropertyChanged"/>.
         /// </summary>
         public virtual async Task Reload()

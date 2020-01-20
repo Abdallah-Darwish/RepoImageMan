@@ -9,43 +9,63 @@ using System.Collections.Concurrent;
 
 namespace RepoImageMan
 {
-    internal class LabelRenderingOptions : IEquatable<LabelRenderingOptions>
+    internal readonly struct LabelRenderingOptions : IEquatable<LabelRenderingOptions>
     {
-        public string Text { get; set; }
-        public Font Font { get; set; }
-        public Color Color { get; set; }
+        public readonly string Text;
+        public readonly Font Font;
+        public readonly Color Color;
 
-        public bool Equals(LabelRenderingOptions? o) => o != null && Text.Equals(o.Text, StringComparison.InvariantCulture) && Font.Equals(o.Font) && Color.Equals(o.Color);
+        public LabelRenderingOptions(string text, Font font, Color color)
+        {
+            Text = text;
+            Font = font;
+            Color = color;
+        }
 
-        public override bool Equals(object? obj) => Equals(obj as LabelRenderingOptions);
+        public bool Equals(LabelRenderingOptions o) =>
+            Text.Equals(o.Text, StringComparison.InvariantCulture) && Font.Equals(o.Font) &&
+            Color.Equals(o.Color);
+
+        public override bool Equals(object? obj) => obj != null && Equals((LabelRenderingOptions) obj);
 
         public override int GetHashCode() => HashCode.Combine(Text, Font, Color);
-
         public static implicit operator RendererOptions?(LabelRenderingOptions? options)
         {
-            if (options == null) { return null; }
-            return new RendererOptions(options.Font) { HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+            if (options == null)
+            {
+                return null;
+            }
+            return new RendererOptions(options?.Font)
+                {HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top};
         }
+
+
+        public LabelRenderingOptions Clone() => new LabelRenderingOptions(Text, Font, Color);
     }
+
     internal class ImageCommodityLabelCache<TPixel> where TPixel : unmanaged, IPixel<TPixel>
     {
+        private readonly ConcurrentDictionary<LabelRenderingOptions, TPixel[][]> _labels =
+            new ConcurrentDictionary<LabelRenderingOptions, TPixel[][]>();
 
-        private readonly ConcurrentDictionary<LabelRenderingOptions, TPixel[][]> _labels = new ConcurrentDictionary<LabelRenderingOptions, TPixel[][]>();
         /// <summary>
         /// Estimated size of <see cref="_labels"/> in bytes.
         /// </summary>
         private int _labelsSize = 0;
-        private int _clearingThreshold;
+
+        private int _clearingThreshold = 300 * (1000_000);
 
         private TPixel[][] RenderLabel(LabelRenderingOptions options)
         {
-            Size expectedSize = (Size)TextMeasurer.Measure(options.Text, options);
-            expectedSize.Height += 10;
-            expectedSize.Width += 10;
+            Size expectedSize = (Size) TextMeasurer.Measure(options.Text, options);
+            expectedSize.Height += 4;
+            expectedSize.Width += 4;
 
-            TPixel backgroundColor = (options.Color == Color.DarkBlue ? Color.DarkCyan : Color.DarkBlue).ToPixel<TPixel>();
+            TPixel backgroundColor =
+                (options.Color == Color.DarkBlue ? Color.DarkCyan : Color.DarkBlue).ToPixel<TPixel>();
 
-            using var playground = new Image<TPixel>(new Configuration(), expectedSize.Width, expectedSize.Height, backgroundColor);
+            using var playground = new Image<TPixel>(new Configuration(), expectedSize.Width, expectedSize.Height,
+                backgroundColor);
             playground.Mutate(c => c.DrawText(options.Text, options.Font, options.Color, new Point(0, 0)));
             int height = 0, width = 0;
             for (int r = playground.Height - 1; r >= 0; r--)
@@ -56,12 +76,17 @@ namespace RepoImageMan
                 {
                     if (plyRowSpan[c].Equals(backgroundColor) == false)
                     {
-                        if (height == 0) { height = r + 1; }
+                        if (height == 0)
+                        {
+                            height = r + 1;
+                        }
+
                         width = Math.Max(width, c + 1);
                         break;
                     }
                 }
             }
+
             TPixel[][] label = new TPixel[height][];
             for (int r = height - 1; r >= 0; r--)
             {
@@ -76,16 +101,24 @@ namespace RepoImageMan
                     }
                 }
             }
+
             return label;
         }
-        void TryClearCache()
+
+        private void TryClearCache()
         {
-            if (_labelsSize >= ClearingThreshold) { _labels.Clear(); }
+            if (_labelsSize >= ClearingThreshold)
+            {
+                _labels.Clear();
+                _labelsSize = 0;
+            }
         }
+
         /// <summary>
         /// If the Pixel is zeroed this means that it shouldn't be copied.
+        /// Note: You should use "Bitwise Or" or "Bitwise Xor" for the fastest operations.
         /// </summary>
-        public ReadOnlyMemory<TPixel[]> GetLabel(LabelRenderingOptions options)
+        public ReadOnlyMemory<TPixel[]> GetLabel(in LabelRenderingOptions options)
         {
             TryClearCache();
             return _labels.GetOrAdd(options, op =>
@@ -95,7 +128,9 @@ namespace RepoImageMan
                 return label;
             }).AsMemory();
         }
+
         /// <summary>
+        /// The upper limit for the cached labels size once it reaches the limit, it will be purged.
         /// In bytes.
         /// </summary>
         public int ClearingThreshold
@@ -105,7 +140,6 @@ namespace RepoImageMan
             {
                 _clearingThreshold = value;
                 TryClearCache();
-
             }
         }
     }

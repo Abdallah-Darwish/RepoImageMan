@@ -77,7 +77,7 @@ namespace RepoImageMan
             }
         }
         /// <summary>
-        /// Saves all the properities of the <see cref="ImageCommodity"/> to the <see cref="CommodityPackage"/>.
+        /// Saves all the properties of the <see cref="ImageCommodity"/> to the <see cref="CommodityPackage"/>.
         /// </summary>
         public override async Task Save()
         {

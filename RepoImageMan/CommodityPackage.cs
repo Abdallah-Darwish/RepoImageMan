@@ -8,22 +8,37 @@ using System.IO;
 using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp;
+using SixLabors.Primitives;
+
 namespace RepoImageMan
 {
+    //TODO: Add logging
     /// <summary>
     /// Expects a .sqlite and .zip files next to each other
     /// </summary>
     public sealed partial class CommodityPackage : IDisposable
     {
+        /// <summary>
+        /// A lock on <see cref="_commodities"/> since creating, loading and removing commodities is done concurrently.
+        /// </summary>
         private readonly SemaphoreSlim _commoditiesLock = new SemaphoreSlim(1);
+
+        /// <summary>
+        /// A lock on <see cref="_images"/> since creating, loading and removing images is done concurrently.
+        /// </summary>
         private readonly SemaphoreSlim _imagesLock = new SemaphoreSlim(1);
 
         private readonly ConcurrentDictionary<Type, object> _labelsCaches = new ConcurrentDictionary<Type, object>();
-        internal ImageCommodityLabelCache<TPixel> GetLabelsCache<TPixel>() where TPixel : unmanaged, IPixel<TPixel>
-            => _labelsCaches.GetOrAdd(typeof(TPixel), tp => new ImageCommodityLabelCache<TPixel>()) as ImageCommodityLabelCache<TPixel>;
 
+        internal ImageCommodityLabelCache<TPixel> GetLabelsCache<TPixel>() where TPixel : unmanaged, IPixel<TPixel>
+            => _labelsCaches.GetOrAdd(typeof(TPixel), tp => new ImageCommodityLabelCache<TPixel>()) as
+                ImageCommodityLabelCache<TPixel>;
+
+        private readonly string _dbPath, _packagePath;
         private readonly ZipArchive _packageArchive;
         private readonly string ConnectionString;
+
         internal SQLiteConnection GetConnection()
         {
             var con = new SQLiteConnection(ConnectionString);
@@ -31,10 +46,14 @@ namespace RepoImageMan
             return con;
         }
 
-        internal CommodityPackage(string connectionString, ZipArchive packageArchive)
+        internal CommodityPackage(string dbPath, string packagePath, Image handleImage)
         {
-            ConnectionString = connectionString;
-            _packageArchive = packageArchive;
+            _dbPath = dbPath;
+            _packagePath = packagePath;
+            ConnectionString = GetConnectionString(dbPath);
+            var packageStream = new FileStream(packagePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            _packageArchive = new ZipArchive(packageStream, ZipArchiveMode.Update);
+            _handleImage = handleImage;
         }
 
         private readonly List<Commodity> _commodities = new List<Commodity>();
@@ -44,7 +63,9 @@ namespace RepoImageMan
         public IReadOnlyList<CImage> Images => _images;
 
         public delegate void ImageModifiedEventHandler(CommodityPackage sender, CImage image);
+
         public event ImageModifiedEventHandler? ImageAdded;
+
         /// <summary>
         /// Will create an image with all values set to default and you can initialize it then call <see cref="CImage.Save"/>.
         /// </summary>
@@ -53,7 +74,7 @@ namespace RepoImageMan
             await using var con = GetConnection();
             await con.OpenAsync().ConfigureAwait(false);
             await con.ExecuteAsync("INSERT INTO CImage DEFAULT VALUES;").ConfigureAwait(false);
-            var newImage = await CImage.Load((int)con.LastInsertRowId, this).ConfigureAwait(false);
+            var newImage = await CImage.Load((int) con.LastInsertRowId, this).ConfigureAwait(false);
             await _imagesLock.WaitAsync().ConfigureAwait(false);
             try
             {
@@ -64,13 +85,16 @@ namespace RepoImageMan
             {
                 _imagesLock.Release();
             }
+
             ImageAdded?.Invoke(this, newImage);
             return newImage;
         }
+
         /// <summary>
         /// Will be raised when an image is about to be deleted from this <see cref="CommodityPackage"/>.
         /// </summary>
         public event ImageModifiedEventHandler? ImageRemoved;
+
         /// <summary>
         /// To be called only by <see cref="CImage.Delete"/> to remove it from my list and raise corresponding events.
         /// </summary>
@@ -87,14 +111,17 @@ namespace RepoImageMan
             {
                 _imagesLock.Release();
             }
+
             ImageRemoved?.Invoke(this, image);
         }
 
         public delegate void CommodityModifiedEventHandler(CommodityPackage sender, Commodity com);
+
         /// <summary>
         /// Will be raised when a new <see cref="Commodity"/>(or <see cref="ImageCommodity"/>) is added to this <see cref="CommodityPackage"/>.
         /// </summary>
         public event CommodityModifiedEventHandler? CommodityAdded;
+
         /// <summary>
         /// Will create a commodity with all values set to default and you can initialize it then call <see cref="Commodity.Save"/>.
         /// </summary>
@@ -102,9 +129,11 @@ namespace RepoImageMan
         {
             await using var con = GetConnection();
             await con.OpenAsync().ConfigureAwait(false);
-            await con.ExecuteAsync("INSERT INTO Commodity(Position) VALUES((COALESCE((SELECT MAX(Position) FROM Commodity), 0) + 1));").ConfigureAwait(false);
+            await con.ExecuteAsync(
+                    "INSERT INTO Commodity(Position) VALUES((COALESCE((SELECT MAX(Position) FROM Commodity), 0) + 1));")
+                .ConfigureAwait(false);
 
-            var newCom = await Commodity.Load((int)con.LastInsertRowId, this).ConfigureAwait(false);
+            var newCom = await Commodity.Load((int) con.LastInsertRowId, this).ConfigureAwait(false);
             await _commoditiesLock.WaitAsync().ConfigureAwait(false);
             try
             {
@@ -114,13 +143,16 @@ namespace RepoImageMan
             {
                 _commoditiesLock.Release();
             }
+
             CommodityAdded?.Invoke(this, newCom);
             return newCom;
         }
+
         /// <summary>
         /// Will be raised when a <see cref="Commodity"/>(or <see cref="ImageCommodity"/>) is deleted from this <see cref="CommodityPackage"/>.
         /// </summary>
         public event CommodityModifiedEventHandler? CommodityRemoved;
+
         /// <summary>
         /// To be called only by <see cref="Commodity.Delete"/> to remove it from <see cref="Commodities"/> and raise corresponding events. 
         /// </summary>
@@ -136,8 +168,10 @@ namespace RepoImageMan
             {
                 _commoditiesLock.Release();
             }
+
             CommodityRemoved?.Invoke(this, com);
         }
+
         /// <summary>
         /// To be called only by <see cref="CImage.AddCommodity"/> to add the new <see cref="ImageCommodity"/> to <see cref="Commodities"/> and raise corresponding events. 
         /// </summary>
@@ -153,11 +187,14 @@ namespace RepoImageMan
             {
                 _commoditiesLock.Release();
             }
+
             CommodityAdded?.Invoke(this, com);
         }
+
         internal Stream OpenImageStream(CImage image) => _packageArchive.GetEntry(image.PackageEntryName).Open();
 
         #region IDisposable Support
+
         private bool _disposedValue = false; // To detect redundant calls
 
         public void Dispose()
@@ -169,18 +206,27 @@ namespace RepoImageMan
                 CommodityRemoved = null;
                 ImageAdded = null;
                 ImageRemoved = null;
-                foreach (var img in Images) { img.Dispose(); }
-                foreach (var com in Commodities) { com.Dispose(); }
+                foreach (var img in Images)
+                {
+                    img.Dispose();
+                }
+
+                foreach (var com in Commodities)
+                {
+                    com.Dispose();
+                }
+
                 _images.Clear();
                 _commodities.Clear();
                 _packageArchive.Dispose();
                 _labelsCaches.Clear();
                 _commoditiesLock.Dispose();
                 _imagesLock.Dispose();
+                _handlesCache.Clear();
+                _handleImage.Dispose();
             }
         }
-        #endregion
 
-        public Task Delete() { throw new NotImplementedException(); }
+        #endregion
     }
 }

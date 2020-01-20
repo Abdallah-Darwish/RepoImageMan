@@ -4,12 +4,15 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Formats.Jpeg;
+
 namespace RepoImageMan
 {
     /// <summary>
@@ -19,13 +22,15 @@ namespace RepoImageMan
     public sealed class DesignCImage<TPixel> : IDisposable where TPixel : unmanaged, IPixel<TPixel>
     {
         public delegate void ImageUpdatedEventHandler(DesignCImage<TPixel> sender);
+
         /// <summary>
-        /// Occures when the underlying <see cref="CImage"/> is updated or any <see cref="ImageCommodity"/> is updated.
+        /// Occurs when the underlying <see cref="CImage"/> is updated or any <see cref="ImageCommodity"/> is updated.
         /// <see cref="RenderedImage"/> will be updated before raising.
         /// </summary>
         public event ImageUpdatedEventHandler? ImageUpdated;
 
         internal delegate void ImageDisposedEventHandler(DesignCImage<TPixel> sender);
+
         /// <remarks>
         /// Used to tell the original image that this instance is being disposed so another instance can be created.
         /// </remarks>
@@ -35,38 +40,38 @@ namespace RepoImageMan
         /// The original image that this instance is actting upon.
         /// </summary>
         public CImage Image { get; }
+
         /// <summary>
         /// Provieds a way to resize this image to fit the final ImageBox without having to resize after every update.
         /// This will not change <see cref="Image"/> <see cref="CImage.SizeRatio"/>.
         /// </summary>
         public Size InstanceSize { get; }
+
         /// <summary>
         /// The scale that is used to map points from <see cref="CImage"/> to this resized <see cref="DesignCImage"/>.
         /// </summary>
         public SizeF ToOriginalMappingScale { get; }
+
         /// <summary>
         /// The scale that is used to map points from this instance to the original <see cref="CImage"/>.
         /// </summary>
         public SizeF ToDesignMappingScale { get; }
 
         private readonly List<DesignImageCommodity<TPixel>> _commodities = new List<DesignImageCommodity<TPixel>>();
+
         /// <summary>
         /// Commodities in the image with the ability to modify them.
         /// </summary>
         public IReadOnlyList<DesignImageCommodity<TPixel>> Commodities => _commodities;
 
         /// <summary>
-        /// Returns first <see cref="DesignImageCommodity"/> that the point <paramref name="p"/> lies inside,
+        /// Returns first <see cref="DesignImageCommodity{TPixel}"/> that the point <paramref name="p"/> lies inside,
         /// or <see langword="null"/> if there is none.
         /// </summary>
-        public DesignImageCommodity<TPixel>? FirstOnPoint(in PointF p)
-        {
-            foreach (var com in _commodities)
-            {
-                if (com.IsInside(in p)) { return com; }
-            }
-            return null;
-        }
+        public DesignImageCommodity<TPixel>? FirstOnPoint(PointF p) => 
+            _commodities.AsParallel()
+            .WithMergeOptions(ParallelMergeOptions.NotBuffered)
+            .FirstOrDefault(com => com.IsInside(p));
 
         public Image<TPixel> RenderedImage { get; private set; }
 
@@ -74,27 +79,42 @@ namespace RepoImageMan
         /// Contains the image with <see cref="CImage.Contrast"/> applied to it and resized but nothing is written on it.
         /// </summary>
         private Image<TPixel> _renderingPlayground;
+
         /// <summary>
         /// Contains the original image stored in <see cref="Image"/> stream, but resized.
         /// </summary>
         private readonly Image<TPixel> _originalImage;
 
-        private readonly Image<TPixel> _handleImage;
         private void Render()
         {
             void CopyRow(ReadOnlyMemory<TPixel> rowMemory, Point p)
             {
-                var srcRow = MemoryMarshal.AsBytes(rowMemory.Span);
-                var dstRow = MemoryMarshal.AsBytes(RenderedImage.GetPixelRowSpan(p.Y).Slice(p.X));
+                int toBeRemoved = 0;
+                if (p.X < 0)
+                {
+                    toBeRemoved = -p.X;
+                    p.X = 0;
+                }
 
-                Vector<int> srcV, dstV, tmpV;
+                var dstRow = MemoryMarshal.AsBytes(RenderedImage.GetPixelRowSpan(p.Y).Slice(p.X));
+                var srcRow = MemoryMarshal.AsBytes(rowMemory.Span);
+                if (toBeRemoved > 0)
+                {
+                    srcRow = srcRow[toBeRemoved..];
+                }
+
+                if (srcRow.Length > dstRow.Length)
+                {
+                    srcRow = srcRow[..dstRow.Length];
+                }
+
+                Vector<byte> srcV, dstV, tmpV;
 
                 for (; srcRow.Length >= Vector<byte>.Count;)
                 {
-                    srcV = new Vector<int>(srcRow);
-                    dstV = new Vector<int>(dstRow);
+                    srcV = new Vector<byte>(srcRow);
+                    dstV = new Vector<byte>(dstRow);
                     tmpV = srcV | dstV;
-                    //TODO: check me pls
                     tmpV.TryCopyTo(dstRow);
 
                     //p.X += Vector<int>.Count;
@@ -107,15 +127,16 @@ namespace RepoImageMan
                     dstRow[i] |= srcRow[i];
                 }
             }
+
             void SurroundCommodity(DesignImageCommodity<TPixel> com)
             {
-                //TODO: cache the resized images(No need to use CopyRow because the handle is usually too small so we will waste time in ContextSwitching and jumping)
-                var comHandle = _handleImage.Clone(c => c.Resize(com.HandleSize));
+                var comHandle = Image.Package.GetHandle<TPixel>(com.HandleSize);
                 RenderedImage
                     .Mutate(c => c
-                    .DrawPolygon(com.SurroundingBoxColor, com.SurroundingBoxThickness, com.GetSurroundingBox())
-                    .DrawImage(comHandle, com.HandleLocation, 1f));
+                        .DrawPolygon(com.SurroundingBoxColor, com.SurroundingBoxThickness, com.GetSurroundingBox())
+                        .DrawImage(comHandle, com.HandleLocation, 1f));
             }
+
             RenderedImage?.Dispose();
             RenderedImage = _renderingPlayground.Clone(c => c.Resize(InstanceSize));
 
@@ -124,15 +145,14 @@ namespace RepoImageMan
 
             foreach (var com in Commodities)
             {
-                //Possible optimization is to execute the next line in parallel alone to enusre that the label rendering is done in parallel but its not a hot-path so it doesn't matter.
-                var comLabel = labelsCache.GetLabel(new LabelRenderingOptions
-                {
-                    Font = com.Font,
-                    Color = com.Commodity.LabelColor,
-                    Text = DesignImageCommodity<TPixel>.LabelText
-                }).Span;
-                Point rowLoaction = (Point)com.Location;
-                for (int labelRowIndex = 0; labelRowIndex < comLabel.Length; labelRowIndex++, rowLoaction.Y++)
+                //Possible optimization is to execute the next line in parallel alone to ensure that the label rendering is done in parallel but its not a hot-path so it doesn't matter.
+                var comLabel = labelsCache.GetLabel(new LabelRenderingOptions(DesignImageCommodity<TPixel>.LabelText,
+                    com.Font, com.Commodity.LabelColor)).Span;
+
+                Point rowLoaction = (Point) com.Location;
+                for (int labelRowIndex = 0;
+                    labelRowIndex < comLabel.Length && rowLoaction.Y < RenderedImage.Height;
+                    labelRowIndex++, rowLoaction.Y++)
                 {
                     copyingJobs.Add((comLabel[labelRowIndex].AsMemory(), rowLoaction));
                 }
@@ -141,13 +161,15 @@ namespace RepoImageMan
             if (Parallel.ForEach(copyingJobs, tu => CopyRow(tu.Row, tu.RowLocation)).IsCompleted == false)
             {
                 RenderedImage.Mutate(c => c.Fill(Color.Red));
-                throw new Exception($"Rendering wasn't done, successfully !!!{Environment.NewLine}Couldn't RENDER labels correctly.");
+                throw new Exception(
+                    $"Rendering wasn't done, successfully !!!{Environment.NewLine}Couldn't RENDER labels correctly.");
             }
 
             if (Parallel.ForEach(Commodities.Where(c => c.IsSurrounded), SurroundCommodity).IsCompleted == false)
             {
                 RenderedImage.Mutate(c => c.Fill(Color.Green));
-                throw new Exception($"Rendering wasn't done, successfully !!!{Environment.NewLine}Couldn't SURROUND labels correctly.");
+                throw new Exception(
+                    $"Rendering wasn't done, successfully !!!{Environment.NewLine}Couldn't SURROUND labels correctly.");
             }
         }
 
@@ -157,31 +179,35 @@ namespace RepoImageMan
             dCom.Updated += CommodityUpdated;
             _commodities.Add(dCom);
         }
+
         private void CommodityUpdated(DesignImageCommodity<TPixel> sender) => UpdateMe();
+
         private void UpdateMe()
         {
             Render();
             ImageUpdated?.Invoke(this);
         }
 
-        internal DesignCImage(CImage image, Size mySize, Image<TPixel> handleImage)
+        internal DesignCImage(CImage image, Size mySize)
         {
             InstanceSize = mySize;
             Image = image;
-
-            _handleImage = handleImage.Clone();
 
             using (var imgStream = Image.OpenStream())
             {
                 _originalImage = Image<TPixel>.Load<TPixel>(imgStream);
             }
-            ToOriginalMappingScale = new SizeF(_originalImage.Width / (float)InstanceSize.Width, _originalImage.Height / (float)InstanceSize.Height);
-            ToDesignMappingScale = new SizeF(InstanceSize.Width / (float)_originalImage.Width, InstanceSize.Height / (float)_originalImage.Height);
+
+            ToOriginalMappingScale = new SizeF(_originalImage.Width / (float) InstanceSize.Width,
+                _originalImage.Height / (float) InstanceSize.Height);
+            ToDesignMappingScale = new SizeF(InstanceSize.Width / (float) _originalImage.Width,
+                InstanceSize.Height / (float) _originalImage.Height);
 
             foreach (var com in Image.Commodities)
             {
                 AddCommodity(com);
             }
+
             Image.CommodityAdded += CommodityAdded;
             Image.CommodityRemoved += CommodityRemoved;
             Image.PropertyNotificationManager
@@ -195,9 +221,9 @@ namespace RepoImageMan
 
         private void UpdatePlayground(object sender, PropertyChangedEventArgs e)
         {
-            //TODO: make me brightness
             _renderingPlayground = _originalImage.Clone(c => c.Contrast(Image.Contrast).Brightness(Image.Brightness));
         }
+
         private void CommodityRemoved(CImage sender, ImageCommodity com)
         {
             var dCom = _commodities.First(c => c.Commodity.Id == com.Id);
@@ -206,10 +232,11 @@ namespace RepoImageMan
         }
 
         #region IDisposable Support
+
         private bool _disposedValue = false; // To detect redundant calls
 
         /// <summary>
-        /// You shouldn't call this explecitly, instead call <see cref="CommodityPackage.Dispose"/>.
+        /// You shouldn't call this explicitly, instead call <see cref="CommodityPackage.Dispose"/>.
         /// </summary>
         public void Dispose()
         {
@@ -220,7 +247,11 @@ namespace RepoImageMan
                     .Unsubscribe(nameof(CImage.Brightness), UpdatePlayground);
                 Image.CommodityRemoved -= CommodityRemoved;
                 Image.CommodityAdded -= CommodityAdded;
-                foreach (var com in _commodities) { com.Dispose(); }
+                foreach (var com in _commodities)
+                {
+                    com.Dispose();
+                }
+
                 _commodities.Clear();
                 _originalImage.Dispose();
                 _renderingPlayground.Dispose();
@@ -230,6 +261,7 @@ namespace RepoImageMan
                 ImageDisposed = null;
             }
         }
+
         #endregion
     }
 }

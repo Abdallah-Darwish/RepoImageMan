@@ -57,7 +57,7 @@ namespace RepoImageMan
         /// Checks whether <paramref name="p"/> is inside this commodity box.
         /// </summary>
         /// <remarks>Used to know if the user is trying to activate or select commodity.</remarks>
-        public bool IsInside(in PointF p) => GetLabelBounds().Contains(p);
+        public bool IsInside(PointF p) => GetLabelBounds().Contains(p);
         /// <summary>
         /// The size of the "arrow" or whatever that is used as a handle to allow the user to move the label around.
         /// </summary>
@@ -67,7 +67,7 @@ namespace RepoImageMan
         /// Checks whether <paramref name="p"/> is inside this commodity HANDLE box.
         /// </summary>
         /// <remarks>Used to know if the user is trying to move selected commodity.</remarks>
-        public bool IsInHandle(in PointF p)
+        public bool IsInHandle(PointF p)
         {
             var handleBounds = new RectangleF(HandleLocation, HandleSize);
             return handleBounds.Contains(p);
@@ -86,7 +86,7 @@ namespace RepoImageMan
         }
         public PointF[] GetSurroundingBox()
         {
-            ///How much we should move the lines of the surrounding box to not overwrite the commodity text.
+            //How much we should move the lines of the surrounding box to not overwrite the commodity text.
             float x = SurroundingBoxThickness / 1.75f/*Magic number*/;
             var boxBounds = GetLabelBounds();
 
