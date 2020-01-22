@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace RepoImageMan.Processors
 {
+    //TODO: Add compression and or resizing
     public class ImagesCatalogProcessor<TPixel> where TPixel : struct, IPixel<TPixel>
     {
         public readonly struct ProcessedCImage
@@ -43,6 +44,7 @@ namespace RepoImageMan.Processors
 
             _images = images.ToArray()
                 .OrderBy(i => i.Commodities.Count > 0 ? i.Commodities.Min(c => c.Position) : int.MaxValue)
+                .ThenBy(i => i.Id)
                 .ToArray();
             _imagesPositions =
                 ImmutableDictionary<int, int>.Empty.AddRange(_images.Select((img, pos) =>
@@ -65,6 +67,11 @@ namespace RepoImageMan.Processors
                     c.Contrast(image.Contrast).Brightness(image.Brightness);
                     foreach (var com in image.Commodities)
                     {
+                        if (com.IsPositionHolder)
+                        {
+                            continue;
+                        }
+
                         c.DrawText(_commoditiesLabels[com.Id], com.Font, com.LabelColor, com.Location);
                     }
 
@@ -82,7 +89,8 @@ namespace RepoImageMan.Processors
         {
             _commoditiesLabels = ImmutableDictionary<int, string>.Empty.AddRange(
                 _images.SelectMany(i => i.Commodities)
-                    .OrderBy(i => i.Position)
+                    .Where(c => !c.IsPositionHolder)
+                    .OrderBy(c => c.Position)
                     .Select((com, pos) => new KeyValuePair<int, string>(com.Id, pos.ToString())));
             Parallel.ForEach(_images, ProcessImage);
         }

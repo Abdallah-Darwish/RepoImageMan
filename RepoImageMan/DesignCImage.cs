@@ -149,12 +149,12 @@ namespace RepoImageMan
                 var comLabel = labelsCache.GetLabel(new LabelRenderingOptions(DesignImageCommodity<TPixel>.LabelText,
                     com.Font, com.Commodity.LabelColor)).Span;
 
-                Point rowLoaction = (Point) com.Location;
+                var comLocation = (Point) com.Location;
                 for (int labelRowIndex = 0;
-                    labelRowIndex < comLabel.Length && rowLoaction.Y < RenderedImage.Height;
-                    labelRowIndex++, rowLoaction.Y++)
+                    labelRowIndex < comLabel.Length && comLocation.Y < RenderedImage.Height;
+                    labelRowIndex++, comLocation.Y++)
                 {
-                    copyingJobs.Add((comLabel[labelRowIndex].AsMemory(), rowLoaction));
+                    copyingJobs.Add((comLabel[labelRowIndex].AsMemory(), comLocation));
                 }
             }
 

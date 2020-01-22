@@ -83,7 +83,7 @@ namespace RepoImageMan
         {
             await base.Save().ConfigureAwait(false);
             await using var con = Package.GetConnection();
-            await con.ExecuteAsync("UPDATE ImageCommodity SET fontFamilyName = @fontFamilyName, fontStyle = @fontStyle, fontSize = @fontSize, locationX = @locationX, locationY = @locationY, labelColor = @labelColor WHERE id = @Id",
+            await con.ExecuteAsync("UPDATE ImageCommodity SET fontFamilyName = @fontFamilyName, fontStyle = @fontStyle, fontSize = @fontSize, locationX = @locationX, locationY = @locationY, labelColor = @labelColor, isPositionHolder = @IsPositionHolder WHERE id = @Id",
                   new
                   {
                       fontFamilyName = Font.Family.Name,
@@ -92,7 +92,8 @@ namespace RepoImageMan
                       locationX = Location.X,
                       locationY = Location.Y,
                       labelColor = LabelColor.ToHex(),
-                      Id
+                      Id,
+                      IsPositionHolder
                   })
                 .ConfigureAwait(false);
         }
@@ -108,6 +109,8 @@ namespace RepoImageMan
             Font = SystemFonts.CreateFont(fields.FontFamilyName, (float)fields.FontSize, (FontStyle)(int)fields.FontStyle);
             Location = new PointF((float)fields.LocationX, (float)fields.LocationY);
             LabelColor = Color.FromHex(fields.LabelColor);
+            //TODO: Check if I am integer or double
+            IsPositionHolder = fields.IsPositionHolder == 0;
         }
         /// <summary>
         /// <inheritdoc/>
@@ -120,5 +123,11 @@ namespace RepoImageMan
             await base.Delete().ConfigureAwait(false);
             await Image.RemoveCommodity(this).ConfigureAwait(false);
         }
+        
+        /// <summary>
+        /// Indicates whether an <see cref="ImageCommodity"/> is only used to hold the position of an image because this image doesn't have an commodities assigned to it.
+        /// If its set to <see cref="true"/> then this commodity won't be rendered or exported by any Processor.
+        /// </summary>
+        public bool IsPositionHolder { get; internal set; }
     }
 }

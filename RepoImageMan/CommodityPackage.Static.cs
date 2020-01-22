@@ -1,4 +1,5 @@
-﻿using Dapper;
+﻿using System;
+using Dapper;
 using System.Collections.Generic;
 using System.Data.SQLite;
 using System.IO;
@@ -12,6 +13,7 @@ namespace RepoImageMan
 {
     public sealed partial class CommodityPackage
     {
+        public const string DbExtension = "sqlite", ArchiveExtension = "zip";
         private static string GetConnectionString(string dbPath) => $"Data Source={dbPath};Version=3;";
 
         public static async Task<CommodityPackage> Open(string dbPath, string packagePath, Image? handleImage = null)
@@ -74,7 +76,8 @@ CREATE TABLE ImageCommodity (
 	FontSize REAL NOT NULL DEFAULT(100) CHECK(FontSize > 0.0),
 	LocationX REAL NOT NULL DEFAULT(0.0) CHECK(LocationX >= 0.0),
 	LocationY REAL NOT NULL DEFAULT(0.0) CHECK(LocationY >= 0.0),
-	LabelColor TEXT NOT NULL DEFAULT('FFFFFFFF')
+	LabelColor TEXT NOT NULL DEFAULT('FFFFFFFF'),
+	IsPositionHolder BOOLEAN NOT NULL DEFAULT(0)
 );
 CREATE INDEX IDX_ImageCommodity_ImageId ON ImageCommodity (ImageId);
 ";

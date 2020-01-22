@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace RepoImageMan
 {
+    //TODO: implement IEquatable
     public class Commodity : IDisposable, INotifyPropertyChanged, INotifySpecificPropertyChanged
     {
         public delegate void CommodityDeletedEventHandler(Commodity sender);

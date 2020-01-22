@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 namespace RepoImageMan
 {
+    //TODO: Add FPS limit
     public sealed class CImage : IDisposable, INotifyPropertyChanged, INotifySpecificPropertyChanged
     {
         /// <summary>
@@ -24,7 +25,7 @@ namespace RepoImageMan
         public INotificationManager PropertyNotificationManager => _propertyNotificationManager;
 
         /// <summary>
-        /// Dimenssions of the image.
+        /// Dimensions of the image.
         /// </summary>
         public Size Size { get; private set; }
 
@@ -304,6 +305,19 @@ namespace RepoImageMan
             return false;
         }
 
+        public async Task<ImageCommodity> CreateOrGetPositionHolder()
+        {
+            var posHolder = GetPositionHolder();
+            if (posHolder == null)
+            {
+                posHolder = await AddCommodity().ConfigureAwait(false);
+                posHolder.IsPositionHolder = true;
+                await posHolder.Save().ConfigureAwait(false);
+            }
+            return posHolder;
+        }
+
+        public ImageCommodity? GetPositionHolder() => _commodities.FirstOrDefault(c => c.IsPositionHolder);
         #region IDisposable Support
 
         private bool _disposedValue = false; // To detect redundant calls
