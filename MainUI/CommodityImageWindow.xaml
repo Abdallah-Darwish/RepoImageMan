@@ -1,0 +1,35 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="MainUI.CommodityImageWindow"
+        Title="Commodities And Images Manager">
+    <TabControl>
+        <TabItem Header="Commodities">
+            <Grid>
+                <DataGrid Name="dgCommodities" CanUserResizeColumns="True" CanUserSortColumns="True">
+                    <DataGrid.Columns>
+                        <DataGridCheckBoxColumn Header="Export" Binding="{Binding Export}" />
+                        <DataGridTextColumn Binding="{Binding Name, Mode=TwoWay}" Header="Name"/>
+                        <DataGridTemplateColumn Header="Name">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBox Text="{Binding Name, Mode=TwoWay}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                    <DataGrid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Create(INS)" />
+                            <MenuItem Header="Delete(DEL)" />
+                            <MenuItem Header="Move(CTRL+ or CTRL-)" />
+                            <MenuItem Header="Go to Image" />
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
+                </DataGrid>
+            </Grid>
+        </TabItem>
+    </TabControl>
+</Window>

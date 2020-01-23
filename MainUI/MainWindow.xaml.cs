@@ -41,53 +41,46 @@ namespace MainUI
                         {
                             CommodityPackage.DbExtension
                         },
-                        Name = "Package Database"
+                        Name = $"Package Database({CommodityPackage.DbExtension})"
                     }
                 }
             };
             var dbPath = (await dbOfd.ShowAsync(this)).FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(dbPath) || File.Exists(dbPath) == false)
+            if (string.IsNullOrWhiteSpace(dbPath))
             {
-                MessageBoxManager.GetMessageBoxStandardWindow("Error", "Invalid package database path.", ButtonEnum.Ok,
-                    MBIcon.Error);
+                return;
             }
-            else
+
+            var archiveOfd = new OpenFileDialog
             {
-                var archiveOfd = new OpenFileDialog
+                Title = "Archive file.",
+                AllowMultiple = false,
+                Filters = new List<FileDialogFilter>
                 {
-                    Title = "Archive file.",
-                    AllowMultiple = false,
-                    Filters = new List<FileDialogFilter>
+                    new FileDialogFilter
                     {
-                        new FileDialogFilter
+                        Extensions = new List<string>
                         {
-                            Extensions = new List<string>
-                            {
-                                CommodityPackage.ArchiveExtension
-                            },
-                            Name = "Package Archive"
-                        }
+                            CommodityPackage.ArchiveExtension
+                        },
+                        Name = $"Package Archive({CommodityPackage.ArchiveExtension})"
                     }
-                };
-                var archivePath = (await archiveOfd.ShowAsync(this)).FirstOrDefault();
-                if (string.IsNullOrWhiteSpace(archivePath) || File.Exists(archivePath) == false)
-                {
-                    MessageBoxManager.GetMessageBoxStandardWindow("Error", "Invalid package archive path.",
-                        ButtonEnum.Ok,
-                        MBIcon.Error);
                 }
-                else
-                {
-                    //Open Pack
-                }
+            };
+            var archivePath = (await archiveOfd.ShowAsync(this)).FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(archivePath))
+            {
+                return;
             }
+
+            //Open Pack
         }
 
         private async void BtnCreatePack_Click(object? sender, RoutedEventArgs e)
         {
             var dbSfd = new SaveFileDialog
             {
-                Title = "Database file.",
+                Title = "Database file",
                 DefaultExtension = CommodityPackage.DbExtension,
                 Filters = new List<FileDialogFilter>
                 {
@@ -97,51 +90,43 @@ namespace MainUI
                         {
                             CommodityPackage.DbExtension
                         },
-                        Name = "Package Database"
+                        Name = $"Package Database({CommodityPackage.DbExtension})"
                     }
                 }
             };
             var dbPath = await dbSfd.ShowAsync(this);
             if (string.IsNullOrWhiteSpace(dbPath))
             {
-                MessageBoxManager.GetMessageBoxStandardWindow("Error", "Invalid package database path.",
-                    ButtonEnum.Ok,
-                    MBIcon.Error);
+                return;
             }
-            else
+            var archiveSfd = new SaveFileDialog
             {
-                var archiveSfd = new SaveFileDialog
+                Title = "Archive file",
+                DefaultExtension = CommodityPackage.ArchiveExtension,
+                Filters = new List<FileDialogFilter>
                 {
-                    Title = "Archive file.",
-                    DefaultExtension = CommodityPackage.ArchiveExtension,
-                    Filters = new List<FileDialogFilter>
+                    new FileDialogFilter
                     {
-                        new FileDialogFilter
+                        Extensions = new List<string>
                         {
-                            Extensions = new List<string>
-                            {
-                                CommodityPackage.ArchiveExtension
-                            },
-                            Name = "Package Archive"
-                        }
+                            CommodityPackage.ArchiveExtension
+                        },
+                        Name = $"Package Archive({CommodityPackage.ArchiveExtension})"
                     }
-                };
-                var archivePath = await archiveSfd.ShowAsync(this);
-                if (string.IsNullOrWhiteSpace(archivePath))
-                {
-                    MessageBoxManager.GetMessageBoxStandardWindow("Error", "Invalid package archive path.",
-                        ButtonEnum.Ok,
-                        MBIcon.Error);
                 }
-                else
-                {
-                    //Create Pack
-                }
+            };
+            var archivePath = await archiveSfd.ShowAsync(this);
+            if (string.IsNullOrWhiteSpace(archivePath))
+            {
+                return;
             }
+            //Create Pack
         }
 
         private void BtnSettings_Click(object? sender, RoutedEventArgs e)
         {
+            CommodityImageWindow ein = new CommodityImageWindow();
+            ein.Show();
             btnSettings.Content = "NOT IMPLEMENTED YET!";
         }
     }

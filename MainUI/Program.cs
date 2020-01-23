@@ -3,7 +3,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Logging.Serilog;
-
 namespace MainUI
 {
     class Program
@@ -18,6 +17,7 @@ namespace MainUI
         public static AppBuilder BuildAvaloniaApp()
             => AppBuilder.Configure<App>()
                 .UsePlatformDetect()
+                //.UseDataGrid()
                 .LogToDebug();
     }
 }
