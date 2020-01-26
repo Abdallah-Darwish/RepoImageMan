@@ -2,34 +2,87 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d"
         x:Class="MainUI.CommodityImageWindow"
-        Title="Commodities And Images Manager">
+        Title="Commodities And Images Manager" MinWidth="650" MinHeight="560">
     <TabControl>
-        <TabItem Header="Commodities">
-            <Grid>
-                <DataGrid Name="dgCommodities" CanUserResizeColumns="True" CanUserSortColumns="True">
+        <TabItem Name="tabCommodities" Header="Commodities">
+            <StackPanel>
+                <DataGrid Name="dgCommodities" CanUserResizeColumns="True"
+                          CanUserSortColumns="True"
+                          SelectionMode="Single">
                     <DataGrid.Columns>
-                        <DataGridCheckBoxColumn Header="Export" Binding="{Binding Export}" />
-                        <DataGridTextColumn Binding="{Binding Name, Mode=TwoWay}" Header="Name"/>
-                        <DataGridTemplateColumn Header="Name">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBox Text="{Binding Name, Mode=TwoWay}"/>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
+                        <DataGridCheckBoxColumn Binding="{Binding Export, Mode=TwoWay}" IsThreeState="False">
+                            <DataGridCheckBoxColumn.Header>
+                                <CheckBox Content="Export" Name="chkExportAllCommodities" IsThreeState="True" />
+                            </DataGridCheckBoxColumn.Header>
+                        </DataGridCheckBoxColumn>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name, Mode=OneWay}" />
+                        <DataGridTextColumn Header="Cost" Binding="{Binding Cost, Mode=OneWay}" />
+                        <DataGridTextColumn Header="Whole Price" Binding="{Binding WholePrice, Mode=OneWay}" />
+                        <DataGridTextColumn Header="Partial Price" Binding="{Binding PartialPrice, Mode=OneWay}" />
                     </DataGrid.Columns>
                     <DataGrid.ContextMenu>
                         <ContextMenu>
-                            <MenuItem Header="Create(INS)" />
-                            <MenuItem Header="Delete(DEL)" />
-                            <MenuItem Header="Move(CTRL+ or CTRL-)" />
-                            <MenuItem Header="Go to Image" />
+                            <MenuItem Header="Create(INS)" Name="miCreateCommodity" />
+                            <MenuItem Header="Delete(DEL)" Name="miDeleteCommodity" />
+                            <MenuItem Header="Go to Image(Home)" Name="miGoToCommodity" />
                         </ContextMenu>
                     </DataGrid.ContextMenu>
                 </DataGrid>
-            </Grid>
+                <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0 0 0 10">
+                    <Grid Margin="0 10" HorizontalAlignment="Center" VerticalAlignment="Bottom">
+                        <Grid.ColumnDefinitions>
+                            <!--First labels column-->
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="2"/>
+                            <ColumnDefinition Width="150" />
+                            <!--Margin Column-->
+                            <ColumnDefinition Width="200" />
+                            <!--Second labels column-->
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="2"/>
+                            <!--Second content column-->
+                            <ColumnDefinition Width="150" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="30" />
+                            <!--Margin Row-->
+                            <RowDefinition Height="2" />
+                            <RowDefinition Height="30" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Name" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" />
+                        <TextBox IsReadOnly="True" Name="txtCommodityName" Grid.Row="0" Grid.Column="2"
+                                 HorizontalAlignment="Stretch"
+                                 VerticalAlignment="Stretch" />
+                        <TextBlock Text="Cost" Grid.Row="2" Grid.Column="0" HorizontalAlignment="Left" />
+                        <NumericUpDown Name="nudCommodityCost" IsReadOnly="True" Grid.Row="2" Grid.Column="2"
+                                       Minimum="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                        
+                        <TextBlock Text="Whole Price" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Left" />
+                        <NumericUpDown Name="nudCommodityWholePrice" IsReadOnly="True" Grid.Row="0" Grid.Column="6"
+                                       Minimum="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                        <TextBlock Text="Partial Price" Grid.Row="2" Grid.Column="4" HorizontalAlignment="Left" />
+                        <NumericUpDown Name="nudCommodityPartialPrice" IsReadOnly="True" Grid.Row="2" Grid.Column="6"
+                                       Minimum="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0 10 0 0">
+                        <ComboBox Name="cbxMoveCommodities" Width="150" AutoScrollToSelectedItem="True"
+                                  ToolTip.Tip="Which commodity to move BEFORE" />
+                        <Button Name="btnMoveSelectedCommodity" Content="Move" IsEnabled="False" Margin="10 0 0 0" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0 10 0 0">
+                        <Button Name="btnSaveCommodityToMemory" IsEnabled="False" Content="Save to memory"
+                                ToolTip.Tip="Saves the changes done to the commodity(except position) to the memory. If the windows is closed without saving to DB all changes will be discarded." />
+                        <Button Name="btnSaveCommodityToDB" Content="Save to DB" IsEnabled="False" Margin="10 0 0 0"
+                                ToolTip.Tip="Saves the changes done to commodity to DB so they are permanent." />
+                        <Button Name="btnReloadCommodity" Content="Reload from db" IsEnabled="False" Margin="10 0 0 0"
+                                ToolTip.Tip="Reloads the commodity from DB discarding all changes in memory(except position)." />
+                    </StackPanel>
+                </StackPanel>
+                <TextBox Name="txtSearch" Margin="30 0" Height="30" Width="300" HorizontalAlignment="Center"
+                         ToolTip.Tip="TODO: Fill me" />
+            </StackPanel>
         </TabItem>
     </TabControl>
 </Window>

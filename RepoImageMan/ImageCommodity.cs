@@ -110,7 +110,7 @@ namespace RepoImageMan
             Location = new PointF((float)fields.LocationX, (float)fields.LocationY);
             LabelColor = Color.FromHex(fields.LabelColor);
             //TODO: Check if I am integer or double
-            IsPositionHolder = fields.IsPositionHolder == 0;
+            IsPositionHolder = fields.IsPositionHolder;
         }
         /// <summary>
         /// <inheritdoc/>

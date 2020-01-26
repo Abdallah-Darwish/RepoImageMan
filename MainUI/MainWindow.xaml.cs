@@ -45,7 +45,7 @@ namespace MainUI
                     }
                 }
             };
-            var dbPath = (await dbOfd.ShowAsync(this)).FirstOrDefault();
+            var dbPath = (await dbOfd.ShowAsync(this))?.FirstOrDefault();
             if (string.IsNullOrWhiteSpace(dbPath))
             {
                 return;
@@ -67,7 +67,7 @@ namespace MainUI
                     }
                 }
             };
-            var archivePath = (await archiveOfd.ShowAsync(this)).FirstOrDefault();
+            var archivePath = (await archiveOfd.ShowAsync(this))?.FirstOrDefault();
             if (string.IsNullOrWhiteSpace(archivePath))
             {
                 return;
@@ -99,6 +99,7 @@ namespace MainUI
             {
                 return;
             }
+
             var archiveSfd = new SaveFileDialog
             {
                 Title = "Archive file",
@@ -120,12 +121,16 @@ namespace MainUI
             {
                 return;
             }
+
             //Create Pack
         }
 
-        private void BtnSettings_Click(object? sender, RoutedEventArgs e)
+        private async void BtnSettings_Click(object? sender, RoutedEventArgs e)
         {
-            CommodityImageWindow ein = new CommodityImageWindow();
+            var p = await CommodityPackage.Open(@"/home/abdullah/Desktop/new_repo/db.sqlite",
+                @"/home/abdullah/Desktop/new_repo/pkg.zip");
+
+            CommodityImageWindow ein = new CommodityImageWindow(p);
             ein.Show();
             btnSettings.Content = "NOT IMPLEMENTED YET!";
         }
