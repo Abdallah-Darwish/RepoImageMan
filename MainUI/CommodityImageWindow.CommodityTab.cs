@@ -21,7 +21,7 @@ namespace MainUI
 {
     public partial class CommodityImageWindow
     {
-        private class CommodityTab
+        private class CommodityTab : IDisposable
         {
             public class DgCommoditiesModel : INotifyPropertyChanged
             {
@@ -88,9 +88,45 @@ namespace MainUI
                 }
             }
 
+            public class CbxMoveCommoditiesModel : INotifyPropertyChanged
+            {
+                public event PropertyChangedEventHandler PropertyChanged;
+                public string Name => _commodity.Name;
+                private Commodity _commodity;
+
+                public Commodity Commodity
+                {
+                    get => _commodity;
+                    set
+                    {
+                        if (_commodity == value)
+                        {
+                            return;
+                        }
+
+                        if (_commodity != null)
+                        {
+                            _commodity.PropertyNotificationManager.Unsubscribe(nameof(Commodity.Name),
+                                CommodityPropertyChanged);
+                        }
+
+                        _commodity = value;
+                        _commodity.PropertyNotificationManager.Subscribe(nameof(Commodity.Name),
+                            CommodityPropertyChanged);
+                    }
+                }
+
+                private void CommodityPropertyChanged(object sender, PropertyChangedEventArgs e)
+                {
+                    PropertyChanged?.Invoke(this, e);
+                }
+            }
+
             private readonly CommodityImageWindow _hostingWindow;
             private readonly ObservableCollection<DgCommoditiesModel> _dgCommoditiesItems;
-            private readonly Dictionary<int, DgCommoditiesModel> _commoditiesModels;
+            private readonly ObservableCollection<CbxMoveCommoditiesModel> _cbxMoveCommoditiesItems;
+            private readonly Dictionary<int, DgCommoditiesModel> _dgCommoditiesModels;
+            private readonly Dictionary<int, CbxMoveCommoditiesModel> _cbxMoveCommoditiesModels;
             private readonly DataGrid dgCommodities;
             private readonly TextBox txtSearch, txtCommodityName;
             private readonly NumericUpDown nudCommodityCost, nudCommodityWholePrice, nudCommodityPartialPrice;
@@ -104,6 +140,8 @@ namespace MainUI
             private readonly TabItem tabCommodities;
 
             private readonly InputElement[] _selectedCommodityDependants;
+
+            private readonly List<IDisposable> _eventsSubscribtions = new List<IDisposable>();
 
             public CommodityTab(CommodityImageWindow hostingWindow)
             {
@@ -122,18 +160,30 @@ namespace MainUI
                 btnSaveCommodityToMemory = _hostingWindow.Get<Button>(nameof(btnSaveCommodityToMemory));
                 btnSaveCommodityToDB = _hostingWindow.Get<Button>(nameof(btnSaveCommodityToDB));
 
-                
-                
+
                 _selectedCommodityDependants = new InputElement[]
                 {
                     txtCommodityName, nudCommodityCost, nudCommodityPartialPrice, nudCommodityWholePrice,
                     cbxMoveCommodities, btnMoveSelectedCommodity, btnReloadCommodity, btnSaveCommodityToMemory,
                     btnSaveCommodityToDB
                 };
-                _commoditiesModels =
+                _dgCommoditiesModels =
                     _hostingWindow._package.Commodities.ToDictionary(c => c.Id,
                         c => new DgCommoditiesModel {Commodity = c});
-                _dgCommoditiesItems = new ObservableCollection<DgCommoditiesModel>(_commoditiesModels.Values);
+                _dgCommoditiesItems =
+                    new ObservableCollection<DgCommoditiesModel>(_dgCommoditiesModels.Values.OrderBy(c => c.Position));
+                _cbxMoveCommoditiesModels = new Dictionary<int, CbxMoveCommoditiesModel>(
+                    _hostingWindow._package.Commodities.ToDictionary(c => c.Id,
+                        c => new CbxMoveCommoditiesModel {Commodity = c}));
+
+                _cbxMoveCommoditiesItems =
+                    new ObservableCollection<CbxMoveCommoditiesModel>(
+                        _cbxMoveCommoditiesModels.Values.OrderBy(c => c.Commodity.Position));
+
+                foreach (var com in _hostingWindow._package.Commodities)
+                {
+                    com.PropertyNotificationManager.Subscribe(nameof(Commodity.Position), CommodityOnPositionChanged);
+                }
 
                 nudCommodityCost.FormatString = nudCommodityWholePrice.FormatString =
                     nudCommodityPartialPrice.FormatString = "0.00";
@@ -142,23 +192,144 @@ namespace MainUI
 
                 _hostingWindow._package.CommodityAdded += PackageOnCommodityAdded;
                 _hostingWindow._package.CommodityRemoved += PackageOnCommodityRemoved;
-                GC.KeepAlive(txtSearch.GetObservable(TextBox.TextProperty).Do(TxtSearchOnTextChanged).Subscribe());
+                _eventsSubscribtions.Add(txtSearch.GetObservable(TextBox.TextProperty).Do(TxtSearchOnTextChanged)
+                    .Subscribe());
 
                 _hostingWindow.Get<MenuItem>("miCreateCommodity").Click +=
                     async (sender, args) => await CreateNewCommodity();
                 _hostingWindow.Get<MenuItem>("miDeleteCommodity").Click +=
                     async (sender, args) => await DeleteSelectedCommodities();
                 btnMoveSelectedCommodity.Click += BtnMoveSelectedCommodityOnClick;
+                btnSaveCommodityToMemory.Click += BtnSaveCommodityToMemoryOnClick;
+                btnSaveCommodityToDB.Click += BtnSaveCommodityToDBOnClick;
+                btnReloadCommodity.Click += BtnReloadCommodityOnClick;
 
                 dgCommodities.Items = _dgCommoditiesItems;
+                cbxMoveCommodities.Items = _cbxMoveCommoditiesItems;
 
-                GC.KeepAlive(_hostingWindow.GetObservable(Window.ClientSizeProperty)
+                _eventsSubscribtions.Add(_hostingWindow.GetObservable(Window.ClientSizeProperty)
                     .Do(sz => dgCommodities.Height = sz.Height - 250).Subscribe());
             }
 
+            private void CommodityOnPositionChanged(object comObj, PropertyChangedEventArgs _)
+            {
+                var com = comObj as Commodity;
+                var comDgModel = _dgCommoditiesModels[com.Id];
+                if (_dgCommoditiesItems.Remove(comDgModel))
+                {
+                    AddCommoditiesToDgCommoditiesItems(new[] {comDgModel});
+                }
+
+                var comCbxModel = _cbxMoveCommoditiesModels[com.Id];
+                _cbxMoveCommoditiesItems.Remove(comCbxModel);
+                AddCommoditiesToCbxMoveCommoditiesItems(new[] {comCbxModel});
+            }
+
+            private async void BtnReloadCommodityOnClick(object? sender, RoutedEventArgs e)
+            {
+                foreach (var comModel in dgCommodities.SelectedItems.Cast<DgCommoditiesModel>())
+                {
+                    await comModel.Commodity.Reload();
+                }
+            }
+
+            private DgCommoditiesModel? GetSelectedCommodity() => dgCommodities.SelectedItems.Count == 0
+                ? null
+                : dgCommodities.SelectedItems[0] as DgCommoditiesModel;
+
+            private void SaveSelectedCommodityToMemory()
+            {
+                var selectedCommodity = GetSelectedCommodity()?.Commodity;
+                if (selectedCommodity == null)
+                {
+                    return;
+                }
+
+                selectedCommodity.Name = txtCommodityName.Text;
+                selectedCommodity.Cost = (decimal) nudCommodityCost.Value;
+                selectedCommodity.WholePrice = (decimal) nudCommodityWholePrice.Value;
+                selectedCommodity.PartialPrice = (decimal) nudCommodityPartialPrice.Value;
+            }
+
+            private void AddCommoditiesToCbxMoveCommoditiesItems(IEnumerable<CbxMoveCommoditiesModel> coms)
+            {
+                coms = coms.OrderBy(c => c.Commodity.Position);
+
+                int i = 0, comPos;
+                foreach (var com in coms)
+                {
+                    comPos = _cbxMoveCommoditiesItems.Count;
+                    for (; i < _cbxMoveCommoditiesItems.Count; i++)
+                    {
+                        if (_cbxMoveCommoditiesItems[i].Commodity.Position > com.Commodity.Position)
+                        {
+                            comPos = i++;
+                            break;
+                        }
+                    }
+
+                    _cbxMoveCommoditiesItems.Insert(comPos, com);
+                }
+            }
+
+            private void AddCommoditiesToDgCommoditiesItems(IEnumerable<DgCommoditiesModel> coms)
+            {
+                if (string.IsNullOrWhiteSpace(txtSearch.Text) == false)
+                {
+                    coms = coms.Where(c =>
+                    {
+                        try
+                        {
+                            return Regex.IsMatch(c.Name, txtSearch.Text);
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+                    });
+                }
+
+                coms = coms.OrderBy(c => c.Position);
+
+                int i = 0, comPos;
+                foreach (var com in coms)
+                {
+                    comPos = _dgCommoditiesItems.Count;
+                    for (; i < _dgCommoditiesItems.Count; i++)
+                    {
+                        if (_dgCommoditiesItems[i].Position > com.Position)
+                        {
+                            comPos = i++;
+                            break;
+                        }
+                    }
+
+                    _dgCommoditiesItems.Insert(comPos, com);
+                }
+            }
+
+            private async void BtnSaveCommodityToDBOnClick(object? sender, RoutedEventArgs e)
+            {
+                SaveSelectedCommodityToMemory();
+                foreach (var comModel in dgCommodities.SelectedItems.Cast<DgCommoditiesModel>())
+                {
+                    await comModel.Commodity.Save();
+                }
+            }
+
+            private void BtnSaveCommodityToMemoryOnClick(object? sender, RoutedEventArgs e) =>
+                SaveSelectedCommodityToMemory();
+
             private void BtnMoveSelectedCommodityOnClick(object? sender, RoutedEventArgs e)
             {
-                throw new NotImplementedException();
+                var comToMove = GetSelectedCommodity();
+                var comToMoveBefore = cbxMoveCommodities.SelectedItem as CbxMoveCommoditiesModel;
+                if (comToMoveBefore == null || comToMove == null)
+                {
+                    return;
+                }
+
+                comToMove.Commodity.SetPosition(comToMoveBefore.Commodity.Position);
             }
 
             private async void DgCommoditiesOnKeyDown(object? sender, KeyEventArgs e)
@@ -176,14 +347,14 @@ namespace MainUI
                     case Key.Delete:
                         await DeleteSelectedCommodities();
                         break;
-                    default: break;
                 }
             }
 
             private void DgCommoditiesOnSelectionChanged(object? sender, SelectionChangedEventArgs e)
             {
                 e.Handled = true;
-                if (dgCommodities.SelectedItem == null)
+                var selectedCommodity = GetSelectedCommodity();
+                if (selectedCommodity == null)
                 {
                     txtCommodityName.Text = "";
                     nudCommodityCost.Value = nudCommodityWholePrice.Value = nudCommodityPartialPrice.Value = 0;
@@ -199,11 +370,7 @@ namespace MainUI
                     {
                         i.IsEnabled = true;
                     }
-                    btnMoveSelectedCommodity.IsEnabled = true;
-                    txtCommodityName.IsReadOnly = nudCommodityCost.IsReadOnly =
-                        nudCommodityWholePrice.IsReadOnly = nudCommodityPartialPrice.IsReadOnly = false;
 
-                    var selectedCommodity = dgCommodities.SelectedItem as DgCommoditiesModel;
                     txtCommodityName.Text = selectedCommodity.Name;
                     nudCommodityCost.Value = (double) selectedCommodity.Cost;
                     nudCommodityWholePrice.Value = (double) selectedCommodity.WholePrice;
@@ -213,33 +380,34 @@ namespace MainUI
 
             private void PackageOnCommodityRemoved(CommodityPackage sender, Commodity com)
             {
-                _dgCommoditiesItems.Remove(_commoditiesModels[com.Id]);
-                _commoditiesModels.Remove(com.Id);
+                _dgCommoditiesItems.Remove(_dgCommoditiesModels[com.Id]);
+                _dgCommoditiesModels.Remove(com.Id);
+                _cbxMoveCommoditiesItems.Remove(_cbxMoveCommoditiesModels[com.Id]);
+                _cbxMoveCommoditiesModels.Remove(com.Id);
             }
 
             private void PackageOnCommodityAdded(CommodityPackage sender, Commodity com)
             {
-                var comModel = new DgCommoditiesModel {Commodity = com};
-                _commoditiesModels.Add(com.Id, comModel);
-                if (string.IsNullOrWhiteSpace(txtSearch.Text) || Regex.IsMatch(com.Name, txtSearch.Text))
+                var comDgModel = new DgCommoditiesModel {Commodity = com};
+                _dgCommoditiesModels.Add(com.Id, comDgModel);
+                AddCommoditiesToDgCommoditiesItems(new[] {comDgModel});
+                if (_dgCommoditiesItems.Contains(comDgModel))
                 {
-                    _dgCommoditiesItems.Add(comModel);
-                    dgCommodities.SelectedItem = comModel;
+                    dgCommodities.SelectedItems.Clear();
+                    dgCommodities.SelectedItems.Add(comDgModel);
                 }
+
+                var comCbxModel = new CbxMoveCommoditiesModel {Commodity = com};
+                _cbxMoveCommoditiesModels.Add(com.Id, comCbxModel);
+                AddCommoditiesToCbxMoveCommoditiesItems(new[] {comCbxModel});
+
+                com.PropertyNotificationManager.Subscribe(nameof(Commodity.Position), CommodityOnPositionChanged);
             }
 
             private void TxtSearchOnTextChanged(string text)
             {
                 _dgCommoditiesItems.Clear();
-                if (string.IsNullOrWhiteSpace(text))
-                {
-                    _dgCommoditiesItems.AddRange(_commoditiesModels.Values);
-                }
-                else
-                {
-                    _dgCommoditiesItems.AddRange(_commoditiesModels.Values.Where(c =>
-                        Regex.IsMatch(c.Name, text)));
-                }
+                AddCommoditiesToDgCommoditiesItems(_dgCommoditiesModels.Values);
             }
 
             private async Task CreateNewCommodity() => await _hostingWindow._package.AddCommodity();
@@ -249,6 +417,18 @@ namespace MainUI
                 foreach (var com in dgCommodities.SelectedItems.Cast<DgCommoditiesModel>().ToArray())
                 {
                     await com.Commodity.Delete();
+                }
+            }
+
+            public void Dispose()
+            {
+                _dgCommoditiesItems.Clear();
+                _dgCommoditiesModels.Clear();
+                _cbxMoveCommoditiesItems.Clear();
+                _cbxMoveCommoditiesModels.Clear();
+                foreach (var sub in _eventsSubscribtions)
+                {
+                    sub.Dispose();
                 }
             }
         }

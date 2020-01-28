@@ -54,7 +54,10 @@ namespace RepoImageMan
         /// Less than 2(ex: <see cref="int.MinValue"/>) to set it as the firts commodity.
         /// Any value higher than maximum position(ex: <see cref="int.MaxValue"/>) in db to set it as last.
         /// </param>
-        /// <remarks>One operation across pkg because of the UNIQUE constraint on column Position</remarks>
+        /// <remarks>
+        /// One operation across pkg because of the UNIQUE constraint on column Position.
+        /// The first position in package is 0.
+        /// </remarks>
         public async ValueTask SetPosition(int newPosition)
         {
             if (newPosition == Position) { return; }
@@ -62,8 +65,8 @@ namespace RepoImageMan
             await using var con = Package.GetConnection();
             con.Open();
 
-            if (newPosition < 1) { newPosition = 1; }
-            int maxPosition = Package.Commodities.Any() == false ? 1 : Package.Commodities.Max(c => c.Position);
+            if (newPosition < 1) { newPosition = 0; }
+            int maxPosition = Package.Commodities.Any() == false ? 0 : Package.Commodities.Max(c => c.Position);
             if (newPosition > maxPosition) { newPosition = maxPosition; }
 
 

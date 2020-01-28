@@ -4,13 +4,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         x:Class="MainUI.CommodityImageWindow"
-        Title="Commodities And Images Manager" MinWidth="650" MinHeight="560">
+        Title="Commodities And Images Manager" MinWidth="650" MinHeight="560" WindowStartupLocation="CenterScreen">
     <TabControl>
         <TabItem Name="tabCommodities" Header="Commodities">
             <StackPanel>
                 <DataGrid Name="dgCommodities" CanUserResizeColumns="True"
                           CanUserSortColumns="True"
-                          SelectionMode="Single">
+                          SelectionMode="Extended">
                     <DataGrid.Columns>
                         <DataGridCheckBoxColumn Binding="{Binding Export, Mode=TwoWay}" IsThreeState="False">
                             <DataGridCheckBoxColumn.Header>
@@ -35,54 +35,67 @@
                         <Grid.ColumnDefinitions>
                             <!--First labels column-->
                             <ColumnDefinition />
-                            <ColumnDefinition Width="2"/>
+                            <ColumnDefinition Width="5" />
                             <ColumnDefinition Width="150" />
                             <!--Margin Column-->
                             <ColumnDefinition Width="200" />
                             <!--Second labels column-->
                             <ColumnDefinition />
-                            <ColumnDefinition Width="2"/>
+                            <ColumnDefinition Width="5" />
                             <!--Second content column-->
                             <ColumnDefinition Width="150" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="30" />
                             <!--Margin Row-->
-                            <RowDefinition Height="2" />
+                            <RowDefinition Height="5" />
                             <RowDefinition Height="30" />
                         </Grid.RowDefinitions>
                         <TextBlock Text="Name" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" />
-                        <TextBox IsReadOnly="True" Name="txtCommodityName" Grid.Row="0" Grid.Column="2"
-                                 HorizontalAlignment="Stretch"
-                                 VerticalAlignment="Stretch" />
+                        <TextBox Name="txtCommodityName" Grid.Row="0" Grid.Column="2" HorizontalAlignment="Stretch"
+                                 VerticalAlignment="Stretch" IsEnabled="False" />
                         <TextBlock Text="Cost" Grid.Row="2" Grid.Column="0" HorizontalAlignment="Left" />
-                        <NumericUpDown Name="nudCommodityCost" IsReadOnly="True" Grid.Row="2" Grid.Column="2"
+                        <NumericUpDown Name="nudCommodityCost" IsEnabled="False" Grid.Row="2" Grid.Column="2"
                                        Minimum="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
-                        
+
                         <TextBlock Text="Whole Price" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Left" />
-                        <NumericUpDown Name="nudCommodityWholePrice" IsReadOnly="True" Grid.Row="0" Grid.Column="6"
+                        <NumericUpDown Name="nudCommodityWholePrice" IsEnabled="False" Grid.Row="0" Grid.Column="6"
                                        Minimum="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
                         <TextBlock Text="Partial Price" Grid.Row="2" Grid.Column="4" HorizontalAlignment="Left" />
-                        <NumericUpDown Name="nudCommodityPartialPrice" IsReadOnly="True" Grid.Row="2" Grid.Column="6"
+                        <NumericUpDown Name="nudCommodityPartialPrice" IsEnabled="False" Grid.Row="2" Grid.Column="6"
                                        Minimum="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
                     </Grid>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0 10 0 0">
                         <ComboBox Name="cbxMoveCommodities" Width="150" AutoScrollToSelectedItem="True"
-                                  ToolTip.Tip="Which commodity to move BEFORE" />
+                                  ToolTip.Tip="Which commodity to move BEFORE" IsEnabled="False">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name, Mode=OneWay}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
                         <Button Name="btnMoveSelectedCommodity" Content="Move" IsEnabled="False" Margin="10 0 0 0" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0 10 0 0">
                         <Button Name="btnSaveCommodityToMemory" IsEnabled="False" Content="Save to memory"
-                                ToolTip.Tip="Saves the changes done to the commodity(except position) to the memory. If the windows is closed without saving to DB all changes will be discarded." />
+                                ToolTip.Tip="Saves the changes done to ALL OF SELECTED commodities(except position) to the memory. If the window is closed without saving to DB all changes will be discarded." />
                         <Button Name="btnSaveCommodityToDB" Content="Save to DB" IsEnabled="False" Margin="10 0 0 0"
-                                ToolTip.Tip="Saves the changes done to commodity to DB so they are permanent." />
+                                ToolTip.Tip="Saves the changes done to ALL OF SELECTED commodities to DB so they are permanent." />
                         <Button Name="btnReloadCommodity" Content="Reload from db" IsEnabled="False" Margin="10 0 0 0"
-                                ToolTip.Tip="Reloads the commodity from DB discarding all changes in memory(except position)." />
+                                ToolTip.Tip="Reloads ALL OF SELECTED commodities from DB discarding all changes in memory(except position)." />
                     </StackPanel>
                 </StackPanel>
                 <TextBox Name="txtSearch" Margin="30 0" Height="30" Width="300" HorizontalAlignment="Center"
                          ToolTip.Tip="TODO: Fill me" />
             </StackPanel>
+        </TabItem>
+        <TabItem Name="tabImages" Header="Images">
+            <TreeView SelectionMode="AlwaysSelected">
+                <TreeView.ItemTemplate>
+                    <TreeDataTemplate>
+                    </TreeDataTemplate>
+                </TreeView.ItemTemplate>
+            </TreeView>
         </TabItem>
     </TabControl>
 </Window>
