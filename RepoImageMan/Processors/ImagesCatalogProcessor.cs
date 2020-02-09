@@ -54,7 +54,11 @@ namespace RepoImageMan.Processors
         private void ProcessImage(CImage image)
         {
             Image<TPixel> processingImage;
-            using (var imageStream = image.OpenStream())
+            if (!image.TryOpenStream(out var imageStream))
+            {
+                throw new Exception($"Can't read image(Id: {image.Id}).");
+            }
+            using ( imageStream)
             {
                 processingImage = Image.Load<TPixel>(imageStream);
             }

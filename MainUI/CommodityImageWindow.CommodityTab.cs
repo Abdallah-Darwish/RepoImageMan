@@ -21,8 +21,10 @@ namespace MainUI
 {
     public partial class CommodityImageWindow
     {
+        //TODO: make poition holders name color gray
         private class CommodityTab : IDisposable
         {
+            //TODO: make me position to unsubscribe from commodity events
             public class DgCommoditiesModel : INotifyPropertyChanged
             {
                 private Commodity _commodity;
@@ -77,15 +79,9 @@ namespace MainUI
                 public event PropertyChangedEventHandler PropertyChanged;
 
                 [NotifyPropertyChangedInvocator]
-                protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
-                {
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-                }
+                protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
-                private void CommodityPropertyChanged(object sender, PropertyChangedEventArgs e)
-                {
-                    PropertyChanged?.Invoke(this, e);
-                }
+                private void CommodityPropertyChanged(object sender, PropertyChangedEventArgs e) => PropertyChanged?.Invoke(this, e);
             }
 
             public class CbxMoveCommoditiesModel : INotifyPropertyChanged
@@ -141,7 +137,7 @@ namespace MainUI
 
             private readonly InputElement[] _selectedCommodityDependants;
 
-            private readonly List<IDisposable> _eventsSubscribtions = new List<IDisposable>();
+            private readonly List<IDisposable> _eventsSubscriptions = new List<IDisposable>();
 
             public CommodityTab(CommodityImageWindow hostingWindow)
             {
@@ -192,7 +188,7 @@ namespace MainUI
 
                 _hostingWindow._package.CommodityAdded += PackageOnCommodityAdded;
                 _hostingWindow._package.CommodityRemoved += PackageOnCommodityRemoved;
-                _eventsSubscribtions.Add(txtSearch.GetObservable(TextBox.TextProperty).Do(TxtSearchOnTextChanged)
+                _eventsSubscriptions.Add(txtSearch.GetObservable(TextBox.TextProperty).Do(TxtSearchOnTextChanged)
                     .Subscribe());
 
                 _hostingWindow.Get<MenuItem>("miCreateCommodity").Click +=
@@ -207,7 +203,7 @@ namespace MainUI
                 dgCommodities.Items = _dgCommoditiesItems;
                 cbxMoveCommodities.Items = _cbxMoveCommoditiesItems;
 
-                _eventsSubscribtions.Add(_hostingWindow.GetObservable(Window.ClientSizeProperty)
+                _eventsSubscriptions.Add(_hostingWindow.GetObservable(Window.ClientSizeProperty)
                     .Do(sz => dgCommodities.Height = sz.Height - 250).Subscribe());
             }
 
@@ -426,7 +422,7 @@ namespace MainUI
                 _dgCommoditiesModels.Clear();
                 _cbxMoveCommoditiesItems.Clear();
                 _cbxMoveCommoditiesModels.Clear();
-                foreach (var sub in _eventsSubscribtions)
+                foreach (var sub in _eventsSubscriptions)
                 {
                     sub.Dispose();
                 }

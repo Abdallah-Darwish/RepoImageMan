@@ -106,7 +106,8 @@ namespace RepoImageMan
 
         public Color SurroundingBoxColor
         {
-            get => _surroundingBoxColor; set
+            get => _surroundingBoxColor; 
+            set
             {
                 _surroundingBoxColor = value;
                 UpdateMe(this, new PropertyChangedEventArgs(nameof(SurroundingBoxColor)));
@@ -139,6 +140,11 @@ namespace RepoImageMan
                 .Subscribe(nameof(ImageCommodity.LabelColor), UpdateMe)
                 .Subscribe(nameof(ImageCommodity.Font), UpdateFont);
 
+            UpdateAfterImageResize();
+        }
+
+        internal void UpdateAfterImageResize()
+        {
             UpdateFont(Commodity, new PropertyChangedEventArgs("CALLED FROM CONSTRUCTOR"));
         }
 

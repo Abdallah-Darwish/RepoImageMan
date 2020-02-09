@@ -41,21 +41,39 @@ namespace RepoImageMan
         /// </summary>
         public CImage Image { get; }
 
+        private Size _instanceSize;
+
         /// <summary>
         /// Provieds a way to resize this image to fit the final ImageBox without having to resize after every update.
         /// This will not change <see cref="Image"/> <see cref="CImage.SizeRatio"/>.
         /// </summary>
-        public Size InstanceSize { get; }
+        public Size InstanceSize
+        {
+            get => _instanceSize;
+            set
+            {
+                if(_instanceSize == value){return;}
+
+                _instanceSize = value;
+                foreach (var com in _commodities)
+                {
+                    com.UpdateAfterImageResize();
+                }
+                UpdateMe();
+            }
+        }
 
         /// <summary>
         /// The scale that is used to map points from <see cref="CImage"/> to this resized <see cref="DesignCImage"/>.
         /// </summary>
-        public SizeF ToOriginalMappingScale { get; }
+        public SizeF ToOriginalMappingScale => new SizeF(_originalImage.Width / (float) InstanceSize.Width,
+            _originalImage.Height / (float) InstanceSize.Height);
 
         /// <summary>
         /// The scale that is used to map points from this instance to the original <see cref="CImage"/>.
         /// </summary>
-        public SizeF ToDesignMappingScale { get; }
+        public SizeF ToDesignMappingScale => new SizeF(InstanceSize.Width / (float) _originalImage.Width,
+            InstanceSize.Height / (float) _originalImage.Height);
 
         private readonly List<DesignImageCommodity<TPixel>> _commodities = new List<DesignImageCommodity<TPixel>>();
 
@@ -188,20 +206,19 @@ namespace RepoImageMan
             ImageUpdated?.Invoke(this);
         }
 
-        internal DesignCImage(CImage image, Size mySize)
+        internal DesignCImage(CImage image)
         {
-            InstanceSize = mySize;
             Image = image;
+            InstanceSize = image.Size;
 
-            using (var imgStream = Image.OpenStream())
+            if (Image.TryOpenStream(out var imgStream) == false)
+            {
+                throw new InvalidOperationException("Can't read the image.");
+            }
+            using (imgStream)
             {
                 _originalImage = Image<TPixel>.Load<TPixel>(imgStream);
             }
-
-            ToOriginalMappingScale = new SizeF(_originalImage.Width / (float) InstanceSize.Width,
-                _originalImage.Height / (float) InstanceSize.Height);
-            ToDesignMappingScale = new SizeF(InstanceSize.Width / (float) _originalImage.Width,
-                InstanceSize.Height / (float) _originalImage.Height);
 
             foreach (var com in Image.Commodities)
             {

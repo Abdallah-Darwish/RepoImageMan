@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
@@ -19,7 +20,7 @@ namespace Tester
             foreach (var c in coms)
             {
                 var ic = await img.AddCommodity();
-                ic.Location = new PointF((float) c.IDX, (float) c.IDY);
+                ic.Location = new PointF(MathF.Min((float) c.IDX, img.Size.Width), MathF.Min((float) c.IDY, img.Size.Height));
                 ic.Font = SystemFonts.CreateFont("Arial", c.IDFontSize);
                 ic.LabelColor = new Argb32((uint) c.IDForeColorArgb);
                 ic.Cost = c.Cost ?? 0m;
@@ -34,15 +35,12 @@ namespace Tester
         {
             nimg.Brightness = 1.0f;
             nimg.Contrast = oimg.Contrast;
-            using (var ns = nimg.OpenStream())
-            {
-                await using var os = new FileStream(Path.Combine(imgFolder, oimg.Path.Split('\\').Last()),
-                    FileMode.Open,
-                    FileAccess.Read);
-                await os.CopyToAsync(ns);
-            }
 
-            nimg.Refresh();
+            await using var os = new FileStream(Path.Combine(imgFolder, oimg.Path.Split('\\').Last()),
+                FileMode.Open,
+                FileAccess.Read);
+            
+            await nimg.ReplaceFile(os).ConfigureAwait(false);
             await Fix(nimg, coms);
         }
 

@@ -45,14 +45,6 @@ namespace Tester
             btnOpenPackage.Click += OpenPackage;
             btnBindImage.Click += BindImage;
             img.PointerPressed += OnImageClicked;
-            {
-                var ops = new JsonSerializerOptions {Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)};
-                var x = JsonSerializer.Deserialize<OCImage[]>(
-                    File.ReadAllText(@"/home/abdullah/Desktop/repo/Images.json"),
-                    ops);
-                txtInfo.Content =
-                    $"{{{string.Join(", ", x.GroupBy(a => a.QualityLevel).Select(a => $"{a.Key}: {a.Count()}"))}}}";
-            }
         }
 
         private void InitializeComponent()
@@ -62,12 +54,12 @@ namespace Tester
 
         private async void CreatePackage([CanBeNull] object sender, RoutedEventArgs e)
         {
-            await OldDbConverter.Convert(@"/home/abdullah/Desktop/repo/Commodities.json",
-                @"/home/abdullah/Desktop/repo/Images.json",
-                @"/home/abdullah/Desktop/repo/cat/",
-                @"/home/abdullah/Desktop/new_repo/db.sqlite",
-                @"/home/abdullah/Desktop/new_repo/pkg.zip",
-                10);
+            await OldDbConverter.Convert(@"/home/abdullah/Desktop/repo_files/old_repo/Commodities.json",
+                @"/home/abdullah/Desktop/repo_files/old_repo/Images.json",
+                @"/home/abdullah/Desktop/repo_files/old_repo/",
+                @"/home/abdullah/Desktop/repo_files/new_repo/db.sqlite",
+                @"/home/abdullah/Desktop/repo_files/new_repo/pkg.zip",
+                5);
         }
 
         private async void OpenPackage(object? sender, RoutedEventArgs e)
@@ -82,7 +74,7 @@ namespace Tester
             var rand = new Random();
             var sz = new SixLabors.Primitives.Size((int) img.Width, (int) img.Height);
             var bindImage = _package.Images[rand.Next(_package.Images.Count)];
-            bindImage.TryDesign(out _image, sz);
+            bindImage.TryDesign(out _image);
             _image.ImageUpdated += OnImageUpdated;
             OnImageUpdated(_image);
         }

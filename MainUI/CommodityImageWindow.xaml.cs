@@ -23,18 +23,17 @@ namespace MainUI
     {
         private readonly CommodityPackage _package;
         private readonly CommodityTab _commodityTab;
+        private readonly ImageTab _imageTab;
         public CommodityImageWindow()
         {
         }
-
-        private IDisposable x;
+        
         public CommodityImageWindow(CommodityPackage package)
         {
             InitializeComponent();
             _package = package;
             _commodityTab = new CommodityTab(this);
-
-            Closed += (sender, args) => _package.Dispose();
+            _imageTab = new ImageTab(this);
         }
 
         private void InitializeComponent()

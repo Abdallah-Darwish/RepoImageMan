@@ -127,10 +127,11 @@ namespace MainUI
 
         private async void BtnSettings_Click(object? sender, RoutedEventArgs e)
         {
-            var p = await CommodityPackage.Open(@"/home/abdullah/Desktop/new_repo/db.sqlite",
-                @"/home/abdullah/Desktop/new_repo/pkg.zip");
+            var p = await CommodityPackage.Open(@"/home/abdullah/Desktop/repo_files/new_repo/db.sqlite",
+                @"/home/abdullah/Desktop/repo_files/new_repo/pkg.zip");
 
-            CommodityImageWindow ein = new CommodityImageWindow(p);
+            var ein = new CommodityImageWindow(p);
+            ein.Closed += (o, args) => p.Dispose();  
             ein.Show();
             btnSettings.Content = "NOT IMPLEMENTED YET!";
         }

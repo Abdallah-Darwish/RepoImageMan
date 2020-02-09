@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -75,7 +76,7 @@ namespace RepoImageMan
 
         /// <summary>
         /// Id of the image inside the package.
-        /// Unique per <see cref="CommodityPackage"/> but might be repeated accross packages.
+        /// Unique per <see cref="CommodityPackage"/> but might be repeated across packages.
         /// </summary>
         public int Id { get; }
 
@@ -177,7 +178,7 @@ namespace RepoImageMan
         /// <summary>
         /// Because loading, removing commodities is mostly done concurrently we have to guard <see cref="_commodities"/>.
         /// </summary>
-        readonly SemaphoreSlim _commoditiesLock = new SemaphoreSlim(1);
+        private readonly SemaphoreSlim _commoditiesLock = new SemaphoreSlim(1);
 
         /// <summary>
         /// Will be raised when a <see cref="ImageCommodity"/> that belongs to this <see cref="CImage"/> is deleted from <see cref="Package"/>.
@@ -223,15 +224,29 @@ namespace RepoImageMan
             Brightness = (float) fields.Brightness;
         }
 
+        public delegate void ImageFileUpdatedEventHandler(CImage image);
+
+        /// <summary>
+        /// Raised when the bytes of this image are modeified
+        /// </summary>
+        public event ImageFileUpdatedEventHandler FileUpdated;
+
         /// <summary>
         /// Re-reads any file specific properties like <see cref="Size"/>.
         /// </summary>
-        public void Refresh()
+        private void Refresh()
         {
             try
             {
                 using var imgStream = Package.OpenImageStream(this);
                 Size = Image.Identify(imgStream).Size();
+                foreach (var com in Commodities)
+                {
+                    com.Location = new PointF(MathF.Min(Size.Width, com.Location.X),
+                        MathF.Min(Size.Height, com.Location.Y));
+                }
+
+                FileUpdated?.Invoke(this);
             }
             catch (NullReferenceException ex) when (ex.StackTrace.Contains(nameof(Package.OpenImageStream)))
             {
@@ -241,9 +256,40 @@ namespace RepoImageMan
 
         /// <summary>
         /// Doesn't support concurrent access.
-        /// In case of modification please call <see cref="Refresh"/>.
+        /// Because the underlying archive is open with <see cref="ZipArchiveMode.Update"/> and this mode doesn't support multiple opening of the file because its considered as writing attempt.
         /// </summary>
-        public Stream OpenStream() => Package.OpenImageStream(this);
+        public bool TryOpenStream(out ReadOnlyStream? result)
+        {
+            result = null;
+            try
+            {
+                result =  new ReadOnlyStream(Package.OpenImageStream(this));
+                return true;
+            }
+            catch(IOException){}
+
+            return false;
+        }
+
+
+        /// <summary>
+        /// Erases the old file and writes this one instead.
+        /// </summary>
+        /// <param name="newFile">Will be read from its current position to end.</param>
+        public async Task ReplaceFile(Stream newFile)
+        {
+            if (_designInstancesCount != 0)
+            {
+                throw new InvalidOperationException("You can't modify the image file while it is open for design.");
+            }
+            await using (var fs = Package.OpenImageStream(this))
+            {
+                await newFile.CopyToAsync(fs).ConfigureAwait(false);
+                fs.SetLength(fs.Position);
+            }
+
+            Refresh();
+        }
 
         public delegate void DeletingEventHandler(CImage sender);
 
@@ -285,19 +331,18 @@ namespace RepoImageMan
         /// Attempts to open this instance in a <see cref="DesignCImage{TPixel}"/> if its not already open.
         /// </summary>
         /// <param name="result">Result of the operation, will be <see cref="null"/> in case the operation wasn't successful.</param>
-        /// <param name="designSize"><see cref="DesignCImage{TPixel}.InstanceSize"/> of <paramref name="result"/>.</param>
         /// <typeparam name="TPixel">Type of pixel to use in storing of the resulting image.</typeparam>
         /// <returns>
-        /// <see cref="true"/> if its open successfuly and <paramref name="result"/> will contain an instance of <see cref="DesignCImage{TPixel}"/>,
+        /// <see cref="true"/> if its open successfully and <paramref name="result"/> will contain an instance of <see cref="DesignCImage{TPixel}"/>,
         /// otherwise <see cref="false"/> and <paramref name="result"/> will contain <see cref="null"/>.
         /// </returns>
-        public bool TryDesign<TPixel>(out DesignCImage<TPixel>? result, Size designSize)
+        public bool TryDesign<TPixel>(out DesignCImage<TPixel>? result)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             if (Interlocked.CompareExchange(ref _designInstancesCount, 1, 0) == 0)
             {
-                result = new DesignCImage<TPixel>(this, designSize);
-                result.ImageDisposed += (s) => Interlocked.Decrement(ref _designInstancesCount);
+                result = new DesignCImage<TPixel>(this);
+                result.ImageDisposed += s => Interlocked.Decrement(ref _designInstancesCount);
                 return true;
             }
 
@@ -308,40 +353,37 @@ namespace RepoImageMan
         public async Task<ImageCommodity> CreateOrGetPositionHolder()
         {
             var posHolder = GetPositionHolder();
-            if (posHolder == null)
-            {
-                posHolder = await AddCommodity().ConfigureAwait(false);
-                posHolder.IsPositionHolder = true;
-                await posHolder.Save().ConfigureAwait(false);
-            }
+            if (posHolder != null) return posHolder;
+            posHolder = await AddCommodity().ConfigureAwait(false);
+            posHolder.IsPositionHolder = true;
+            await posHolder.Save().ConfigureAwait(false);
             return posHolder;
         }
 
         public ImageCommodity? GetPositionHolder() => _commodities.FirstOrDefault(c => c.IsPositionHolder);
+
         #region IDisposable Support
 
         private bool _disposedValue = false; // To detect redundant calls
 
         /// <summary>
-        /// You shouldn't call this explecitly, instead call <see cref="CommodityPackage.Dispose"/>.
+        /// You shouldn't call this explicitly, instead call <see cref="CommodityPackage.Dispose"/>.
         /// </summary>
         public void Dispose()
         {
-            if (!_disposedValue)
+            if (_disposedValue) return;
+            _disposedValue = true;
+            PropertyChanged = null;
+            CommodityRemoved = null;
+            CommodityAdded = null;
+            _propertyNotificationManager.Dispose();
+            foreach (var com in _commodities)
             {
-                _disposedValue = true;
-                PropertyChanged = null;
-                CommodityRemoved = null;
-                CommodityAdded = null;
-                _propertyNotificationManager.Dispose();
-                foreach (var com in _commodities)
-                {
-                    com.Dispose();
-                }
-
-                _commodities.Clear();
-                _commoditiesLock.Dispose();
+                com.Dispose();
             }
+
+            _commodities.Clear();
+            _commoditiesLock.Dispose();
         }
 
         #endregion
