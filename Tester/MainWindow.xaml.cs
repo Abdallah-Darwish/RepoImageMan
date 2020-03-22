@@ -12,7 +12,6 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media.Imaging;
-using JetBrains.Annotations;
 using RepoImageMan;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -52,7 +51,7 @@ namespace Tester
             AvaloniaXamlLoader.Load(this);
         }
 
-        private async void CreatePackage([CanBeNull] object sender, RoutedEventArgs e)
+        private async void CreatePackage(object? sender, RoutedEventArgs e)
         {
             await OldDbConverter.Convert(@"/home/abdullah/Desktop/repo_files/old_repo/Commodities.json",
                 @"/home/abdullah/Desktop/repo_files/old_repo/Images.json",

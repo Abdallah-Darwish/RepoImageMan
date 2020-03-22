@@ -10,7 +10,6 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
-using JetBrains.Annotations;
 using MainUI.ImageTabModels;
 using RepoImageMan;
 using MessageBox.Avalonia;
@@ -180,7 +179,6 @@ namespace MainUI
 
             public event PropertyChangedEventHandler PropertyChanged;
 
-            [NotifyPropertyChangedInvocator]
             private void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
@@ -213,7 +211,6 @@ namespace MainUI
 
             public event PropertyChangedEventHandler PropertyChanged;
 
-            [NotifyPropertyChangedInvocator]
             private void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
@@ -319,7 +316,7 @@ namespace MainUI
                                  ? selectedImageMaxComPos
                                  : selectedImageMaxComPos + 1;
 
-                _imageToMove.SetPosition(newPos);
+                _imageToMove.SetPosition(newPos).ConfigureAwait(false);
                 ResetImageToMove();
             }
 

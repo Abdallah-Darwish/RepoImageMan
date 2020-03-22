@@ -13,20 +13,22 @@ namespace RepoImageMan
 {
     public sealed partial class CommodityPackage
     {
-        public const string DbExtension = "sqlite", ArchiveExtension = "zip";
+        public const string DbExtension = "sqlite", DbName = "db000.sqlite";
         private static string GetConnectionString(string dbPath) => $"Data Source={dbPath};Version=3;";
 
-        public static async Task<CommodityPackage> Open(string dbPath, string packagePath, Image? handleImage = null)
+        internal static string GetPackageDbPath(string packageDirectoryPath) => Path.Combine(packageDirectoryPath, DbName);
+        public static async Task<CommodityPackage> Open(string packageDirectoryPath, Image? handleImage = null)
         {
-            handleImage = handleImage ?? new Image<Rgba32>(1, 1);
-            var res = new CommodityPackage(dbPath, packagePath, handleImage);
+            handleImage ??= new Image<Rgba32>(1, 1);
+            var res = new CommodityPackage(packageDirectoryPath, handleImage);
             await using var con = res.GetConnection();
             var nonImageCommoditiesIds = await con.QueryAsync<int>(
-                @"SELECT c.id FROM Commodity c
+@"SELECT c.id FROM Commodity c
 LEFT JOIN ImageCommodity ic
 ON c.id = ic.id
 WHERE ic.id IS NULL;").ConfigureAwait(false);
             var readingTasks = new List<Task>();
+            //This could be developed further by using a real Parallel.AsyncForEach
             foreach (var comId in nonImageCommoditiesIds)
             {
                 readingTasks.Add(Commodity.Load(comId, res).ContinueWith(ca =>
@@ -52,7 +54,7 @@ WHERE ic.id IS NULL;").ConfigureAwait(false);
             return res;
         }
 
-        public static async Task Create(string dbPath, string packagePath)
+        public static async Task Create(string packageContainerPath)
         {
             const string CreationCommand =
                 @"CREATE TABLE Commodity (
@@ -81,10 +83,11 @@ CREATE TABLE ImageCommodity (
 );
 CREATE INDEX IDX_ImageCommodity_ImageId ON ImageCommodity (ImageId);
 ";
+            string dbPath = GetPackageDbPath(packageContainerPath);
             SQLiteConnection.CreateFile(dbPath);
             await using (var con = new SQLiteConnection(GetConnectionString(dbPath)))
             await using (var archiveStream =
-                new FileStream(packagePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+                new FileStream(packageContainerPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
             using (new ZipArchive(archiveStream, ZipArchiveMode.Create))
             {
                 await con.ExecuteAsync(CreationCommand).ConfigureAwait(false);
@@ -99,7 +102,7 @@ CREATE INDEX IDX_ImageCommodity_ImageId ON ImageCommodity (ImageId);
         {
             package.Dispose();
             File.Delete(package._dbPath);
-            File.Delete(package._packagePath);
+            File.Delete(package._packageDirectoryPath);
         }
     }
 }

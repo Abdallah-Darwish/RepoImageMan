@@ -17,9 +17,15 @@ namespace RepoImageMan
     public sealed class CImage : IDisposable, INotifyPropertyChanged, INotifySpecificPropertyChanged
     {
         /// <summary>
-        /// Name of the image entry(or file) inside <see cref="Package"/> archive.
+        /// Returns the expected file name that will be generated for an image.
+        /// used mainly to create an empty file before loading an image.
         /// </summary>
-        public string PackageEntryName => $"{Id}.jpg";
+        internal static string GetCImagePackageFilePath(CommodityPackage package, int imageId) => Path.Combine(package._packageDirectoryPath, $"{imageId}.jpg");
+        /// <summary>
+        /// Name of the image entry(or file) inside <see cref="Package"/> directory.
+        /// </summary>
+        public string PackageFileName => $"{Id}.jpg";
+        public string PackageFilePath => Path.Combine(Package._packageDirectoryPath, PackageFileName);
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private readonly NotificationManager _propertyNotificationManager;
@@ -56,7 +62,7 @@ namespace RepoImageMan
             await using var con = package.GetConnection();
 
 
-            var comsIds = (await con.QueryAsync<int>("SELECT id FROM ImageCommodity WHERE imageId = @id", new {id})
+            var comsIds = (await con.QueryAsync<int>("SELECT id FROM ImageCommodity WHERE imageId = @id", new { id })
                 .ConfigureAwait(false)).AsList();
             res._commodities.Capacity = comsIds.Count;
             foreach (var comId in comsIds)
@@ -158,9 +164,9 @@ namespace RepoImageMan
                     @"INSERT INTO Commodity(position) VALUES((COALESCE((SELECT MAX(Position) FROM Commodity), 0) + 1));")
                 .ConfigureAwait(false);
             await con.ExecuteAsync(@"INSERT INTO ImageCommodity(id, imageId) VALUES(@id, @imageId);",
-                new {id = (int) con.LastInsertRowId, imageId = Id}).ConfigureAwait(false);
+                new { id = (int)con.LastInsertRowId, imageId = Id }).ConfigureAwait(false);
 
-            var newCom = await ImageCommodity.Load((int) con.LastInsertRowId, Package, this).ConfigureAwait(false);
+            var newCom = await ImageCommodity.Load((int)con.LastInsertRowId, Package, this).ConfigureAwait(false);
             await _commoditiesLock.WaitAsync().ConfigureAwait(false);
             try
             {
@@ -218,10 +224,10 @@ namespace RepoImageMan
         {
             await using var con = Package.GetConnection();
 
-            var fields = await con.QueryFirstAsync("SELECT * FROM CImage WHERE id = @Id", new {Id})
+            var fields = await con.QueryFirstAsync("SELECT * FROM CImage WHERE id = @Id", new { Id })
                 .ConfigureAwait(false);
-            Contrast = (float) fields.Contrast;
-            Brightness = (float) fields.Brightness;
+            Contrast = (float)fields.Contrast;
+            Brightness = (float)fields.Brightness;
         }
 
         public delegate void ImageFileUpdatedEventHandler(CImage image);
@@ -236,40 +242,22 @@ namespace RepoImageMan
         /// </summary>
         private void Refresh()
         {
-            try
+            using var imgStream = new FileStream(PackageFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            Size = Image.Identify(imgStream).Size();
+            foreach (var com in Commodities)
             {
-                using var imgStream = Package.OpenImageStream(this);
-                Size = Image.Identify(imgStream).Size();
-                foreach (var com in Commodities)
-                {
-                    com.Location = new PointF(MathF.Min(Size.Width, com.Location.X),
-                        MathF.Min(Size.Height, com.Location.Y));
-                }
+                com.Location = new PointF(MathF.Min(Size.Width, com.Location.X),
+                    MathF.Min(Size.Height, com.Location.Y));
+            }
 
-                FileUpdated?.Invoke(this);
-            }
-            catch (NullReferenceException ex) when (ex.StackTrace.Contains(nameof(Package.OpenImageStream)))
-            {
-                Size = new Size(0, 0);
-            }
+            FileUpdated?.Invoke(this);
         }
 
         /// <summary>
+        /// RETURNS A READONLY STREAM.
         /// Doesn't support concurrent access.
-        /// Because the underlying archive is open with <see cref="ZipArchiveMode.Update"/> and this mode doesn't support multiple opening of the file because its considered as writing attempt.
         /// </summary>
-        public bool TryOpenStream(out ReadOnlyStream? result)
-        {
-            result = null;
-            try
-            {
-                result =  new ReadOnlyStream(Package.OpenImageStream(this));
-                return true;
-            }
-            catch(IOException){}
-
-            return false;
-        }
+        public Stream OpenStream() => new FileStream(PackageFilePath, FileMode.Open, FileAccess.Read, FileShare.None);
 
 
         /// <summary>
@@ -282,7 +270,7 @@ namespace RepoImageMan
             {
                 throw new InvalidOperationException("You can't modify the image file while it is open for design.");
             }
-            await using (var fs = Package.OpenImageStream(this))
+            await using (var fs = new FileStream(PackageFilePath, FileMode.Open, FileAccess.Write, FileShare.None))
             {
                 await newFile.CopyToAsync(fs).ConfigureAwait(false);
                 fs.SetLength(fs.Position);
@@ -319,7 +307,7 @@ namespace RepoImageMan
             Deleting?.Invoke(this);
             await using var con = Package.GetConnection();
             await Package.RemoveImage(this).ConfigureAwait(false);
-            await con.ExecuteAsync("DELETE FROM CImage WHERE id = @Id", new {Id}).ConfigureAwait(false);
+            await con.ExecuteAsync("DELETE FROM CImage WHERE id = @Id", new { Id }).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -342,25 +330,13 @@ namespace RepoImageMan
             if (Interlocked.CompareExchange(ref _designInstancesCount, 1, 0) == 0)
             {
                 result = new DesignCImage<TPixel>(this);
-                result.ImageDisposed += s => Interlocked.Decrement(ref _designInstancesCount);
+                result.DesignImageDisposed += s => Interlocked.Decrement(ref _designInstancesCount);
                 return true;
             }
 
             result = null;
             return false;
         }
-
-        public async Task<ImageCommodity> CreateOrGetPositionHolder()
-        {
-            var posHolder = GetPositionHolder();
-            if (posHolder != null) return posHolder;
-            posHolder = await AddCommodity().ConfigureAwait(false);
-            posHolder.IsPositionHolder = true;
-            await posHolder.Save().ConfigureAwait(false);
-            return posHolder;
-        }
-
-        public ImageCommodity? GetPositionHolder() => _commodities.FirstOrDefault(c => c.IsPositionHolder);
 
         #region IDisposable Support
 

@@ -34,7 +34,7 @@ namespace RepoImageMan
         /// <remarks>
         /// Used to tell the original image that this instance is being disposed so another instance can be created.
         /// </remarks>
-        internal event ImageDisposedEventHandler? ImageDisposed;
+        internal event ImageDisposedEventHandler? DesignImageDisposed;
 
         /// <summary>
         /// The original image that this instance is actting upon.
@@ -211,11 +211,8 @@ namespace RepoImageMan
             Image = image;
             InstanceSize = image.Size;
 
-            if (Image.TryOpenStream(out var imgStream) == false)
-            {
-                throw new InvalidOperationException("Can't read the image.");
-            }
-            using (imgStream)
+           
+            using (var imgStream = image.OpenStream())
             {
                 _originalImage = Image<TPixel>.Load<TPixel>(imgStream);
             }
@@ -274,8 +271,8 @@ namespace RepoImageMan
                 _renderingPlayground.Dispose();
                 RenderedImage.Dispose();
                 ImageUpdated = null;
-                ImageDisposed?.Invoke(this);
-                ImageDisposed = null;
+                DesignImageDisposed?.Invoke(this);
+                DesignImageDisposed = null;
             }
         }
 

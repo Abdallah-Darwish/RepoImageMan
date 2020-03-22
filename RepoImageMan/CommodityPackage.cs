@@ -35,8 +35,9 @@ namespace RepoImageMan
             => _labelsCaches.GetOrAdd(typeof(TPixel), tp => new ImageCommodityLabelCache<TPixel>()) as
                 ImageCommodityLabelCache<TPixel>;
 
-        private readonly string _dbPath, _packagePath;
-        private readonly ZipArchive _packageArchive;
+        private readonly string _dbPath;
+        internal readonly string _packageDirectoryPath;
+        private readonly DirectoryInfo _packageDirectory;
         private readonly string ConnectionString;
 
         internal SQLiteConnection GetConnection()
@@ -46,13 +47,18 @@ namespace RepoImageMan
             return con;
         }
 
-        internal CommodityPackage(string dbPath, string packagePath, Image handleImage)
+        internal CommodityPackage(string packageDirectoryPath, Image handleImage)
         {
-            _dbPath = dbPath;
-            _packagePath = packagePath;
-            ConnectionString = GetConnectionString(dbPath);
-            var packageStream = new FileStream(packagePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-            _packageArchive = new ZipArchive(packageStream, ZipArchiveMode.Update);
+            _packageDirectoryPath = packageDirectoryPath;
+            _dbPath = GetPackageDbPath(_packageDirectoryPath);
+            if (File.Exists(_dbPath) == false)
+            {
+                throw new FileNotFoundException(
+$@"Can't find package Database.
+Expected Database path is {_dbPath}.");
+            }
+            ConnectionString = GetConnectionString(_dbPath);
+            _packageDirectory = new DirectoryInfo(_packageDirectoryPath);
             _handleImage = handleImage;
         }
 
@@ -74,17 +80,13 @@ namespace RepoImageMan
             await using var con = GetConnection();
             await con.OpenAsync().ConfigureAwait(false);
             await con.ExecuteAsync("INSERT INTO CImage DEFAULT VALUES;").ConfigureAwait(false);
-            var newImage = await CImage.Load((int) con.LastInsertRowId, this).ConfigureAwait(false);
+            int newImageId = (int)con.LastInsertRowId;
+            await File.Create(CImage.GetCImagePackageFilePath(this, newImageId)).DisposeAsync().ConfigureAwait(false);
+            var newImage = await CImage.Load(newImageId, this).ConfigureAwait(false);
             await _imagesLock.WaitAsync().ConfigureAwait(false);
-            try
-            {
-                _packageArchive.CreateEntry(newImage.PackageEntryName, CompressionLevel.NoCompression);
-                _images.Add(newImage);
-            }
-            finally
-            {
-                _imagesLock.Release();
-            }
+            _images.Add(newImage);
+            _imagesLock.Release();
+
 
             ImageAdded?.Invoke(this, newImage);
             return newImage;
@@ -104,7 +106,7 @@ namespace RepoImageMan
             await _imagesLock.WaitAsync().ConfigureAwait(false);
             try
             {
-                _packageArchive.GetEntry(image.PackageEntryName).Delete();
+                File.Delete(image.PackageFilePath);
                 _images.Remove(image);
             }
             finally
@@ -133,7 +135,7 @@ namespace RepoImageMan
                     "INSERT INTO Commodity(Position) VALUES((COALESCE((SELECT MAX(Position) FROM Commodity), 0) + 1));")
                 .ConfigureAwait(false);
 
-            var newCom = await Commodity.Load((int) con.LastInsertRowId, this).ConfigureAwait(false);
+            var newCom = await Commodity.Load((int)con.LastInsertRowId, this).ConfigureAwait(false);
             await _commoditiesLock.WaitAsync().ConfigureAwait(false);
             try
             {
@@ -190,9 +192,6 @@ namespace RepoImageMan
 
             CommodityAdded?.Invoke(this, com);
         }
-
-        internal Stream OpenImageStream(CImage image) => _packageArchive.GetEntry(image.PackageEntryName).Open();
-
         #region IDisposable Support
 
         private bool _disposedValue = false; // To detect redundant calls
@@ -218,7 +217,6 @@ namespace RepoImageMan
 
                 _images.Clear();
                 _commodities.Clear();
-                _packageArchive.Dispose();
                 _labelsCaches.Clear();
                 _commoditiesLock.Dispose();
                 _imagesLock.Dispose();

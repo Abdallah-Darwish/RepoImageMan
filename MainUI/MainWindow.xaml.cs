@@ -29,99 +29,18 @@ namespace MainUI
 
         private async void BtnOpenPack_Click(object? sender, RoutedEventArgs e)
         {
-            var dbOfd = new OpenFileDialog
-            {
-                Title = "Database file.",
-                AllowMultiple = false,
-                Filters = new List<FileDialogFilter>
-                {
-                    new FileDialogFilter
-                    {
-                        Extensions = new List<string>
-                        {
-                            CommodityPackage.DbExtension
-                        },
-                        Name = $"Package Database({CommodityPackage.DbExtension})"
-                    }
-                }
-            };
-            var dbPath = (await dbOfd.ShowAsync(this))?.FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(dbPath))
-            {
-                return;
-            }
-
-            var archiveOfd = new OpenFileDialog
-            {
-                Title = "Archive file.",
-                AllowMultiple = false,
-                Filters = new List<FileDialogFilter>
-                {
-                    new FileDialogFilter
-                    {
-                        Extensions = new List<string>
-                        {
-                            CommodityPackage.ArchiveExtension
-                        },
-                        Name = $"Package Archive({CommodityPackage.ArchiveExtension})"
-                    }
-                }
-            };
-            var archivePath = (await archiveOfd.ShowAsync(this))?.FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(archivePath))
-            {
-                return;
-            }
+            var folderOfd = new OpenFolderDialog { Title = "Package Folder" };
+            var folderPath = await folderOfd.ShowAsync(this);
+            if (string.IsNullOrWhiteSpace(folderPath)) { return; }
 
             //Open Pack
         }
 
         private async void BtnCreatePack_Click(object? sender, RoutedEventArgs e)
         {
-            var dbSfd = new SaveFileDialog
-            {
-                Title = "Database file",
-                DefaultExtension = CommodityPackage.DbExtension,
-                Filters = new List<FileDialogFilter>
-                {
-                    new FileDialogFilter
-                    {
-                        Extensions = new List<string>
-                        {
-                            CommodityPackage.DbExtension
-                        },
-                        Name = $"Package Database({CommodityPackage.DbExtension})"
-                    }
-                }
-            };
-            var dbPath = await dbSfd.ShowAsync(this);
-            if (string.IsNullOrWhiteSpace(dbPath))
-            {
-                return;
-            }
-
-            var archiveSfd = new SaveFileDialog
-            {
-                Title = "Archive file",
-                DefaultExtension = CommodityPackage.ArchiveExtension,
-                Filters = new List<FileDialogFilter>
-                {
-                    new FileDialogFilter
-                    {
-                        Extensions = new List<string>
-                        {
-                            CommodityPackage.ArchiveExtension
-                        },
-                        Name = $"Package Archive({CommodityPackage.ArchiveExtension})"
-                    }
-                }
-            };
-            var archivePath = await archiveSfd.ShowAsync(this);
-            if (string.IsNullOrWhiteSpace(archivePath))
-            {
-                return;
-            }
-
+            var folderOfd = new OpenFolderDialog { Title = "Package Folder" };
+            var folderPath = await folderOfd.ShowAsync(this);
+            if (string.IsNullOrWhiteSpace(folderPath)) { return; }
             //Create Pack
         }
 
@@ -131,7 +50,7 @@ namespace MainUI
                 @"/home/abdullah/Desktop/repo_files/new_repo/pkg.zip");
 
             var ein = new CommodityImageWindow(p);
-            ein.Closed += (o, args) => p.Dispose();  
+            ein.Closed += (o, args) => p.Dispose();
             ein.Show();
             btnSettings.Content = "NOT IMPLEMENTED YET!";
         }
