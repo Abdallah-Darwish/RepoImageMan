@@ -29,7 +29,7 @@ namespace Tester
         private DesignCImage<Rgba32>? _image;
 
         private readonly SixLabors.ImageSharp.Image<Rgba32> _handleImage =
-            SixLabors.ImageSharp.Image.Load<Rgba32>(@"/home/abdullah/Desktop/RepoImageMan/Documents/Arrows1.png");
+            SixLabors.ImageSharp.Image.Load<Rgba32>(@"C:\Users\abdal\source\repos\RepoImageMan\Documents\Arrows1.png");
 
         public MainWindow()
         {
@@ -53,18 +53,16 @@ namespace Tester
 
         private async void CreatePackage(object? sender, RoutedEventArgs e)
         {
-            await OldDbConverter.Convert(@"/home/abdullah/Desktop/repo_files/old_repo/Commodities.json",
-                @"/home/abdullah/Desktop/repo_files/old_repo/Images.json",
-                @"/home/abdullah/Desktop/repo_files/old_repo/",
-                @"/home/abdullah/Desktop/repo_files/new_repo/db.sqlite",
-                @"/home/abdullah/Desktop/repo_files/new_repo/pkg.zip",
-                5);
+            await OldDbConverter.Convert(@"C:\Users\abdal\Desktop\RepoFiles\OldRepo\Repository\Commodities.json",
+                @"C:\Users\abdal\Desktop\RepoFiles\OldRepo\Repository\Images.json",
+                @"C:\Users\abdal\Desktop\RepoFiles\OldRepo\Repository\cat",
+                @"C:\Users\abdal\Desktop\RepoFiles\NewRepo",
+                10);
         }
 
         private async void OpenPackage(object? sender, RoutedEventArgs e)
         {
-            _package = await CommodityPackage.Open(@"/home/abdullah/Desktop/new_repo/db.sqlite",
-                @"/home/abdullah/Desktop/new_repo/pkg.zip", _handleImage);
+            _package = await CommodityPackage.Open(@"C:\Users\abdal\Desktop\RepoFiles\NewRepo", _handleImage);
         }
 
         private void BindImage(object? sender, RoutedEventArgs e)
@@ -74,6 +72,7 @@ namespace Tester
             var sz = new SixLabors.Primitives.Size((int) img.Width, (int) img.Height);
             var bindImage = _package.Images[rand.Next(_package.Images.Count)];
             bindImage.TryDesign(out _image);
+            _image.InstanceSize = sz;
             _image.ImageUpdated += OnImageUpdated;
             OnImageUpdated(_image);
         }

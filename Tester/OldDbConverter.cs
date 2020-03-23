@@ -20,9 +20,9 @@ namespace Tester
             foreach (var c in coms)
             {
                 var ic = await img.AddCommodity();
-                ic.Location = new PointF(MathF.Min((float) c.IDX, img.Size.Width), MathF.Min((float) c.IDY, img.Size.Height));
+                ic.Location = new PointF(MathF.Min((float)c.IDX, img.Size.Width), MathF.Min((float)c.IDY, img.Size.Height));
                 ic.Font = SystemFonts.CreateFont("Arial", c.IDFontSize);
-                ic.LabelColor = new Argb32((uint) c.IDForeColorArgb);
+                ic.LabelColor = new Argb32((uint)c.IDForeColorArgb);
                 ic.Cost = c.Cost ?? 0m;
                 ic.WholePrice = c.WholePrice;
                 ic.PartialPrice = c.PartialPrice;
@@ -39,18 +39,16 @@ namespace Tester
             await using var os = new FileStream(Path.Combine(imgFolder, oimg.Path.Split('\\').Last()),
                 FileMode.Open,
                 FileAccess.Read);
-            
+
             await nimg.ReplaceFile(os).ConfigureAwait(false);
             await Fix(nimg, coms);
         }
 
-        public static async Task Convert(string comsJson, string imgsJson, string imgsFolder,
-            string newDbPath,
-            string newPkgPath, int imgCount)
+        public static async Task Convert(string comsJson, string imgsJson, string imgsFolder, string newPkgPath, int imgCount)
         {
-            var ops = new JsonSerializerOptions {Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)};
-            await CommodityPackage.Create(newDbPath, newPkgPath);
-            using var res = await CommodityPackage.Open(newDbPath, newPkgPath);
+            var ops = new JsonSerializerOptions { Encoder = JavaScriptEncoder.Create(UnicodeRanges.All) };
+            await CommodityPackage.Create(newPkgPath);
+            using var res = await CommodityPackage.Open(newPkgPath);
             var imgs = (await JsonSerializer.DeserializeAsync<OCImage[]>(File.OpenRead(imgsJson), ops))
                 .OrderBy(a => a.Position)
                 .Take(imgCount)

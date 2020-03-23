@@ -70,41 +70,41 @@ namespace MainUI
             }
 
             private IBitmap _imageSource;
-            public  IBitmap ImageSource => _imageSource;
-
+            public IBitmap ImageSource => _imageSource;
+            /// <summary>
+            /// Forces a reload of ImageSource.
+            /// Will be mainly used to load thumbnails concurrently when loading this tab, its done this way because most of this class operations must be done in STA mode because its UI operations but the thumbnail loading will be done concurrently to make the ui loading fatser.
+            /// </summary>
+            public void ReloadImageSource() => ImageOnFileUpdated(Image);
             private void ImageOnFileUpdated(CImage _)
             {
-                if (Image.TryOpenStream(out var imageStream) == false) { return; }
-
-                using (imageStream) { _imageSource = imageStream.LoadResizedBitmap(ThumbnailSize); }
+                using (var imageStream = Image.OpenStream()) { _imageSource = imageStream.LoadResizedBitmap(ThumbnailSize); }
 
                 OnPropertyChanged(nameof(ImageSource));
             }
 
             public CImage Image { get; }
-
+            /// <summary>
+            /// <see cref="ImageSource"/> won't be initiazlized and you must do it seperatly, its safe to call it from different threads ON DIFFERENT INSTANCES.
+            /// </summary>
+            /// <param name="image"></param>
+            /// <param name="hostingTab"></param>
             public TvImagesImageModel(CImage image, CommodityImageWindow.ImageTab hostingTab)
             {
                 _hostingTab = hostingTab;
-                Image       = image;
+                Image = image;
                 UpdatePosition();
-                Commodities =
-                    new ObservableCollection<TvImagesCommodityModel>(Image.Commodities.Select(c =>
-                                                                                                  new
-                                                                                                      TvImagesCommodityModel(c,
-                                                                                                                             this)));
+                Commodities = new ObservableCollection<TvImagesCommodityModel>(Image.Commodities.Select(c => new TvImagesCommodityModel(c, this)));
                 //TODO: unsubscribe from events
-                Image.FileUpdated      += ImageOnFileUpdated;
-                Image.CommodityAdded   += ImageOnCommodityAdded;
+                Image.FileUpdated += ImageOnFileUpdated;
+                Image.CommodityAdded += ImageOnCommodityAdded;
                 Image.CommodityRemoved += ImageOnCommodityRemoved;
 
                 foreach (var com in Commodities)
                 {
-                    com.Commodity.PropertyNotificationManager.Subscribe(nameof(Commodity.Position),
-                                                                        CommodityOnPositionChanged);
+                    com.Commodity.PropertyNotificationManager.Subscribe(nameof(Commodity.Position), CommodityOnPositionChanged);
                 }
 
-                ImageOnFileUpdated(Image);
             }
 
             public async Task SetPosition(int newPosition)
@@ -117,10 +117,10 @@ namespace MainUI
 
             private void CommodityOnPositionChanged(object sender, PropertyChangedEventArgs _)
             {
-                var com      = sender as ImageCommodity;
+                var com = sender as ImageCommodity;
                 var comModel = GetCommodityModel(com);
                 Commodities.Remove(comModel);
-                AddToCommodities(new[] {comModel});
+                AddToCommodities(new[] { comModel });
                 UpdatePosition();
             }
 
@@ -157,7 +157,7 @@ namespace MainUI
             {
                 var comModel = new TvImagesCommodityModel(commodity, this);
                 commodity.PropertyNotificationManager.Subscribe(nameof(Position), CommodityOnPositionChanged);
-                AddToCommodities(new[] {comModel});
+                AddToCommodities(new[] { comModel });
                 UpdatePosition();
             }
 
@@ -194,14 +194,14 @@ namespace MainUI
 
         sealed class TvImagesCommodityModel : INotifyPropertyChanged, IDisposable
         {
-            public TvImagesImageModel Image     { get; }
-            public Commodity          Commodity { get; }
-            public string             Name      => Commodity.Name;
+            public TvImagesImageModel Image { get; }
+            public Commodity Commodity { get; }
+            public string Name => Commodity.Name;
 
             public TvImagesCommodityModel(Commodity commodity, TvImagesImageModel image)
             {
                 Commodity = commodity;
-                Image     = image;
+                Image = image;
                 Commodity.PropertyNotificationManager.Subscribe(nameof(RepoImageMan.Commodity.Name),
                                                                 CommodityOnNameChanged);
             }
@@ -227,13 +227,13 @@ namespace MainUI
         internal class ImageTab
         {
             private readonly CommodityImageWindow _hostingWindow;
-            private readonly TreeView             tvImages;
+            private readonly TreeView tvImages;
 
             internal readonly ObservableCollection<TvImagesImageModel> _tvImagesItems =
                 new ObservableCollection<TvImagesImageModel>();
 
             private readonly List<TvImagesImageModel> _tvImagesModels;
-            private readonly ContextMenu              tvImagesCTXMenu;
+            private readonly ContextMenu tvImagesCTXMenu;
 
             private readonly MenuItem miExportImages,
                                       miExportSelectedImages,
@@ -250,44 +250,45 @@ namespace MainUI
 
             private readonly TabItem tabImages;
 
-            internal         TvImagesImageModel? _imageToMove;
-            private          DateTime            _imageToMoveSelectionTime = DateTime.MinValue;
-            private readonly TimeSpan            ImageMovingWindow         = TimeSpan.FromMinutes(3);
+            internal TvImagesImageModel? _imageToMove;
+            private DateTime _imageToMoveSelectionTime = DateTime.MinValue;
+            private readonly TimeSpan ImageMovingWindow = TimeSpan.FromMinutes(3);
 
             public ImageTab(CommodityImageWindow hostingWindow)
             {
                 _hostingWindow = hostingWindow;
 
-                tabImages                 = _hostingWindow.Get<TabItem>(nameof(tabImages));
-                tvImages                  = _hostingWindow.Get<TreeView>(nameof(tvImages));
-                tvImagesCTXMenu           = _hostingWindow.Get<ContextMenu>(nameof(tvImagesCTXMenu));
-                miCreateImage             = _hostingWindow.Get<MenuItem>(nameof(miCreateImage));
-                miExportImages            = _hostingWindow.FindControl<MenuItem>(nameof(miExportImages));
-                miExportSelectedImages    = _hostingWindow.FindControl<MenuItem>(nameof(miExportSelectedImages));
-                miUnExportSelectedImages  = _hostingWindow.FindControl<MenuItem>(nameof(miUnExportSelectedImages));
-                miExportAllImages         = _hostingWindow.Get<MenuItem>(nameof(miExportAllImages));
-                miUnExportAllImages       = _hostingWindow.Get<MenuItem>(nameof(miUnExportAllImages));
-                miDeleteImage             = _hostingWindow.Get<MenuItem>(nameof(miDeleteImage));
-                miMoveImage               = _hostingWindow.Get<MenuItem>(nameof(miMoveImage));
-                miMoveSelectedImage       = _hostingWindow.Get<MenuItem>(nameof(miMoveSelectedImage));
+                tabImages = _hostingWindow.Get<TabItem>(nameof(tabImages));
+                tvImages = _hostingWindow.Get<TreeView>(nameof(tvImages));
+                tvImagesCTXMenu = _hostingWindow.Get<ContextMenu>(nameof(tvImagesCTXMenu));
+                miCreateImage = _hostingWindow.Get<MenuItem>(nameof(miCreateImage));
+                miExportImages = _hostingWindow.FindControl<MenuItem>(nameof(miExportImages));
+                miExportSelectedImages = _hostingWindow.FindControl<MenuItem>(nameof(miExportSelectedImages));
+                miUnExportSelectedImages = _hostingWindow.FindControl<MenuItem>(nameof(miUnExportSelectedImages));
+                miExportAllImages = _hostingWindow.Get<MenuItem>(nameof(miExportAllImages));
+                miUnExportAllImages = _hostingWindow.Get<MenuItem>(nameof(miUnExportAllImages));
+                miDeleteImage = _hostingWindow.Get<MenuItem>(nameof(miDeleteImage));
+                miMoveImage = _hostingWindow.Get<MenuItem>(nameof(miMoveImage));
+                miMoveSelectedImage = _hostingWindow.Get<MenuItem>(nameof(miMoveSelectedImage));
                 miMoveBeforeSelectedImage = _hostingWindow.Get<MenuItem>(nameof(miMoveBeforeSelectedImage));
-                miMoveAfterSelectedImage  = _hostingWindow.Get<MenuItem>(nameof(miMoveAfterSelectedImage));
-                miGoToCommodity           = _hostingWindow.FindControl<MenuItem>(nameof(miGoToCommodity));
+                miMoveAfterSelectedImage = _hostingWindow.Get<MenuItem>(nameof(miMoveAfterSelectedImage));
+                miGoToCommodity = _hostingWindow.FindControl<MenuItem>(nameof(miGoToCommodity));
 
                 _tvImagesModels =
                     _hostingWindow._package.Images.Select(i => new TvImagesImageModel(i, this)).ToList();
+                Parallel.ForEach(_tvImagesModels, model => model.ReloadImageSource());
                 tvImages.Items = _tvImagesItems;
 
 
                 tvImagesCTXMenu.ContextMenuOpening += TvImagesCTXMenuOnContextMenuOpening;
-                miExportAllImages.Click            += MiExportAllImagesOnClick;
-                miUnExportAllImages.Click          += MiUnExportAllImagesOnClick;
-                miExportSelectedImages.Click       += MiExportSelectedImagesOnClick;
-                miUnExportSelectedImages.Click     += MiUnExportSelectedImagesOnClick;
-                miGoToCommodity.Click              += MiGoToCommodityOnClick;
-                miMoveSelectedImage.Click          += MiMoveSelectedImageOnClick;
-                miMoveBeforeSelectedImage.Click    += MiMoveBeforeSelectedImageOnClick;
-                miMoveAfterSelectedImage.Click     += MiMoveAfterSelectedImageOnClick;
+                miExportAllImages.Click += MiExportAllImagesOnClick;
+                miUnExportAllImages.Click += MiUnExportAllImagesOnClick;
+                miExportSelectedImages.Click += MiExportSelectedImagesOnClick;
+                miUnExportSelectedImages.Click += MiUnExportSelectedImagesOnClick;
+                miGoToCommodity.Click += MiGoToCommodityOnClick;
+                miMoveSelectedImage.Click += MiMoveSelectedImageOnClick;
+                miMoveBeforeSelectedImage.Click += MiMoveBeforeSelectedImageOnClick;
+                miMoveAfterSelectedImage.Click += MiMoveAfterSelectedImageOnClick;
             }
 
             private void MiMoveAfterSelectedImageOnClick(object? sender, RoutedEventArgs e)
@@ -297,12 +298,12 @@ namespace MainUI
                 {
                     MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams
                     {
-                        Icon                  = MessageBox.Avalonia.Enums.Icon.Forbidden,
-                        ButtonDefinitions     = ButtonEnum.Ok,
-                        CanResize             = false,
-                        ShowInCenter          = true,
+                        Icon = MessageBox.Avalonia.Enums.Icon.Forbidden,
+                        ButtonDefinitions = ButtonEnum.Ok,
+                        CanResize = false,
+                        ShowInCenter = true,
                         WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                        ContentTitle          = "Invalid Operation",
+                        ContentTitle = "Invalid Operation",
                         ContentMessage =
                             "You can't use this image as a reference point because doesn't have any commodities assigned to it."
                     }).ShowDialog(_hostingWindow);
@@ -327,12 +328,12 @@ namespace MainUI
                 {
                     MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams()
                     {
-                        Icon                  = MessageBox.Avalonia.Enums.Icon.Forbidden,
-                        ButtonDefinitions     = ButtonEnum.Ok,
-                        CanResize             = false,
-                        ShowInCenter          = true,
+                        Icon = MessageBox.Avalonia.Enums.Icon.Forbidden,
+                        ButtonDefinitions = ButtonEnum.Ok,
+                        CanResize = false,
+                        ShowInCenter = true,
                         WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                        ContentTitle          = "Invalid Operation.",
+                        ContentTitle = "Invalid Operation.",
                         ContentMessage =
                             "You can't use this image as a reference point because doesn't have any commodities assigned to it."
                     }).ShowDialog(_hostingWindow);
@@ -356,12 +357,12 @@ namespace MainUI
                 {
                     MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams
                     {
-                        Icon                  = MessageBox.Avalonia.Enums.Icon.Forbidden,
-                        ButtonDefinitions     = ButtonEnum.Ok,
-                        CanResize             = false,
-                        ShowInCenter          = true,
+                        Icon = MessageBox.Avalonia.Enums.Icon.Forbidden,
+                        ButtonDefinitions = ButtonEnum.Ok,
+                        CanResize = false,
+                        ShowInCenter = true,
                         WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                        ContentTitle          = "Invalid Operation.",
+                        ContentTitle = "Invalid Operation.",
                         ContentMessage =
                             "You can't move an image that doesn't have any commodities assigned to it."
                     }).ShowDialog(_hostingWindow);
@@ -374,7 +375,7 @@ namespace MainUI
 
             internal void ResetImageToMove()
             {
-                _imageToMove              = null;
+                _imageToMove = null;
                 _imageToMoveSelectionTime = DateTime.UtcNow - (ImageMovingWindow * 2);
             }
 
@@ -426,9 +427,10 @@ namespace MainUI
 
                 var selectedImage = GetSelectedImage();
                 miDeleteImage.IsVisible = selectedImage != null;
-                miMoveImage.IsVisible   = tvImages.SelectedItems.Count == 1 && selectedImage != null;
+                miMoveImage.IsVisible = tvImages.SelectedItems.Count == 1 && selectedImage != null;
                 miMoveAfterSelectedImage.IsVisible = miMoveBeforeSelectedImage.IsVisible =
                                                          _imageToMove != null && selectedImage != _imageToMove;
+                miGoToCommodity.IsVisible = tvImages.SelectedItems.Count == 1 && tvImages.SelectedItems[0] is TvImagesCommodityModel;
 
                 if (miDeleteImage.IsVisible) { miDeleteImage.Header = $"Delete(DEL) {selectedImage.ShortName}"; }
 

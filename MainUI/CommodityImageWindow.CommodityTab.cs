@@ -57,7 +57,7 @@ namespace MainUI
 
                 public decimal WholePrice => Commodity.WholePrice;
 
-                public  int  Position => Commodity.Position;
+                public int Position => Commodity.Position;
                 private bool _export;
 
                 public bool Export
@@ -112,19 +112,19 @@ namespace MainUI
 
                 public DgCommoditiesModel(Commodity com, CommodityTab hostingTab)
                 {
-                    _hostingTab               =  hostingTab;
-                    Commodity                 =  com;
+                    _hostingTab = hostingTab;
+                    Commodity = com;
                     Commodity.PropertyChanged += CommodityOnPropertyChanged;
-                    Commodity.Deleting        += CommodityOnDeleting;
+                    Commodity.Deleting += CommodityOnDeleting;
                     RePositionInDgItems();
                 }
 
                 public void SaveToMemory()
                 {
-                    Commodity.Name         = _hostingTab.txtCommodityName.Text;
-                    Commodity.Cost         = (decimal) _hostingTab.nudCommodityCost.Value;
-                    Commodity.WholePrice   = (decimal) _hostingTab.nudCommodityWholePrice.Value;
-                    Commodity.PartialPrice = (decimal) _hostingTab.nudCommodityPartialPrice.Value;
+                    Commodity.Name = _hostingTab.txtCommodityName.Text;
+                    Commodity.Cost = (decimal)_hostingTab.nudCommodityCost.Value;
+                    Commodity.WholePrice = (decimal)_hostingTab.nudCommodityWholePrice.Value;
+                    Commodity.PartialPrice = (decimal)_hostingTab.nudCommodityPartialPrice.Value;
                 }
 
                 private void CommodityOnDeleting(Commodity _) => Dispose();
@@ -136,18 +136,18 @@ namespace MainUI
                     if (_hostingTab._commodityToMove == this) { _hostingTab.ResetCommodityToMove(); }
 
                     Commodity.PropertyChanged -= CommodityOnPropertyChanged;
-                    Commodity.Deleting        -= CommodityOnDeleting;
+                    Commodity.Deleting -= CommodityOnDeleting;
                 }
             }
 
             private readonly List<DgCommoditiesModel> _dgCommoditiesModels;
-            private readonly CommodityImageWindow     _hostingWindow;
+            private readonly CommodityImageWindow _hostingWindow;
 
             private readonly ObservableCollection<DgCommoditiesModel> _dgCommoditiesItems =
                 new ObservableCollection<DgCommoditiesModel>();
 
             private readonly DataGrid dgCommodities;
-            private readonly TextBox  txtSearch, txtCommodityName;
+            private readonly TextBox txtSearch, txtCommodityName;
 
             private readonly NumericUpDown nudCommodityCost,
                                            nudCommodityWholePrice,
@@ -191,27 +191,27 @@ namespace MainUI
             {
                 _hostingWindow = hostingWindow;
 
-                tabCommodities                = _hostingWindow.Get<TabItem>(nameof(tabCommodities));
-                dgCommodities                 = _hostingWindow.Get<DataGrid>(nameof(dgCommodities));
-                txtSearch                     = _hostingWindow.Get<TextBox>(nameof(txtSearch));
-                txtCommodityName              = _hostingWindow.Get<TextBox>(nameof(txtCommodityName));
-                nudCommodityCost              = _hostingWindow.Get<NumericUpDown>(nameof(nudCommodityCost));
-                nudCommodityWholePrice        = _hostingWindow.Get<NumericUpDown>(nameof(nudCommodityWholePrice));
-                nudCommodityPartialPrice      = _hostingWindow.Get<NumericUpDown>(nameof(nudCommodityPartialPrice));
-                btnSaveCommodityToMemory      = _hostingWindow.Get<Button>(nameof(btnSaveCommodityToMemory));
-                miDeleteCommodity             = _hostingWindow.Get<MenuItem>(nameof(miDeleteCommodity));
-                miMoveCommodity               = _hostingWindow.Get<MenuItem>(nameof(miMoveCommodity));
-                miGoToImage                   = _hostingWindow.Get<MenuItem>(nameof(miGoToImage));
-                miMoveAfterSelectedCommodity  = _hostingWindow.Get<MenuItem>(nameof(miMoveAfterSelectedCommodity));
+                tabCommodities = _hostingWindow.Get<TabItem>(nameof(tabCommodities));
+                dgCommodities = _hostingWindow.Get<DataGrid>(nameof(dgCommodities));
+                txtSearch = _hostingWindow.Get<TextBox>(nameof(txtSearch));
+                txtCommodityName = _hostingWindow.Get<TextBox>(nameof(txtCommodityName));
+                nudCommodityCost = _hostingWindow.Get<NumericUpDown>(nameof(nudCommodityCost));
+                nudCommodityWholePrice = _hostingWindow.Get<NumericUpDown>(nameof(nudCommodityWholePrice));
+                nudCommodityPartialPrice = _hostingWindow.Get<NumericUpDown>(nameof(nudCommodityPartialPrice));
+                btnSaveCommodityToMemory = _hostingWindow.Get<Button>(nameof(btnSaveCommodityToMemory));
+                miDeleteCommodity = _hostingWindow.Get<MenuItem>(nameof(miDeleteCommodity));
+                miMoveCommodity = _hostingWindow.Get<MenuItem>(nameof(miMoveCommodity));
+                miGoToImage = _hostingWindow.Get<MenuItem>(nameof(miGoToImage));
+                miMoveAfterSelectedCommodity = _hostingWindow.Get<MenuItem>(nameof(miMoveAfterSelectedCommodity));
                 miMoveBeforeSelectedCommodity = _hostingWindow.Get<MenuItem>(nameof(miMoveBeforeSelectedCommodity));
-                miMoveSelectedCommodity       = _hostingWindow.Get<MenuItem>(nameof(miMoveSelectedCommodity));
-                miExportCommodities           = _hostingWindow.Get<MenuItem>(nameof(miExportCommodities));
-                miExportSelectedCommodities   = _hostingWindow.Get<MenuItem>(nameof(miExportSelectedCommodities));
+                miMoveSelectedCommodity = _hostingWindow.Get<MenuItem>(nameof(miMoveSelectedCommodity));
+                miExportCommodities = _hostingWindow.Get<MenuItem>(nameof(miExportCommodities));
+                miExportSelectedCommodities = _hostingWindow.Get<MenuItem>(nameof(miExportSelectedCommodities));
                 miUnExportSelectedCommodities = _hostingWindow.Get<MenuItem>(nameof(miUnExportSelectedCommodities));
-                miExportAllCommodities        = _hostingWindow.Get<MenuItem>(nameof(miExportAllCommodities));
-                miUnExportAllCommodities      = _hostingWindow.Get<MenuItem>(nameof(miUnExportAllCommodities));
-                miSaveCommodities             = _hostingWindow.FindControl<MenuItem>(nameof(miSaveCommodities));
-                miSaveAllCommoditiesToDb      = _hostingWindow.FindControl<MenuItem>(nameof(miSaveAllCommoditiesToDb));
+                miExportAllCommodities = _hostingWindow.Get<MenuItem>(nameof(miExportAllCommodities));
+                miUnExportAllCommodities = _hostingWindow.Get<MenuItem>(nameof(miUnExportAllCommodities));
+                miSaveCommodities = _hostingWindow.FindControl<MenuItem>(nameof(miSaveCommodities));
+                miSaveAllCommoditiesToDb = _hostingWindow.FindControl<MenuItem>(nameof(miSaveAllCommoditiesToDb));
                 dgCommoditiesCTXMenu =
                     _hostingWindow.Get<Avalonia.Controls.ContextMenu>(nameof(dgCommoditiesCTXMenu));
                 miSaveSelectedCommoditiesToDb =
@@ -232,33 +232,33 @@ namespace MainUI
 
                 nudCommodityCost.FormatString = nudCommodityWholePrice.FormatString =
                                                     nudCommodityPartialPrice.FormatString = "0.00";
-                dgCommodities.SelectionChanged         += DgCommoditiesOnSelectionChanged;
-                dgCommodities.KeyDown                  += DgCommoditiesOnKeyDown;
-                dgCommodities.CellPointerPressed       += DgCommoditiesOnCellPointerPressed;
+                dgCommodities.SelectionChanged += DgCommoditiesOnSelectionChanged;
+                dgCommodities.KeyDown += DgCommoditiesOnKeyDown;
+                dgCommodities.CellPointerPressed += DgCommoditiesOnCellPointerPressed;
                 _hostingWindow._package.CommodityAdded += PackageOnCommodityAdded;
 
                 dgCommoditiesCTXMenu.ContextMenuOpening += DgCommoditiesCTXMenuOnContextMenuOpening;
                 _hostingWindow.Get<MenuItem>("miCreateCommodity").Click +=
                     async (sender, args) => await CreateNewCommodity();
-                miExportAllCommodities.Click          += MiExportAllCommoditiesOnClick;
-                miUnExportAllCommodities.Click        += MiUnExportAllCommoditiesOnClick;
-                miExportSelectedCommodities.Click     += MiExportSelectedCommoditiesOnClick;
-                miUnExportSelectedCommodities.Click   += MiUnExportSelectedCommoditiesOnClick;
-                miDeleteCommodity.Click               += async (sender, args) => await DeleteSelectedCommodities();
-                miMoveSelectedCommodity.Click         += MiMoveSelectedCommodityOnClick;
-                miSaveAllCommoditiesToDb.Click        += MiSaveAllCommoditiesToDbOnClick;
-                miSaveSelectedCommoditiesToDb.Click   += MiSaveSelectedCommoditiesToDbOnClick;
-                miReloadAllCommoditiesFromDb.Click    += MiReloadAllCommoditiesFromDbOnClick;
+                miExportAllCommodities.Click += MiExportAllCommoditiesOnClick;
+                miUnExportAllCommodities.Click += MiUnExportAllCommoditiesOnClick;
+                miExportSelectedCommodities.Click += MiExportSelectedCommoditiesOnClick;
+                miUnExportSelectedCommodities.Click += MiUnExportSelectedCommoditiesOnClick;
+                miDeleteCommodity.Click += async (sender, args) => await DeleteSelectedCommodities();
+                miMoveSelectedCommodity.Click += MiMoveSelectedCommodityOnClick;
+                miSaveAllCommoditiesToDb.Click += MiSaveAllCommoditiesToDbOnClick;
+                miSaveSelectedCommoditiesToDb.Click += MiSaveSelectedCommoditiesToDbOnClick;
+                miReloadAllCommoditiesFromDb.Click += MiReloadAllCommoditiesFromDbOnClick;
                 miReloadSelectedCommoditiesToDb.Click += MiReloadSelectedCommoditiesToDbOnClick;
-                miMoveBeforeSelectedCommodity.Click   += MiMoveBeforeSelectedCommodityOnClick;
-                miMoveAfterSelectedCommodity.Click    += MiMoveAfterSelectedCommodityOnClick;
-                miGoToImage.Click                     += MiGoToImageOnClick;
-                btnSaveCommodityToMemory.Click        += BtnSaveCommodityToMemoryOnClick;
+                miMoveBeforeSelectedCommodity.Click += MiMoveBeforeSelectedCommodityOnClick;
+                miMoveAfterSelectedCommodity.Click += MiMoveAfterSelectedCommodityOnClick;
+                miGoToImage.Click += MiGoToImageOnClick;
+                btnSaveCommodityToMemory.Click += BtnSaveCommodityToMemoryOnClick;
 
                 dgCommodities.Items = _dgCommoditiesItems;
 
                 _eventsSubscriptions.Add(_hostingWindow.GetObservable(Window.ClientSizeProperty)
-                                                       .Do(sz => dgCommodities.Height = sz.Height - 200).Subscribe());
+                                                       .Do(sz => dgCommodities.Height = sz.Height - 230).Subscribe());
                 _eventsSubscriptions.Add(txtSearch.GetObservable(TextBox.TextProperty).Do(TxtSearchOnTextChanged)
                                                   .Subscribe());
             }
@@ -284,7 +284,7 @@ namespace MainUI
 
             private void MiMoveSelectedCommodityOnClick(object? sender, RoutedEventArgs e)
             {
-                _commodityToMove              = GetSelectedCommodity();
+                _commodityToMove = GetSelectedCommodity();
                 _commodityToMoveSelectionTime = DateTime.UtcNow;
             }
 
@@ -410,7 +410,7 @@ namespace MainUI
 
             private void ResetCommodityToMove()
             {
-                _commodityToMove              = null;
+                _commodityToMove = null;
                 _commodityToMoveSelectionTime = DateTime.UtcNow - (CommodityMovingWindow * 2);
             }
 
@@ -449,18 +449,18 @@ namespace MainUI
                 var selectedCommodity = GetSelectedCommodity();
                 if (selectedCommodity == null)
                 {
-                    txtCommodityName.Text  = "";
+                    txtCommodityName.Text = "";
                     nudCommodityCost.Value = nudCommodityWholePrice.Value = nudCommodityPartialPrice.Value = 0;
-                    foreach (var i in _selectedCommodityDependants) { i.IsEnabled                          = false; }
+                    foreach (var i in _selectedCommodityDependants) { i.IsEnabled = false; }
                 }
                 else
                 {
                     foreach (var i in _selectedCommodityDependants) { i.IsEnabled = true; }
 
-                    txtCommodityName.Text          = selectedCommodity.Name;
-                    nudCommodityCost.Value         = (double) selectedCommodity.Cost;
-                    nudCommodityWholePrice.Value   = (double) selectedCommodity.WholePrice;
-                    nudCommodityPartialPrice.Value = (double) selectedCommodity.PartialPrice;
+                    txtCommodityName.Text = selectedCommodity.Name;
+                    nudCommodityCost.Value = (double)selectedCommodity.Cost;
+                    nudCommodityWholePrice.Value = (double)selectedCommodity.WholePrice;
+                    nudCommodityPartialPrice.Value = (double)selectedCommodity.PartialPrice;
                 }
             }
 

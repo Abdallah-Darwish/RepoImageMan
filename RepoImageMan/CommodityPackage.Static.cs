@@ -86,9 +86,6 @@ CREATE INDEX IDX_ImageCommodity_ImageId ON ImageCommodity (ImageId);
             string dbPath = GetPackageDbPath(packageContainerPath);
             SQLiteConnection.CreateFile(dbPath);
             await using (var con = new SQLiteConnection(GetConnectionString(dbPath)))
-            await using (var archiveStream =
-                new FileStream(packageContainerPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
-            using (new ZipArchive(archiveStream, ZipArchiveMode.Create))
             {
                 await con.ExecuteAsync(CreationCommand).ConfigureAwait(false);
             }

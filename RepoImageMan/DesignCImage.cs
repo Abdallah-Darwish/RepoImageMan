@@ -209,7 +209,7 @@ namespace RepoImageMan
         internal DesignCImage(CImage image)
         {
             Image = image;
-            InstanceSize = image.Size;
+            _instanceSize = image.Size;
 
            
             using (var imgStream = image.OpenStream())

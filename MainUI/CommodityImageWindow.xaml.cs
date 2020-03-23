@@ -21,17 +21,17 @@ namespace MainUI
     public partial class CommodityImageWindow : Window
     {
         private readonly CommodityPackage _package;
-        private readonly CommodityTab     _commodityTab;
-        private readonly ImageTab         _imageTab;
+        private readonly CommodityTab _commodityTab;
+        private readonly ImageTab _imageTab;
 
         public CommodityImageWindow() { }
 
         public CommodityImageWindow(CommodityPackage package)
         {
             InitializeComponent();
-            _package      = package;
+            _package = package;
             _commodityTab = new CommodityTab(this);
-            _imageTab     = new ImageTab(this);
+            _imageTab = new ImageTab(this);
         }
 
         private void InitializeComponent()

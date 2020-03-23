@@ -243,7 +243,8 @@ namespace RepoImageMan
         private void Refresh()
         {
             using var imgStream = new FileStream(PackageFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            Size = Image.Identify(imgStream).Size();
+            //If the stream is empty(it will be when we create a new image) the returned 'IImageInfo' would be null
+            Size = Image.Identify(imgStream)?.Size() ?? new Size(0, 0);
             foreach (var com in Commodities)
             {
                 com.Location = new PointF(MathF.Min(Size.Width, com.Location.X),
