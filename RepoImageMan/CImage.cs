@@ -89,7 +89,7 @@ namespace RepoImageMan
         private float _contrast;
 
         /// <summary>
-        /// Contrast or brightness of te final image.
+        /// Contrast of the final image.
         /// </summary>
         public float Contrast
         {
@@ -114,7 +114,7 @@ namespace RepoImageMan
         private float _brightness;
 
         /// <summary>
-        /// Contrast or brightness of te final image.
+        /// Brightness of the final image.
         /// </summary>
         public float Brightness
         {

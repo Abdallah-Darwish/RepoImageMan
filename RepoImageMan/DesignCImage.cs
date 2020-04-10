@@ -52,6 +52,7 @@ namespace RepoImageMan
             get => _instanceSize;
             set
             {
+                if (value.Height < 0 || value.Width < 0) { throw new ArgumentOutOfRangeException(nameof(value), value, $"The size must be in range [(1, 1), (INF, INF)]."); }
                 if (_instanceSize == value) { return; }
 
                 _instanceSize = value;
@@ -66,14 +67,12 @@ namespace RepoImageMan
         /// <summary>
         /// The scale that is used to map points from <see cref="CImage"/> to this resized <see cref="DesignCImage"/>.
         /// </summary>
-        public SizeF ToOriginalMappingScale => new SizeF(_originalImage.Width / (float)InstanceSize.Width,
-            _originalImage.Height / (float)InstanceSize.Height);
+        public SizeF ToOriginalMappingScale => new SizeF(_originalImage.Width / (float)InstanceSize.Width, _originalImage.Height / (float)InstanceSize.Height);
 
         /// <summary>
         /// The scale that is used to map points from this instance to the original <see cref="CImage"/>.
         /// </summary>
-        public SizeF ToDesignMappingScale => new SizeF(InstanceSize.Width / (float)_originalImage.Width,
-            InstanceSize.Height / (float)_originalImage.Height);
+        public SizeF ToDesignMappingScale => new SizeF(InstanceSize.Width / (float)_originalImage.Width, InstanceSize.Height / (float)_originalImage.Height);
 
         private readonly List<DesignImageCommodity<TPixel>> _commodities = new List<DesignImageCommodity<TPixel>>();
 
@@ -86,10 +85,7 @@ namespace RepoImageMan
         /// Returns first <see cref="DesignImageCommodity{TPixel}"/> that the point <paramref name="p"/> lies inside,
         /// or <see langword="null"/> if there is none.
         /// </summary>
-        public DesignImageCommodity<TPixel>? FirstOnPoint(PointF p) =>
-            _commodities.AsParallel()
-            .WithMergeOptions(ParallelMergeOptions.NotBuffered)
-            .FirstOrDefault(com => com.IsInside(p));
+        public DesignImageCommodity<TPixel>? FirstOnPoint(PointF p) => _commodities.AsParallel().FirstOrDefault(com => com.IsInside(p));
 
         public Image<TPixel> RenderedImage { get; private set; }
 
@@ -166,7 +162,7 @@ namespace RepoImageMan
                 var comLabel = labelsCache.GetLabel(new LabelRenderingOptions(DesignImageCommodity<TPixel>.LabelText, com.Font, com.Commodity.LabelColor)).Span;
 
                 var comLocation = (Point)com.Location;
-                for (int labelRowIndex = 0; 
+                for (int labelRowIndex = 0;
                     labelRowIndex < comLabel.Length && comLocation.Y < RenderedImage.Height;
                     labelRowIndex++, comLocation.Y++)
                 {

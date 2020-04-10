@@ -19,7 +19,7 @@ namespace MainUI
             imgStream.Position = 0;
             return new Avalonia.Media.Imaging.Bitmap(imgStream);
         }
-
+        public static SixLabors.Primitives.PointF ToSixLabors(this Avalonia.Point p) => new SixLabors.Primitives.PointF((float)p.X, (float)p.Y);
         public static IBitmap LoadResizedBitmap(this Stream originalImageStream, Avalonia.Size sz)
         {
             using var img = SixLabors.ImageSharp.Image.Load(originalImageStream);

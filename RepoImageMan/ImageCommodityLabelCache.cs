@@ -22,21 +22,19 @@ namespace RepoImageMan
             Color = color;
         }
 
-        public bool Equals(LabelRenderingOptions o) =>
-            Text.Equals(o.Text, StringComparison.InvariantCulture) && Font.Equals(o.Font) &&
-            Color.Equals(o.Color);
+        public bool Equals(LabelRenderingOptions o) => Text.Equals(o.Text, StringComparison.InvariantCulture) && Font.Equals(o.Font) && Color.Equals(o.Color);
 
-        public override bool Equals(object? obj) => obj != null && Equals((LabelRenderingOptions) obj);
+        public override bool Equals(object? obj) => obj != null && Equals((LabelRenderingOptions)obj);
 
         public override int GetHashCode() => HashCode.Combine(Text, Font, Color);
         public static implicit operator RendererOptions?(LabelRenderingOptions? options)
         {
-            if (options == null)
-            {
-                return null;
-            }
+            if (options == null) { return null; }
             return new RendererOptions(options?.Font)
-                {HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top};
+            {
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top
+            };
         }
 
 
@@ -53,19 +51,19 @@ namespace RepoImageMan
         /// </summary>
         private int _labelsSize = 0;
 
-        private int _clearingThreshold = 300 * (1000_000);
+        private int _clearingThreshold = 300 * 1000_000;
 
         private TPixel[][] RenderLabel(LabelRenderingOptions options)
         {
-            Size expectedSize = (Size) TextMeasurer.Measure(options.Text, options);
+            //TODO: Profile me and see how much am I called ?
+
+            Size expectedSize = (Size)TextMeasurer.Measure(options.Text, options);
             expectedSize.Height += 4;
             expectedSize.Width += 4;
 
-            TPixel backgroundColor =
-                (options.Color == Color.DarkBlue ? Color.DarkCyan : Color.DarkBlue).ToPixel<TPixel>();
+            TPixel backgroundColor = (options.Color == Color.DarkBlue ? Color.DarkCyan : Color.DarkBlue).ToPixel<TPixel>();
 
-            using var playground = new Image<TPixel>(new Configuration(), expectedSize.Width, expectedSize.Height,
-                backgroundColor);
+            using var playground = new Image<TPixel>(new Configuration(), expectedSize.Width, expectedSize.Height, backgroundColor);
             playground.Mutate(c => c.DrawText(options.Text, options.Font, options.Color, new Point(0, 0)));
             int height = 0, width = 0;
             for (int r = playground.Height - 1; r >= 0; r--)

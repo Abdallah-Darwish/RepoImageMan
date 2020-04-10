@@ -22,6 +22,7 @@ namespace Tester
 {
     public class MainWindow : Window
     {
+        private readonly static string RepoFiles = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "RepoFiles");
         private Image img;
         private Button btnCreatePackage, btnOpenPackage, btnBindImage;
         private ContentControl txtInfo;
@@ -29,7 +30,7 @@ namespace Tester
         private DesignCImage<Rgba32>? _image;
 
         private readonly SixLabors.ImageSharp.Image<Rgba32> _handleImage =
-            SixLabors.ImageSharp.Image.Load<Rgba32>(@"C:\Users\abdal\source\repos\RepoImageMan\Documents\Arrows1.png");
+            SixLabors.ImageSharp.Image.Load<Rgba32>($@"{RepoFiles}\Arrows1.png");
 
         public MainWindow()
         {
@@ -53,23 +54,23 @@ namespace Tester
 
         private async void CreatePackage(object? sender, RoutedEventArgs e)
         {
-            await OldDbConverter.Convert(@"C:\Users\abdal\Desktop\RepoFiles\OldRepo\Repository\Commodities.json",
-                @"C:\Users\abdal\Desktop\RepoFiles\OldRepo\Repository\Images.json",
-                @"C:\Users\abdal\Desktop\RepoFiles\OldRepo\Repository\cat",
-                @"C:\Users\abdal\Desktop\RepoFiles\NewRepo",
+            await OldDbConverter.Convert($@"{RepoFiles}\OldRepo\Repository\Commodities.json",
+                $@"{RepoFiles}\OldRepo\Repository\Images.json",
+                $@"{RepoFiles}\OldRepo\Repository\cat",
+                $@"{RepoFiles}\NewRepo",
                 10);
         }
 
         private async void OpenPackage(object? sender, RoutedEventArgs e)
         {
-            _package = await CommodityPackage.Open(@"C:\Users\abdal\Desktop\RepoFiles\NewRepo", _handleImage);
+            _package = await CommodityPackage.Open($@"{RepoFiles}\NewRepo", _handleImage);
         }
 
         private void BindImage(object? sender, RoutedEventArgs e)
         {
             _image?.Dispose();
             var rand = new Random();
-            var sz = new SixLabors.Primitives.Size((int) img.Width, (int) img.Height);
+            var sz = new SixLabors.Primitives.Size((int)img.Width, (int)img.Height);
             var bindImage = _package.Images[rand.Next(_package.Images.Count)];
             bindImage.TryDesign(out _image);
             _image.InstanceSize = sz;
@@ -93,15 +94,16 @@ namespace Tester
             }
 
             var p = e.GetPosition(img);
-            var sc = _image.FirstOnPoint(new PointF((float) p.X, (float) p.Y));
-            string con = "";
+            var sc = _image.FirstOnPoint(new PointF((float)p.X, (float)p.Y));
+            string con;
             if (sc == null)
             {
                 con = "On none";
             }
             else
             {
-                con = $"On Commodity{sc.Commodity.Name}";
+                foreach (var com in _image.Commodities) { com.IsSurrounded = false; }
+                con = $"On Commodity {sc.Commodity.Name}";
                 sc.IsSurrounded = true;
             }
 

@@ -203,21 +203,16 @@ namespace MainUI
                 miSaveCommodities = _hostingWindow.FindControl<MenuItem>(nameof(miSaveCommodities));
                 miSaveAllCommoditiesToDb = _hostingWindow.FindControl<MenuItem>(nameof(miSaveAllCommoditiesToDb));
                 miCreateCommodity = _hostingWindow.FindControl<MenuItem>(nameof(miCreateCommodity));
-                dgCommoditiesCTXMenu =
-                    _hostingWindow.Get<ContextMenu>(nameof(dgCommoditiesCTXMenu));
-                miSaveSelectedCommoditiesToDb =
-                    _hostingWindow.FindControl<MenuItem>(nameof(miSaveSelectedCommoditiesToDb));
-                miReloadAllCommoditiesFromDb =
-                    _hostingWindow.FindControl<MenuItem>(nameof(miReloadAllCommoditiesFromDb));
-                miReloadSelectedCommoditiesToDb =
-                    _hostingWindow.FindControl<MenuItem>(nameof(miReloadSelectedCommoditiesToDb));
+                dgCommoditiesCTXMenu = _hostingWindow.Get<ContextMenu>(nameof(dgCommoditiesCTXMenu));
+                miSaveSelectedCommoditiesToDb = _hostingWindow.FindControl<MenuItem>(nameof(miSaveSelectedCommoditiesToDb));
+                miReloadAllCommoditiesFromDb = _hostingWindow.FindControl<MenuItem>(nameof(miReloadAllCommoditiesFromDb));
+                miReloadSelectedCommoditiesToDb = _hostingWindow.FindControl<MenuItem>(nameof(miReloadSelectedCommoditiesToDb));
 
                 _selectedCommodityDependants = new InputElement[]
                 {
                     txtCommodityName, nudCommodityCost, nudCommodityPartialPrice, nudCommodityWholePrice,btnSaveCommodityToMemory
                 };
-                _dgCommoditiesModels =
-                    _hostingWindow._package.Commodities.Select(c => new DgCommoditiesModel(c, this)).ToList();
+                _dgCommoditiesModels = _hostingWindow._package.Commodities.Select(c => new DgCommoditiesModel(c, this)).ToList();
 
 
                 nudCommodityCost.FormatString = nudCommodityWholePrice.FormatString = nudCommodityPartialPrice.FormatString = "0.00";

@@ -17,12 +17,16 @@ namespace MainUI
 {
     public class MainWindow : Window
     {
+        private readonly static string RepoFiles = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "RepoFiles");
         private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
         private readonly Button btnOpenPack, btnCreatePack, btnSettings;
 
         public MainWindow()
         {
             InitializeComponent();
+#if DEBUG
+            this.AttachDevTools();
+#endif
             btnOpenPack = this.Get<Button>(nameof(btnOpenPack));
             btnCreatePack = this.Get<Button>(nameof(btnCreatePack));
             btnSettings = this.Get<Button>(nameof(btnSettings));
@@ -47,16 +51,17 @@ namespace MainUI
 
         private async void BtnSettings_Click(object? sender, RoutedEventArgs e)
         {
-            var des = new DesigningWindow();
-            des.Show();
-            return;
+            var p = await CommodityPackage.Open($@"{RepoFiles}\NewRepo", SixLabors.ImageSharp.Image.Load($@"{RepoFiles}\Arrows1.png"));
 
-            var p = await CommodityPackage.Open(@"C:\Users\abdal\Desktop\RepoFiles\NewRepo");
-
-            var ein = new CommodityImageWindow(p);
-            ein.Closed +=  (o, args) => p.Dispose();
-            ein.Show();
+            //var ein = new CommodityImageWindow(p);
+            //ein.Closed +=  (o, args) => p.Dispose();
+            //ein.Show();
+            var rand = new Random();
+            p.Images[rand.Next(p.Images.Count)].TryDesign<SixLabors.ImageSharp.PixelFormats.Rgba32>(out var img);
+            var din = new DesigningWindow(img!);
+            await din.ShowDialog(this);
             btnSettings.Content = "NOT IMPLEMENTED YET!";
+            p.Dispose();
         }
     }
 }
