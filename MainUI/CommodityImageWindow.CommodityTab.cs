@@ -1,33 +1,23 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
+using RepoImageMan;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Dynamic;
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Interactivity;
-using Avalonia.Markup.Xaml;
-using RepoImageMan;
 using System.ComponentModel;
-using System.IO;
 using System.Linq;
-using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Avalonia.Input;
-using Avalonia.VisualTree;
-using DynamicData;
-using JetBrains.Annotations;
-using MessageBox.Avalonia;
-using MessageBox.Avalonia.Enums;
-using SharpDX;
 
 namespace MainUI
 {
     public partial class CommodityImageWindow
     {
-        //TODO: make position holders name color gray
         private class CommodityTab : IDisposable
         {
             public sealed class DgCommoditiesModel : INotifyPropertyChanged, IDisposable
@@ -37,10 +27,8 @@ namespace MainUI
                 public Commodity Commodity { get; }
 
                 public bool IsImageCommodity => Commodity is ImageCommodity;
-                public bool IsPositionHolder => (Commodity as ImageCommodity)?.IsPositionHolder ?? false;
 
-                public string Name =>
-                    IsPositionHolder ? "---" : Commodity.Name;
+                public string Name => Commodity.Name;
 
                 public string ShortName
                 {
@@ -83,7 +71,7 @@ namespace MainUI
                     {
                         try
                         {
-                            if (IsPositionHolder || !Regex.IsMatch(Name, _hostingTab.txtSearch.Text)) { return; }
+                            if (Regex.IsMatch(Name, _hostingTab.txtSearch.Text) == false) { return; }
                         }
                         catch { return; }
                     }
@@ -99,9 +87,11 @@ namespace MainUI
 
                 public event PropertyChangedEventHandler PropertyChanged;
 
-                [NotifyPropertyChangedInvocator]
-                private void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+                private void OnPropertyChanged([CallerMemberName] string propertyName = null)
+                {
+                    if (Dispatcher.UIThread.CheckAccess()) { PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName)); }
+                    else { Dispatcher.UIThread.Post(() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName))); }
+                }
 
                 private void CommodityOnPropertyChanged(object _, PropertyChangedEventArgs e)
                 {
@@ -143,8 +133,7 @@ namespace MainUI
             private readonly List<DgCommoditiesModel> _dgCommoditiesModels;
             private readonly CommodityImageWindow _hostingWindow;
 
-            private readonly ObservableCollection<DgCommoditiesModel> _dgCommoditiesItems =
-                new ObservableCollection<DgCommoditiesModel>();
+            private readonly ObservableCollection<DgCommoditiesModel> _dgCommoditiesItems = new ObservableCollection<DgCommoditiesModel>();
 
             private readonly DataGrid dgCommodities;
             private readonly TextBox txtSearch, txtCommodityName;
@@ -154,21 +143,22 @@ namespace MainUI
                                            nudCommodityPartialPrice;
 
             private readonly MenuItem miMoveCommodity,
-                                      miMoveSelectedCommodity,
-                                      miMoveBeforeSelectedCommodity,
-                                      miMoveAfterSelectedCommodity,
-                                      miDeleteCommodity,
-                                      miGoToImage,
-                                      miExportCommodities,
-                                      miExportSelectedCommodities,
-                                      miExportAllCommodities,
-                                      miUnExportAllCommodities,
-                                      miUnExportSelectedCommodities,
-                                      miSaveCommodities,
-                                      miSaveAllCommoditiesToDb,
-                                      miSaveSelectedCommoditiesToDb,
-                                      miReloadAllCommoditiesFromDb,
-                                      miReloadSelectedCommoditiesToDb;
+                miMoveSelectedCommodity,
+                miMoveBeforeSelectedCommodity,
+                miMoveAfterSelectedCommodity,
+                miDeleteCommodity,
+                miGoToImage,
+                miExportCommodities,
+                miExportSelectedCommodities,
+                miExportAllCommodities,
+                miUnExportAllCommodities,
+                miUnExportSelectedCommodities,
+                miSaveCommodities,
+                miSaveAllCommoditiesToDb,
+                miSaveSelectedCommoditiesToDb,
+                miReloadAllCommoditiesFromDb,
+                miReloadSelectedCommoditiesToDb,
+                miCreateCommodity;
 
             private readonly Button btnSaveCommodityToMemory;
 
@@ -212,8 +202,9 @@ namespace MainUI
                 miUnExportAllCommodities = _hostingWindow.Get<MenuItem>(nameof(miUnExportAllCommodities));
                 miSaveCommodities = _hostingWindow.FindControl<MenuItem>(nameof(miSaveCommodities));
                 miSaveAllCommoditiesToDb = _hostingWindow.FindControl<MenuItem>(nameof(miSaveAllCommoditiesToDb));
+                miCreateCommodity = _hostingWindow.FindControl<MenuItem>(nameof(miCreateCommodity));
                 dgCommoditiesCTXMenu =
-                    _hostingWindow.Get<Avalonia.Controls.ContextMenu>(nameof(dgCommoditiesCTXMenu));
+                    _hostingWindow.Get<ContextMenu>(nameof(dgCommoditiesCTXMenu));
                 miSaveSelectedCommoditiesToDb =
                     _hostingWindow.FindControl<MenuItem>(nameof(miSaveSelectedCommoditiesToDb));
                 miReloadAllCommoditiesFromDb =
@@ -223,23 +214,20 @@ namespace MainUI
 
                 _selectedCommodityDependants = new InputElement[]
                 {
-                    txtCommodityName, nudCommodityCost, nudCommodityPartialPrice, nudCommodityWholePrice,
-                    btnSaveCommodityToMemory
+                    txtCommodityName, nudCommodityCost, nudCommodityPartialPrice, nudCommodityWholePrice,btnSaveCommodityToMemory
                 };
                 _dgCommoditiesModels =
                     _hostingWindow._package.Commodities.Select(c => new DgCommoditiesModel(c, this)).ToList();
 
 
-                nudCommodityCost.FormatString = nudCommodityWholePrice.FormatString =
-                                                    nudCommodityPartialPrice.FormatString = "0.00";
+                nudCommodityCost.FormatString = nudCommodityWholePrice.FormatString = nudCommodityPartialPrice.FormatString = "0.00";
                 dgCommodities.SelectionChanged += DgCommoditiesOnSelectionChanged;
                 dgCommodities.KeyDown += DgCommoditiesOnKeyDown;
                 dgCommodities.CellPointerPressed += DgCommoditiesOnCellPointerPressed;
                 _hostingWindow._package.CommodityAdded += PackageOnCommodityAdded;
 
                 dgCommoditiesCTXMenu.ContextMenuOpening += DgCommoditiesCTXMenuOnContextMenuOpening;
-                _hostingWindow.Get<MenuItem>("miCreateCommodity").Click +=
-                    async (sender, args) => await CreateNewCommodity();
+                miCreateCommodity.Click += async (sender, args) => await CreateNewCommodity();
                 miExportAllCommodities.Click += MiExportAllCommoditiesOnClick;
                 miUnExportAllCommodities.Click += MiUnExportAllCommoditiesOnClick;
                 miExportSelectedCommodities.Click += MiExportSelectedCommoditiesOnClick;
@@ -257,10 +245,8 @@ namespace MainUI
 
                 dgCommodities.Items = _dgCommoditiesItems;
 
-                _eventsSubscriptions.Add(_hostingWindow.GetObservable(Window.ClientSizeProperty)
-                                                       .Do(sz => dgCommodities.Height = sz.Height - 230).Subscribe());
-                _eventsSubscriptions.Add(txtSearch.GetObservable(TextBox.TextProperty).Do(TxtSearchOnTextChanged)
-                                                  .Subscribe());
+                _eventsSubscriptions.Add(_hostingWindow.GetObservable(Window.ClientSizeProperty).Do(sz => dgCommodities.Height = sz.Height - 230).Subscribe());
+                _eventsSubscriptions.Add(txtSearch.GetObservable(TextBox.TextProperty).Do(TxtSearchOnTextChanged).Subscribe());
             }
 
             internal void GoToCommodity(Commodity com)
@@ -346,9 +332,9 @@ namespace MainUI
                 foreach (var com in _dgCommoditiesItems) { com.Export = true; }
             }
 
-            private void MiMoveAfterSelectedCommodityOnClick(object? sender, RoutedEventArgs e)
+            private async void MiMoveAfterSelectedCommodityOnClick(object? sender, RoutedEventArgs e)
             {
-                var selectedCom = GetSelectedCommodity();
+                var selectedCom = GetSelectedCommodity()!;
 
                 if (_commodityToMove == null || _commodityToMove == selectedCom) { return; }
 
@@ -356,13 +342,13 @@ namespace MainUI
                                  ? selectedCom.Position
                                  : selectedCom.Position + 1;
 
-                _commodityToMove?.Commodity.SetPosition(newPos);
+                await _commodityToMove.Commodity.SetPosition(newPos);
                 ResetCommodityToMove();
             }
 
-            private void MiMoveBeforeSelectedCommodityOnClick(object? sender, RoutedEventArgs e)
+            private async void MiMoveBeforeSelectedCommodityOnClick(object? sender, RoutedEventArgs e)
             {
-                var selectedCom = GetSelectedCommodity();
+                var selectedCom = GetSelectedCommodity()!;
 
                 if (_commodityToMove == null || _commodityToMove == selectedCom) { return; }
 
@@ -370,7 +356,7 @@ namespace MainUI
                                  ? selectedCom.Position
                                  : selectedCom.Position - 1;
 
-                _commodityToMove?.Commodity.SetPosition(newPos);
+                await _commodityToMove.Commodity.SetPosition(newPos);
                 ResetCommodityToMove();
             }
 
@@ -379,7 +365,7 @@ namespace MainUI
                 if (DateTime.UtcNow - _commodityToMoveSelectionTime > CommodityMovingWindow) { ResetCommodityToMove(); }
                 miMoveCommodity.IsVisible = dgCommodities.SelectedItems.Count == 1;
                 miGoToImage.IsVisible = dgCommodities.SelectedItems.Count == 1 &&
-                                        (dgCommodities.SelectedItems[0] as DgCommoditiesModel).IsImageCommodity;
+                                        (dgCommodities.SelectedItems[0] as DgCommoditiesModel)!.IsImageCommodity;
                 miSaveCommodities.IsVisible = miExportCommodities.IsVisible = _dgCommoditiesItems.Count > 0;
                 //put us in some collection
                 miExportSelectedCommodities.IsVisible =
@@ -391,21 +377,19 @@ namespace MainUI
                 miMoveAfterSelectedCommodity.IsVisible = miMoveBeforeSelectedCommodity.IsVisible =
                                                              _commodityToMove != null &&
                                                              selectedCom != _commodityToMove;
-                if (miDeleteCommodity.IsVisible) { miDeleteCommodity.Header = $"Delete(DEL) {selectedCom.ShortName}"; }
+                if (miDeleteCommodity.IsVisible) { miDeleteCommodity.Header = $"Delete(DEL) {selectedCom!.ShortName}"; }
 
                 if (miMoveBeforeSelectedCommodity.IsVisible)
                 {
-                    miMoveBeforeSelectedCommodity.Header =
-                        $"Move {_commodityToMove.ShortName} Before {selectedCom.ShortName}";
+                    miMoveBeforeSelectedCommodity.Header = $"Move {_commodityToMove!.ShortName} Before {selectedCom!.ShortName}";
                 }
 
                 if (miMoveAfterSelectedCommodity.IsVisible)
                 {
-                    miMoveAfterSelectedCommodity.Header =
-                        $"Move {_commodityToMove.ShortName} After {selectedCom.ShortName}";
+                    miMoveAfterSelectedCommodity.Header = $"Move {_commodityToMove!.ShortName} After {selectedCom!.ShortName}";
                 }
 
-                if (miMoveCommodity.IsVisible) { miMoveSelectedCommodity.Header = $"Move {selectedCom.ShortName}"; }
+                if (miMoveCommodity.IsVisible) { miMoveSelectedCommodity.Header = $"Move {selectedCom!.ShortName}"; }
             }
 
             private void ResetCommodityToMove()

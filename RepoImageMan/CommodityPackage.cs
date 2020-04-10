@@ -15,7 +15,7 @@ namespace RepoImageMan
 {
     //TODO: Add logging
     /// <summary>
-    /// Expects a .sqlite and .zip files next to each other
+    /// Expects a a folder that coontaines a file named <see cref="CommodityPackage.DbName"/>.
     /// </summary>
     public sealed partial class CommodityPackage : IDisposable
     {
@@ -32,8 +32,7 @@ namespace RepoImageMan
         private readonly ConcurrentDictionary<Type, object> _labelsCaches = new ConcurrentDictionary<Type, object>();
 
         internal ImageCommodityLabelCache<TPixel> GetLabelsCache<TPixel>() where TPixel : unmanaged, IPixel<TPixel>
-            => _labelsCaches.GetOrAdd(typeof(TPixel), tp => new ImageCommodityLabelCache<TPixel>()) as
-                ImageCommodityLabelCache<TPixel>;
+            => (_labelsCaches.GetOrAdd(typeof(TPixel), tp => new ImageCommodityLabelCache<TPixel>()) as ImageCommodityLabelCache<TPixel>)!;
 
         private readonly string _dbPath;
         internal readonly string _packageDirectoryPath;
@@ -131,9 +130,7 @@ Expected Database path is {_dbPath}.");
         {
             await using var con = GetConnection();
             await con.OpenAsync().ConfigureAwait(false);
-            await con.ExecuteAsync(
-                    "INSERT INTO Commodity(Position) VALUES((COALESCE((SELECT MAX(Position) FROM Commodity), 0) + 1));")
-                .ConfigureAwait(false);
+            await con.ExecuteAsync("INSERT INTO Commodity(Position) VALUES((COALESCE((SELECT MAX(Position) FROM Commodity), 0) + 1));").ConfigureAwait(false);
 
             var newCom = await Commodity.Load((int)con.LastInsertRowId, this).ConfigureAwait(false);
             await _commoditiesLock.WaitAsync().ConfigureAwait(false);

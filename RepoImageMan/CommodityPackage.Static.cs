@@ -28,7 +28,7 @@ LEFT JOIN ImageCommodity ic
 ON c.id = ic.id
 WHERE ic.id IS NULL;").ConfigureAwait(false);
             var readingTasks = new List<Task>();
-            //This could be developed further by using a real Parallel.AsyncForEach
+            //This could be improved further by using a real Parallel.AsyncForEach
             foreach (var comId in nonImageCommoditiesIds)
             {
                 readingTasks.Add(Commodity.Load(comId, res).ContinueWith(ca =>
@@ -57,7 +57,7 @@ WHERE ic.id IS NULL;").ConfigureAwait(false);
         public static async Task Create(string packageContainerPath)
         {
             const string CreationCommand =
-                @"CREATE TABLE Commodity (
+@"CREATE TABLE Commodity (
 	Id INTEGER NOT NULL PRIMARY KEY,
 	Name TEXT NOT NULL DEFAULT('Commodity ' || CURRENT_TIMESTAMP),
 	Position INTEGER UNIQUE,
@@ -85,10 +85,8 @@ CREATE INDEX IDX_ImageCommodity_ImageId ON ImageCommodity (ImageId);
 ";
             string dbPath = GetPackageDbPath(packageContainerPath);
             SQLiteConnection.CreateFile(dbPath);
-            await using (var con = new SQLiteConnection(GetConnectionString(dbPath)))
-            {
-                await con.ExecuteAsync(CreationCommand).ConfigureAwait(false);
-            }
+            await using var con = new SQLiteConnection(GetConnectionString(dbPath));
+            await con.ExecuteAsync(CreationCommand).ConfigureAwait(false);
         }
 
         /// <summary>

@@ -19,7 +19,7 @@ namespace RepoImageMan
         /// <param name="id">Id of the <see cref="ImageCommodity"/> to load.</param>
         /// <param name="package">The <see cref="CommodityPackage"/> which this <see cref="ImageCommodity"/> belongs to.</param>
         /// <param name="image">The <see cref="CImage"/> which this <see cref="ImageCommodity"/> belongs to.</param>
-        internal new static async Task<ImageCommodity> Load(int id, CommodityPackage package, CImage image)
+        internal static async Task<ImageCommodity> Load(int id, CommodityPackage package, CImage image)
         {
             var res = new ImageCommodity(id, package, image);
             await res.Reload().ConfigureAwait(false);
@@ -70,7 +70,7 @@ namespace RepoImageMan
                 if (value.X < 0 || value.Y < 0 ||
                     value.X > Image.Size.Width || value.Y > Image.Size.Height)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), $"{nameof(Location)} must be in [(0, 0), (ImageWidth, ImageHeight)].");
+                    throw new ArgumentOutOfRangeException(nameof(value), value, $"{nameof(Location)} must be in [(0, 0), ({Image.Size.Width}, {Image.Size.Height})].");
                 }
                 _location = value;
                 OnPropertyChanged(nameof(Location));
@@ -83,7 +83,7 @@ namespace RepoImageMan
         {
             await base.Save().ConfigureAwait(false);
             await using var con = Package.GetConnection();
-            await con.ExecuteAsync("UPDATE ImageCommodity SET fontFamilyName = @fontFamilyName, fontStyle = @fontStyle, fontSize = @fontSize, locationX = @locationX, locationY = @locationY, labelColor = @labelColor, isPositionHolder = @IsPositionHolder WHERE id = @Id",
+            await con.ExecuteAsync("UPDATE ImageCommodity SET fontFamilyName = @fontFamilyName, fontStyle = @fontStyle, fontSize = @fontSize, locationX = @locationX, locationY = @locationY, labelColor = @labelColor WHERE id = @Id",
                   new
                   {
                       fontFamilyName = Font.Family.Name,
@@ -92,8 +92,7 @@ namespace RepoImageMan
                       locationX = Location.X,
                       locationY = Location.Y,
                       labelColor = LabelColor.ToHex(),
-                      Id,
-                      IsPositionHolder
+                      Id
                   })
                 .ConfigureAwait(false);
         }
@@ -109,8 +108,6 @@ namespace RepoImageMan
             Font = SystemFonts.CreateFont(fields.FontFamilyName, (float)fields.FontSize, (FontStyle)(int)fields.FontStyle);
             Location = new PointF((float)fields.LocationX, (float)fields.LocationY);
             LabelColor = Color.FromHex(fields.LabelColor);
-            //TODO: Check if I am integer or double
-            IsPositionHolder = fields.IsPositionHolder;
         }
         /// <summary>
         /// <inheritdoc/>
@@ -123,11 +120,6 @@ namespace RepoImageMan
             await base.Delete().ConfigureAwait(false);
             await Image.RemoveCommodity(this).ConfigureAwait(false);
         }
-        
-        /// <summary>
-        /// Indicates whether an <see cref="ImageCommodity"/> is only used to hold the position of an image because this image doesn't have an commodities assigned to it.
-        /// If its set to <see cref="true"/> then this commodity won't be rendered or exported by any Processor.
-        /// </summary>
-        public bool IsPositionHolder { get; internal set; }
+
     }
 }

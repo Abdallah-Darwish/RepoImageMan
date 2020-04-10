@@ -242,13 +242,15 @@ namespace RepoImageMan
         /// </summary>
         private void Refresh()
         {
-            using var imgStream = new FileStream(PackageFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            //If the stream is empty(it will be when we create a new image) the returned 'IImageInfo' would be null
-            Size = Image.Identify(imgStream)?.Size() ?? new Size(0, 0);
-            foreach (var com in Commodities)
+            using (var imgStream = new FileStream(PackageFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                com.Location = new PointF(MathF.Min(Size.Width, com.Location.X),
-                    MathF.Min(Size.Height, com.Location.Y));
+                //If the stream is empty(it will be when we create a new image) the returned 'IImageInfo' would be null
+                Size = Image.Identify(imgStream)?.Size() ?? new Size(0, 0);
+                foreach (var com in Commodities)
+                {
+                    com.Location = new PointF(MathF.Min(Size.Width, com.Location.X),
+                        MathF.Min(Size.Height, com.Location.Y));
+                }
             }
 
             FileUpdated?.Invoke(this);
@@ -258,7 +260,7 @@ namespace RepoImageMan
         /// RETURNS A READONLY STREAM.
         /// Doesn't support concurrent access.
         /// </summary>
-        public Stream OpenStream() => new FileStream(PackageFilePath, FileMode.Open, FileAccess.Read, FileShare.None);
+        public Stream OpenStream() => new FileStream(PackageFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
 
         /// <summary>
@@ -271,12 +273,17 @@ namespace RepoImageMan
             {
                 throw new InvalidOperationException("You can't modify the image file while it is open for design.");
             }
-            await using (var fs = new FileStream(PackageFilePath, FileMode.Open, FileAccess.Write, FileShare.None))
+            using (var fs = new FileStream(PackageFilePath, FileMode.Open, FileAccess.Write, FileShare.Read))
             {
                 await newFile.CopyToAsync(fs).ConfigureAwait(false);
                 fs.SetLength(fs.Position);
             }
-
+            newFile.Position = 0;
+            var imageInfo = Image.Identify(newFile);
+            foreach (var com in Commodities)
+            {
+                com.Location = new PointF(MathF.Min(imageInfo.Width, com.Location.X), MathF.Min(imageInfo.Height, com.Location.Y));
+            }
             Refresh();
         }
 

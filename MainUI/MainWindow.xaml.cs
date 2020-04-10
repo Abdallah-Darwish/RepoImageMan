@@ -11,6 +11,7 @@ using RepoImageMan;
 using MessageBox.Avalonia;
 using MessageBox.Avalonia.Enums;
 using MBIcon = MessageBox.Avalonia.Enums.Icon;
+using System.Threading.Tasks;
 
 namespace MainUI
 {
@@ -46,10 +47,14 @@ namespace MainUI
 
         private async void BtnSettings_Click(object? sender, RoutedEventArgs e)
         {
+            var des = new DesigningWindow();
+            des.Show();
+            return;
+
             var p = await CommodityPackage.Open(@"C:\Users\abdal\Desktop\RepoFiles\NewRepo");
 
             var ein = new CommodityImageWindow(p);
-            ein.Closed += (o, args) => p.Dispose();
+            ein.Closed +=  (o, args) => p.Dispose();
             ein.Show();
             btnSettings.Content = "NOT IMPLEMENTED YET!";
         }

@@ -67,11 +67,6 @@ namespace RepoImageMan.Processors
                     c.Contrast(image.Contrast).Brightness(image.Brightness);
                     foreach (var com in image.Commodities)
                     {
-                        if (com.IsPositionHolder)
-                        {
-                            continue;
-                        }
-
                         c.DrawText(_commoditiesLabels[com.Id], com.Font, com.LabelColor, com.Location);
                     }
 
@@ -89,7 +84,6 @@ namespace RepoImageMan.Processors
         {
             _commoditiesLabels = ImmutableDictionary<int, string>.Empty.AddRange(
                 _images.SelectMany(i => i.Commodities)
-                    .Where(c => !c.IsPositionHolder)
                     .OrderBy(c => c.Position)
                     .Select((com, pos) => new KeyValuePair<int, string>(com.Id, pos.ToString())));
             Parallel.ForEach(_images, ProcessImage);

@@ -52,7 +52,7 @@ namespace RepoImageMan
             get => _instanceSize;
             set
             {
-                if(_instanceSize == value){return;}
+                if (_instanceSize == value) { return; }
 
                 _instanceSize = value;
                 foreach (var com in _commodities)
@@ -66,14 +66,14 @@ namespace RepoImageMan
         /// <summary>
         /// The scale that is used to map points from <see cref="CImage"/> to this resized <see cref="DesignCImage"/>.
         /// </summary>
-        public SizeF ToOriginalMappingScale => new SizeF(_originalImage.Width / (float) InstanceSize.Width,
-            _originalImage.Height / (float) InstanceSize.Height);
+        public SizeF ToOriginalMappingScale => new SizeF(_originalImage.Width / (float)InstanceSize.Width,
+            _originalImage.Height / (float)InstanceSize.Height);
 
         /// <summary>
         /// The scale that is used to map points from this instance to the original <see cref="CImage"/>.
         /// </summary>
-        public SizeF ToDesignMappingScale => new SizeF(InstanceSize.Width / (float) _originalImage.Width,
-            InstanceSize.Height / (float) _originalImage.Height);
+        public SizeF ToDesignMappingScale => new SizeF(InstanceSize.Width / (float)_originalImage.Width,
+            InstanceSize.Height / (float)_originalImage.Height);
 
         private readonly List<DesignImageCommodity<TPixel>> _commodities = new List<DesignImageCommodity<TPixel>>();
 
@@ -86,7 +86,7 @@ namespace RepoImageMan
         /// Returns first <see cref="DesignImageCommodity{TPixel}"/> that the point <paramref name="p"/> lies inside,
         /// or <see langword="null"/> if there is none.
         /// </summary>
-        public DesignImageCommodity<TPixel>? FirstOnPoint(PointF p) => 
+        public DesignImageCommodity<TPixel>? FirstOnPoint(PointF p) =>
             _commodities.AsParallel()
             .WithMergeOptions(ParallelMergeOptions.NotBuffered)
             .FirstOrDefault(com => com.IsInside(p));
@@ -149,10 +149,9 @@ namespace RepoImageMan
             void SurroundCommodity(DesignImageCommodity<TPixel> com)
             {
                 var comHandle = Image.Package.GetHandle<TPixel>(com.HandleSize);
-                RenderedImage
-                    .Mutate(c => c
-                        .DrawPolygon(com.SurroundingBoxColor, com.SurroundingBoxThickness, com.GetSurroundingBox())
-                        .DrawImage(comHandle, com.HandleLocation, 1f));
+                RenderedImage.Mutate(c =>
+                c.DrawPolygon(com.SurroundingBoxColor, com.SurroundingBoxThickness, com.GetSurroundingBox())
+                .DrawImage(comHandle, com.HandleLocation, 1f));
             }
 
             RenderedImage?.Dispose();
@@ -164,11 +163,10 @@ namespace RepoImageMan
             foreach (var com in Commodities)
             {
                 //Possible optimization is to execute the next line in parallel alone to ensure that the label rendering is done in parallel but its not a hot-path so it doesn't matter.
-                var comLabel = labelsCache.GetLabel(new LabelRenderingOptions(DesignImageCommodity<TPixel>.LabelText,
-                    com.Font, com.Commodity.LabelColor)).Span;
+                var comLabel = labelsCache.GetLabel(new LabelRenderingOptions(DesignImageCommodity<TPixel>.LabelText, com.Font, com.Commodity.LabelColor)).Span;
 
-                var comLocation = (Point) com.Location;
-                for (int labelRowIndex = 0;
+                var comLocation = (Point)com.Location;
+                for (int labelRowIndex = 0; 
                     labelRowIndex < comLabel.Length && comLocation.Y < RenderedImage.Height;
                     labelRowIndex++, comLocation.Y++)
                 {
@@ -179,15 +177,13 @@ namespace RepoImageMan
             if (Parallel.ForEach(copyingJobs, tu => CopyRow(tu.Row, tu.RowLocation)).IsCompleted == false)
             {
                 RenderedImage.Mutate(c => c.Fill(Color.Red));
-                throw new Exception(
-                    $"Rendering wasn't done, successfully !!!{Environment.NewLine}Couldn't RENDER labels correctly.");
+                throw new Exception($"Rendering wasn't done, successfully !!!{Environment.NewLine}Couldn't RENDER labels correctly.");
             }
 
             if (Parallel.ForEach(Commodities.Where(c => c.IsSurrounded), SurroundCommodity).IsCompleted == false)
             {
                 RenderedImage.Mutate(c => c.Fill(Color.Green));
-                throw new Exception(
-                    $"Rendering wasn't done, successfully !!!{Environment.NewLine}Couldn't SURROUND labels correctly.");
+                throw new Exception($"Rendering wasn't done, successfully !!!{Environment.NewLine}Couldn't SURROUND labels correctly.");
             }
         }
 
@@ -211,7 +207,7 @@ namespace RepoImageMan
             Image = image;
             _instanceSize = image.Size;
 
-           
+
             using (var imgStream = image.OpenStream())
             {
                 _originalImage = Image<TPixel>.Load<TPixel>(imgStream);
