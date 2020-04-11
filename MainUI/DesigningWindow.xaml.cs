@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reactive.Linq;
 using PixelFormat = SixLabors.ImageSharp.PixelFormats.Rgba32;
+using SizeF = SixLabors.Primitives.SizeF;
 namespace MainUI
 {
     public class DesigningWindow : Window
@@ -20,6 +21,7 @@ namespace MainUI
         private readonly SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder _jpegEncoder = new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder() { Quality = 100, Subsample = SixLabors.ImageSharp.Formats.Jpeg.JpegSubsample.Ratio444 };
         private DesignImageCommodity<PixelFormat>? _selectedCommodity;
         private bool _isSelectedCommodityHooked = false;
+        private SizeF _toImageMappingScale, _fromImageMappingScale;
         public DesigningWindow() : this(null) { }
         public DesigningWindow(DesignCImage<PixelFormat> image)
         {
@@ -44,13 +46,14 @@ namespace MainUI
             }).Subscribe());
 
 
-            imgPlayground.GetObservable(Image.WidthProperty).Do(w =>
+            _eventsSubscriptions.Add(imgPlayground.GetObservable(Image.WidthProperty).Do(w =>
             {
                 _image.InstanceSize = new SixLabors.Primitives.Size { Width = (int)w - 20, Height = _image.InstanceSize.Height };
-            }).Subscribe();
-            imgPlayground.GetObservable(Image.HeightProperty).Do(h => {
-                _image.InstanceSize = new SixLabors.Primitives.Size { Width = _image.InstanceSize.Width, Height = (int)h - 20 }; 
-            }).Subscribe();
+            }).Subscribe());
+            _eventsSubscriptions.Add(imgPlayground.GetObservable(Image.HeightProperty).Do(h =>
+            {
+                _image.InstanceSize = new SixLabors.Primitives.Size { Width = _image.InstanceSize.Width, Height = (int)h - 20 };
+            }).Subscribe());
 
 
             ReloadPlayground();

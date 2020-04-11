@@ -237,6 +237,28 @@ namespace RepoImageMan
             _commodities.Remove(dCom);
         }
 
+        /// <summary>
+        /// Returns a <see cref="SizeF"/> that you can use to map points from other images(mainly ImageBox with different size) to this image with <see cref="InstanceSize"/>.
+        /// You can use the returned value with <see cref="Extensions.Scale(PointF, SizeF)"/>.
+        /// </summary>
+        /// <param name="sz">Points origin rectangle size.</param>
+        public SizeF GetToInstanceMappingScale(SizeF sz)
+        {
+            if (sz.Width <= 0.0f || sz.Height <= 0.0f) { throw new ArgumentOutOfRangeException($"The size must be in range [(1, 1), (INF, INF)]."); }
+            return new SizeF(InstanceSize.Width / sz.Width, InstanceSize.Height / sz.Height);
+        }
+
+        /// <summary>
+        /// Returns a <see cref="SizeF"/> that you can use to map points from this image with <see cref="InstanceSize"/> to other rectangles sizes.
+        /// You can use the returned value with <see cref="Extensions.Scale(PointF, SizeF)"/>.
+        /// </summary>
+        /// <param name="sz">Points target rectangle size.</param>
+        public SizeF GetFromInstanceMappingScale(SizeF sz)
+        {
+            if (sz.Width <= 0.0f || sz.Height <= 0.0f) { throw new ArgumentOutOfRangeException($"The size must be in range [(1, 1), (INF, INF)]."); }
+            return new SizeF(sz.Width / InstanceSize.Width, sz.Height / InstanceSize.Height);
+        }
+
         #region IDisposable Support
 
         private bool _disposedValue = false; // To detect redundant calls

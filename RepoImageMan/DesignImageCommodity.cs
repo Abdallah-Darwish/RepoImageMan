@@ -18,6 +18,7 @@ namespace RepoImageMan
         /// </summary>
         public event CommodityUpdatedEventHandler? Updated;
 
+
         public PointF Location
         {
             get => Commodity.Location.Scale(Image.ToDesignMappingScale);
@@ -58,6 +59,7 @@ namespace RepoImageMan
         /// </summary>
         /// <remarks>Used to know if the user is trying to activate or select commodity.</remarks>
         public bool IsInside(PointF p) => GetLabelBounds().Contains(p);
+
         /// <summary>
         /// The size of the "arrow" or whatever that is used as a handle to allow the user to move the label around.
         /// </summary>
