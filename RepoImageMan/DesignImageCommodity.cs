@@ -145,6 +145,7 @@ namespace RepoImageMan
             UpdateAfterImageResize();
         }
 
+
         internal void UpdateAfterImageResize()
         {
             UpdateFont(Commodity, new PropertyChangedEventArgs("CALLED FROM CONSTRUCTOR"));

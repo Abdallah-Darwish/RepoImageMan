@@ -8,6 +8,7 @@ namespace RepoImageMan
         INotificationManager Subscribe(string propName, PropertyChangedEventHandler handler);
         INotificationManager Unsubscribe(string propName, PropertyChangedEventHandler handler);
     }
+    //This can be replaced by RX extensions
     public sealed class NotificationManager : IDisposable, INotificationManager
     {
         private readonly INotifySpecificPropertyChanged _sender;

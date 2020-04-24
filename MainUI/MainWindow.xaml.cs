@@ -12,6 +12,7 @@ using MessageBox.Avalonia;
 using MessageBox.Avalonia.Enums;
 using MBIcon = MessageBox.Avalonia.Enums.Icon;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace MainUI
 {
@@ -51,13 +52,15 @@ namespace MainUI
 
         private async void BtnSettings_Click(object? sender, RoutedEventArgs e)
         {
+        
             var p = await CommodityPackage.Open($@"{RepoFiles}\NewRepo", SixLabors.ImageSharp.Image.Load($@"{RepoFiles}\Arrows1.png"));
 
             //var ein = new CommodityImageWindow(p);
             //ein.Closed +=  (o, args) => p.Dispose();
             //ein.Show();
             var rand = new Random();
-            p.Images[rand.Next(p.Images.Count)].TryDesign<SixLabors.ImageSharp.PixelFormats.Rgba32>(out var img);
+            var images = p.Images.Where(i => i.Commodities.Any()).ToArray();
+            images[rand.Next(images.Length)].TryDesign<SixLabors.ImageSharp.PixelFormats.Rgba32>(out var img);
             var din = new DesigningWindow(img!);
             await din.ShowDialog(this);
             btnSettings.Content = "NOT IMPLEMENTED YET!";

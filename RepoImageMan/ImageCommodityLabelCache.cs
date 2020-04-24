@@ -6,6 +6,8 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace RepoImageMan
 {
@@ -27,6 +29,7 @@ namespace RepoImageMan
         public override bool Equals(object? obj) => obj != null && Equals((LabelRenderingOptions)obj);
 
         public override int GetHashCode() => HashCode.Combine(Text, Font, Color);
+
         public static implicit operator RendererOptions?(LabelRenderingOptions? options)
         {
             if (options == null) { return null; }
@@ -37,33 +40,33 @@ namespace RepoImageMan
             };
         }
 
-
         public LabelRenderingOptions Clone() => new LabelRenderingOptions(Text, Font, Color);
+
+        public override string ToString() => $"{{Text: {Text}, Font: (Name: {Font.Name}, Size: {Font.Size}), Color: {this.Color.ToHex()}}}";
     }
 
     internal class ImageCommodityLabelCache<TPixel> where TPixel : unmanaged, IPixel<TPixel>
     {
-        private readonly ConcurrentDictionary<LabelRenderingOptions, TPixel[][]> _labels =
-            new ConcurrentDictionary<LabelRenderingOptions, TPixel[][]>();
+        private readonly ConcurrentDictionary<LabelRenderingOptions, TPixel[][]> _labels = new ConcurrentDictionary<LabelRenderingOptions, TPixel[][]>();
 
         /// <summary>
         /// Estimated size of <see cref="_labels"/> in bytes.
         /// </summary>
         private int _labelsSize = 0;
 
-        private int _clearingThreshold = 300 * 1000_000;
+        private int _clearingThreshold = 1000_000_000;
 
-        private TPixel[][] RenderLabel(LabelRenderingOptions options)
+        private static TPixel[][] RenderLabel(LabelRenderingOptions options)
         {
             //TODO: Profile me and see how much am I called ?
-
+            Trace.WriteLine($"Rendering label with options {options}");
             Size expectedSize = (Size)TextMeasurer.Measure(options.Text, options);
             expectedSize.Height += 4;
             expectedSize.Width += 4;
 
             TPixel backgroundColor = (options.Color == Color.DarkBlue ? Color.DarkCyan : Color.DarkBlue).ToPixel<TPixel>();
 
-            using var playground = new Image<TPixel>(new Configuration(), expectedSize.Width, expectedSize.Height, backgroundColor);
+            using var playground = new Image<TPixel>(Configuration.Default, expectedSize.Width, expectedSize.Height, backgroundColor);
             playground.Mutate(c => c.DrawText(options.Text, options.Font, options.Color, new Point(0, 0)));
             int height = 0, width = 0;
             for (int r = playground.Height - 1; r >= 0; r--)
@@ -74,10 +77,7 @@ namespace RepoImageMan
                 {
                     if (plyRowSpan[c].Equals(backgroundColor) == false)
                     {
-                        if (height == 0)
-                        {
-                            height = r + 1;
-                        }
+                        if (height == 0) { height = r + 1; }
 
                         width = Math.Max(width, c + 1);
                         break;
@@ -99,14 +99,15 @@ namespace RepoImageMan
                     }
                 }
             }
-
+            Trace.WriteLine("Done rendering.");
             return label;
         }
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void TryClearCache()
         {
             if (_labelsSize >= ClearingThreshold)
             {
+                Trace.WriteLine($"Reached clearing threshold({ClearingThreshold}) with cache size = {_labelsSize}");
                 _labels.Clear();
                 _labelsSize = 0;
             }

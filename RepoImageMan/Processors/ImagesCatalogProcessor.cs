@@ -36,8 +36,7 @@ namespace RepoImageMan.Processors
         private readonly IImmutableDictionary<int, int> _imagesPositions;
         private readonly RotateMode _rotationMode = RotateMode.None;
 
-        public ImagesCatalogProcessor(ReadOnlyMemory<CImage> images, IObserver<ProcessedCImage> imagesConsumer,
-            RotateMode rotationMode)
+        public ImagesCatalogProcessor(ReadOnlyMemory<CImage> images, IObserver<ProcessedCImage> imagesConsumer, RotateMode rotationMode)
         {
             _rotationMode = rotationMode;
             _imagesConsumer = imagesConsumer;
@@ -46,9 +45,7 @@ namespace RepoImageMan.Processors
                 .OrderBy(i => i.Commodities.Count > 0 ? i.Commodities.Min(c => c.Position) : int.MaxValue)
                 .ThenBy(i => i.Id)
                 .ToArray();
-            _imagesPositions =
-                ImmutableDictionary<int, int>.Empty.AddRange(_images.Select((img, pos) =>
-                    new KeyValuePair<int, int>(img.Id, pos)));
+            _imagesPositions = ImmutableDictionary<int, int>.Empty.AddRange(_images.Select((img, pos) => new KeyValuePair<int, int>(img.Id, pos)));
         }
 
         private void ProcessImage(CImage image)

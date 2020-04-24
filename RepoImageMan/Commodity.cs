@@ -26,12 +26,12 @@ namespace RepoImageMan
             Deleting?.Invoke(this);
             await Package.RemoveCommodity(this).ConfigureAwait(false);
             await using var con = Package.GetConnection();
-            await con.ExecuteAsync(@"DELETE FROM Commodity WHERE id = @id;", new {Id}).ConfigureAwait(false);
+            await con.ExecuteAsync(@"DELETE FROM Commodity WHERE id = @id;", new { Id }).ConfigureAwait(false);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
-        protected readonly NotificationManager    _propertyNotificationManager;
-        public             INotificationManager   PropertyNotificationManager => _propertyNotificationManager;
+        protected readonly NotificationManager _propertyNotificationManager;
+        public INotificationManager PropertyNotificationManager => _propertyNotificationManager;
 
         protected void OnPropertyChanged(string propName)
         {
@@ -78,7 +78,7 @@ namespace RepoImageMan
             if (newPosition == Position) { return; }
 
 
-            await con.ExecuteAsync("UPDATE Commodity SET position = NULL WHERE id = @Id", new {Id})
+            await con.ExecuteAsync("UPDATE Commodity SET position = NULL WHERE id = @Id", new { Id })
                      .ConfigureAwait(false);
             if (newPosition < Position)
             {
@@ -111,8 +111,7 @@ namespace RepoImageMan
         /// </summary>
         private async Task ChangePosition(int newPosition, SQLiteConnection con)
         {
-            await con.ExecuteAsync("UPDATE Commodity SET position = @newPosition WHERE id = @Id", new {Id, newPosition})
-                     .ConfigureAwait(false);
+            await con.ExecuteAsync("UPDATE Commodity SET position = @newPosition WHERE id = @Id", new { Id, newPosition }).ConfigureAwait(false);
             Position = newPosition;
             OnPropertyChanged(nameof(Position));
         }
@@ -120,8 +119,8 @@ namespace RepoImageMan
         protected Commodity(int id, CommodityPackage package)
         {
             _propertyNotificationManager = new NotificationManager(this);
-            Package                      = package;
-            Id                           = id;
+            Package = package;
+            Id = id;
         }
 
         /// <summary>
@@ -167,7 +166,7 @@ namespace RepoImageMan
             {
                 if (value < 0m)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), $"{nameof(WholePrice)} can't < 0.");
+                    throw new ArgumentOutOfRangeException(nameof(value), WholePrice, $"{nameof(WholePrice)} can't < 0.");
                 }
 
                 if (value == _wholePrice) { return; }
@@ -186,7 +185,7 @@ namespace RepoImageMan
             {
                 if (value < 0m)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), $"{nameof(PartialPrice)} can't < 0.");
+                    throw new ArgumentOutOfRangeException(nameof(value), PartialPrice, $"{nameof(PartialPrice)} can't < 0.");
                 }
 
                 if (value == _partialPrice) { return; }
@@ -203,7 +202,7 @@ namespace RepoImageMan
             get => _cost;
             set
             {
-                if (value < 0m) { throw new ArgumentOutOfRangeException(nameof(value), $"{nameof(Cost)} can't < 0."); }
+                if (value < 0m) { throw new ArgumentOutOfRangeException(nameof(value), Cost, $"{nameof(Cost)} can't < 0."); }
 
                 if (value == _cost) { return; }
 
@@ -225,8 +224,8 @@ namespace RepoImageMan
         {
             await using var con = Package.GetConnection();
             await con
-                  .ExecuteAsync("UPDATE Commodity SET name = @Name, wholePrice = @WholePrice, partialPrice = @PartialPrice, cost = @Cost WHERE id = @Id",
-                                this).ConfigureAwait(false);
+                .ExecuteAsync("UPDATE Commodity SET name = @Name, wholePrice = @WholePrice, partialPrice = @PartialPrice, cost = @Cost WHERE id = @Id", this)
+                .ConfigureAwait(false);
         }
 
         /// <summary>
@@ -236,14 +235,15 @@ namespace RepoImageMan
         public virtual async Task Reload()
         {
             await using var con = Package.GetConnection();
-            var dbFields = await con.QueryFirstAsync("SELECT * FROM Commodity WHERE id = @Id", new {Id})
-                                    .ConfigureAwait(false);
-            Name         = dbFields.Name;
-            WholePrice   = (decimal) (double) dbFields.WholePrice;
-            PartialPrice = (decimal) (double) dbFields.PartialPrice;
-            Cost         = (decimal) (double) dbFields.Cost;
-            Position     = (int) dbFields.Position;
+            var dbFields = await con.QueryFirstAsync("SELECT * FROM Commodity WHERE id = @Id", new { Id }).ConfigureAwait(false);
+            Name = dbFields.Name;
+            WholePrice = (decimal)(double)dbFields.WholePrice;
+            PartialPrice = (decimal)(double)dbFields.PartialPrice;
+            Cost = (decimal)(double)dbFields.Cost;
+            Position = (int)dbFields.Position;
         }
+
+        public override string ToString() => $"{Id}: {Name}";
 
         #region IDisposable Support
 
@@ -253,7 +253,7 @@ namespace RepoImageMan
         {
             if (!_disposedValue)
             {
-                Deleting        = null;
+                Deleting = null;
                 PropertyChanged = null;
                 _propertyNotificationManager.Dispose();
                 _disposedValue = true;

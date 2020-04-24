@@ -12,6 +12,8 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using System.Diagnostics.Tracing;
+using System.Diagnostics;
 
 namespace RepoImageMan
 {
@@ -129,7 +131,7 @@ namespace RepoImageMan
                     srcV = new Vector<byte>(srcRow);
                     dstV = new Vector<byte>(dstRow);
                     tmpV = srcV | dstV;
-                    tmpV.TryCopyTo(dstRow);
+                    tmpV.CopyTo(dstRow);
 
                     //p.X += Vector<int>.Count;
                     srcRow = srcRow.Slice(Vector<byte>.Count);
@@ -149,18 +151,28 @@ namespace RepoImageMan
                 c.DrawPolygon(com.SurroundingBoxColor, com.SurroundingBoxThickness, com.GetSurroundingBox())
                 .DrawImage(comHandle, com.HandleLocation, 1f));
             }
-
+            Trace.WriteLine("Disposing old image");
             RenderedImage?.Dispose();
+
+            Trace.WriteLine("Cloning playground image");
             RenderedImage = _renderingPlayground.Clone(c => c.Resize(InstanceSize));
 
             var copyingJobs = new List<(ReadOnlyMemory<TPixel> Row, Point RowLocation)>();
             var labelsCache = Image.Package.GetLabelsCache<TPixel>();
 
+            Trace.WriteLine($"Preparing commodities");
+            Trace.Indent();
+
             foreach (var com in Commodities)
             {
+                Trace.WriteLine($"Preparing commodity {com.Commodity}");
+                Trace.Indent();
+                Trace.WriteLine($"Preparing commodity {com.Commodity} label");
                 //Possible optimization is to execute the next line in parallel alone to ensure that the label rendering is done in parallel but its not a hot-path so it doesn't matter.
                 var comLabel = labelsCache.GetLabel(new LabelRenderingOptions(DesignImageCommodity<TPixel>.LabelText, com.Font, com.Commodity.LabelColor)).Span;
 
+
+                Trace.WriteLine($"Splitting commodity {com.Commodity} label into rows");
                 var comLocation = (Point)com.Location;
                 for (int labelRowIndex = 0;
                     labelRowIndex < comLabel.Length && comLocation.Y < RenderedImage.Height;
@@ -168,19 +180,29 @@ namespace RepoImageMan
                 {
                     copyingJobs.Add((comLabel[labelRowIndex].AsMemory(), comLocation));
                 }
+                Trace.WriteLine($"Finished preparing commodity {com.Commodity}");
+                Trace.Unindent();
             }
+            Trace.Unindent();
 
+            Trace.WriteLine($"Finished preparing all commodities with {copyingJobs.Count} copying jobs.");
+            Trace.WriteLine($"The average row size is {copyingJobs.Select(j => j.Row.Length).Average() : 0}");
+
+            Trace.WriteLine($"Copying rows to final image");
             if (Parallel.ForEach(copyingJobs, tu => CopyRow(tu.Row, tu.RowLocation)).IsCompleted == false)
             {
                 RenderedImage.Mutate(c => c.Fill(Color.Red));
                 throw new Exception($"Rendering wasn't done, successfully !!!{Environment.NewLine}Couldn't RENDER labels correctly.");
             }
+            Trace.WriteLine("Finished copying rows");
+            Trace.WriteLine("Surronding commodities");
 
             if (Parallel.ForEach(Commodities.Where(c => c.IsSurrounded), SurroundCommodity).IsCompleted == false)
             {
                 RenderedImage.Mutate(c => c.Fill(Color.Green));
                 throw new Exception($"Rendering wasn't done, successfully !!!{Environment.NewLine}Couldn't SURROUND labels correctly.");
             }
+            Trace.WriteLine("Finished Surrounding commodities");
         }
 
         private void AddCommodity(ImageCommodity com)
@@ -188,6 +210,7 @@ namespace RepoImageMan
             var dCom = new DesignImageCommodity<TPixel>(com, this);
             dCom.Updated += CommodityUpdated;
             _commodities.Add(dCom);
+            UpdateMe();
         }
 
         private void CommodityUpdated(DesignImageCommodity<TPixel> sender) => UpdateMe();
@@ -208,6 +231,9 @@ namespace RepoImageMan
             {
                 _originalImage = Image<TPixel>.Load<TPixel>(imgStream);
             }
+            UpdatePlayground(this, new PropertyChangedEventArgs("CALLED FROM CONSTRUCTOR"));
+
+
 
             foreach (var com in Image.Commodities)
             {
@@ -219,7 +245,6 @@ namespace RepoImageMan
             Image.PropertyNotificationManager
                 .Subscribe(nameof(CImage.Contrast), UpdatePlayground)
                 .Subscribe(nameof(CImage.Brightness), UpdatePlayground);
-            UpdatePlayground(this, new PropertyChangedEventArgs("CALLED FROM CONSTRUCTOR"));
             Render();
         }
 
@@ -235,6 +260,7 @@ namespace RepoImageMan
             var dCom = _commodities.First(c => c.Commodity.Id == com.Id);
             dCom.Dispose();
             _commodities.Remove(dCom);
+            UpdateMe();
         }
 
         /// <summary>

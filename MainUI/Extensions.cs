@@ -20,9 +20,10 @@ namespace MainUI
             return new Avalonia.Media.Imaging.Bitmap(imgStream);
         }
         public static SixLabors.Primitives.PointF ToSixLabors(this Avalonia.Point p) => new SixLabors.Primitives.PointF((float)p.X, (float)p.Y);
+        public static SixLabors.Primitives.SizeF ToSixLabors(this Avalonia.Size sz) => new SixLabors.Primitives.SizeF((float)sz.Width, (float)sz.Height);
         public static IBitmap LoadResizedBitmap(this Stream originalImageStream, Avalonia.Size sz)
         {
-            using var img = SixLabors.ImageSharp.Image.Load(originalImageStream);
+            using var img = Image.Load(originalImageStream);
             img.Mutate(c => c.Resize(new SixLabors.Primitives.Size((int)sz.Width, (int)sz.Height)));
             using var resizedImageStream = new MemoryStream(img.Height * img.Width * (img.PixelType.BitsPerPixel / 8) + 20);
             img.SaveAsBmp(resizedImageStream);

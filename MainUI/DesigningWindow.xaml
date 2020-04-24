@@ -10,13 +10,13 @@
       <Image.ContextMenu>
         <ContextMenu Name="imgPlaygroundCTXMenu">
           <MenuItem Header="Create(INS)" Name="miCreateCommodity"/>
-          <MenuItem Name="miDeleteCommodity"/>
-          <MenuItem Name="miReload"/>
+          <MenuItem Name="miDeleteSelectedCommodity"/>
+          <MenuItem Name="miReloadSelectedCommodity"/>
         </ContextMenu>
       </Image.ContextMenu>
     </Image>
 
-    <Grid Margin="0 0 0 10" HorizontalAlignment="Stretch" VerticalAlignment="Bottom">
+    <Grid Margin="0 0 0 10" HorizontalAlignment="Center" VerticalAlignment="Bottom">
       <Grid.ColumnDefinitions>
         <!--First labels column-->
         <ColumnDefinition />

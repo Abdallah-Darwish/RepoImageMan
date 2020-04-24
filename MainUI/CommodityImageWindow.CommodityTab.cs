@@ -396,12 +396,10 @@ namespace MainUI
 
             private DgCommoditiesModel? GetSelectedCommodity() => dgCommodities.SelectedItems.Count == 0
                                                                       ? null
-                                                                      : dgCommodities.SelectedItems[0] as
-                                                                            DgCommoditiesModel;
+                                                                      : dgCommodities.SelectedItems[0] as DgCommoditiesModel;
 
 
-            private void BtnSaveCommodityToMemoryOnClick(object? sender, RoutedEventArgs e) =>
-                GetSelectedCommodity()?.SaveToMemory();
+            private void BtnSaveCommodityToMemoryOnClick(object? sender, RoutedEventArgs e) => GetSelectedCommodity()?.SaveToMemory();
 
             private async void DgCommoditiesOnKeyDown(object? sender, KeyEventArgs e)
             {
