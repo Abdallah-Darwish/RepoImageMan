@@ -172,8 +172,7 @@ namespace MainUI
 
             private DgCommoditiesModel? _commodityToMove;
 
-            private DateTime _commodityToMoveSelectionTime =
-                DateTime.UtcNow - (CommodityMovingWindow * 2);
+            private DateTime _commodityToMoveSelectionTime = DateTime.UtcNow - (CommodityMovingWindow * 2);
 
             private static readonly TimeSpan CommodityMovingWindow = TimeSpan.FromMinutes(3);
 

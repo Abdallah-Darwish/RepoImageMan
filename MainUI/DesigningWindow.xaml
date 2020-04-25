@@ -6,7 +6,7 @@
         x:Class="MainUI.DesigningWindow"
         Title="DesigningWindow">
   <StackPanel Orientation="Vertical">
-    <Image Name="imgPlayground" Margin="10 10" HorizontalAlignment="Left" VerticalAlignment="Top" Stretch="None">
+    <Image Name="imgPlayground" Margin="10 10" HorizontalAlignment="Left" VerticalAlignment="Top" Stretch="Fill">
       <Image.ContextMenu>
         <ContextMenu Name="imgPlaygroundCTXMenu">
           <MenuItem Header="Create(INS)" Name="miCreateCommodity"/>

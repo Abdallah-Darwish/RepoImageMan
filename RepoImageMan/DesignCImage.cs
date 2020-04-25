@@ -92,7 +92,7 @@ namespace RepoImageMan
         public Image<TPixel> RenderedImage { get; private set; }
 
         /// <summary>
-        /// Contains the image with <see cref="CImage.Contrast"/> applied to it and resized but nothing is written on it.
+        /// Contains the image with <see cref="CImage.Contrast"/> and <see cref="CImage.Brightness"/> applied to it and resized but nothing is written on it.
         /// </summary>
         private Image<TPixel> _renderingPlayground;
 
@@ -124,14 +124,14 @@ namespace RepoImageMan
                     srcRow = srcRow[..dstRow.Length];
                 }
 
-                Vector<byte> srcV, dstV, tmpV;
+                Vector<byte> srcV, dstV;
 
                 for (; srcRow.Length >= Vector<byte>.Count;)
                 {
                     srcV = new Vector<byte>(srcRow);
                     dstV = new Vector<byte>(dstRow);
-                    tmpV = srcV | dstV;
-                    tmpV.CopyTo(dstRow);
+                    dstV |= srcV;
+                    dstV.CopyTo(dstRow);
 
                     //p.X += Vector<int>.Count;
                     srcRow = srcRow.Slice(Vector<byte>.Count);
