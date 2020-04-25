@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using System.Diagnostics.Tracing;
 using System.Diagnostics;
-
+using System.Reactive.Linq;
 namespace RepoImageMan
 {
     /// <summary>
@@ -186,7 +186,7 @@ namespace RepoImageMan
             Trace.Unindent();
 
             Trace.WriteLine($"Finished preparing all commodities with {copyingJobs.Count} copying jobs.");
-            Trace.WriteLine($"The average row size is {copyingJobs.Select(j => j.Row.Length).Average() : 0}");
+            Trace.WriteLine($"The average row size is {copyingJobs.Select(j => j.Row.Length).Average(): 0}");
 
             Trace.WriteLine($"Copying rows to final image");
             if (Parallel.ForEach(copyingJobs, tu => CopyRow(tu.Row, tu.RowLocation)).IsCompleted == false)
@@ -220,7 +220,7 @@ namespace RepoImageMan
             Render();
             ImageUpdated?.Invoke(this);
         }
-
+        private IDisposable _imageBrightnessContrastSubscription;
         internal DesignCImage(CImage image)
         {
             Image = image;
@@ -231,9 +231,7 @@ namespace RepoImageMan
             {
                 _originalImage = Image<TPixel>.Load<TPixel>(imgStream);
             }
-            UpdatePlayground(this, new PropertyChangedEventArgs("CALLED FROM CONSTRUCTOR"));
-
-
+            UpdatePlayground();
 
             foreach (var com in Image.Commodities)
             {
@@ -242,15 +240,15 @@ namespace RepoImageMan
 
             Image.CommodityAdded += CommodityAdded;
             Image.CommodityRemoved += CommodityRemoved;
-            Image.PropertyNotificationManager
-                .Subscribe(nameof(CImage.Contrast), UpdatePlayground)
-                .Subscribe(nameof(CImage.Brightness), UpdatePlayground);
+            _imageBrightnessContrastSubscription = Image
+                 .Where(pn => pn == nameof(CImage.Contrast) || pn == nameof(CImage.Brightness))
+                 .Subscribe(pn => UpdatePlayground());
             Render();
         }
 
         private void CommodityAdded(CImage sender, ImageCommodity com) => AddCommodity(com);
 
-        private void UpdatePlayground(object sender, PropertyChangedEventArgs e)
+        private void UpdatePlayground()
         {
             _renderingPlayground = _originalImage.Clone(c => c.Contrast(Image.Contrast).Brightness(Image.Brightness));
         }
@@ -296,9 +294,8 @@ namespace RepoImageMan
         {
             if (!_disposedValue)
             {
-                Image.PropertyNotificationManager
-                    .Unsubscribe(nameof(CImage.Contrast), UpdatePlayground)
-                    .Unsubscribe(nameof(CImage.Brightness), UpdatePlayground);
+                _imageBrightnessContrastSubscription.Dispose();
+                _imageBrightnessContrastSubscription = null;
                 Image.CommodityRemoved -= CommodityRemoved;
                 Image.CommodityAdded -= CommodityAdded;
                 foreach (var com in _commodities)

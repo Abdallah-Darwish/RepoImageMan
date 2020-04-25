@@ -89,22 +89,28 @@ namespace MainUI
 
                 private void OnPropertyChanged([CallerMemberName] string propertyName = null)
                 {
-                    if (Dispatcher.UIThread.CheckAccess()) { PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName)); }
-                    else { Dispatcher.UIThread.Post(() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName))); }
+                    if (Dispatcher.UIThread.CheckAccess())
+                    {
+                        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+                    }
+                    else
+                    {
+                        Dispatcher.UIThread.Post(() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName)));
+                    }
                 }
 
-                private void CommodityOnPropertyChanged(object _, PropertyChangedEventArgs e)
+                private void CommodityOnPropertyChanged(string propName)
                 {
-                    if (e.PropertyName == nameof(Commodity.Position)) { RePositionInDgItems(); }
+                    if (propName == nameof(Commodity.Position)) { RePositionInDgItems(); }
 
-                    PropertyChanged?.Invoke(this, e);
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
                 }
-
+                private IDisposable _commodityNotificationsSubscription;
                 public DgCommoditiesModel(Commodity com, CommodityTab hostingTab)
                 {
                     _hostingTab = hostingTab;
                     Commodity = com;
-                    Commodity.PropertyChanged += CommodityOnPropertyChanged;
+                    _commodityNotificationsSubscription = Commodity.Subscribe(CommodityOnPropertyChanged);
                     Commodity.Deleting += CommodityOnDeleting;
                     RePositionInDgItems();
                 }
@@ -125,7 +131,7 @@ namespace MainUI
                     _hostingTab._dgCommoditiesItems.Remove(this);
                     if (_hostingTab._commodityToMove == this) { _hostingTab.ResetCommodityToMove(); }
 
-                    Commodity.PropertyChanged -= CommodityOnPropertyChanged;
+                    _commodityNotificationsSubscription.Dispose();
                     Commodity.Deleting -= CommodityOnDeleting;
                 }
             }
@@ -239,8 +245,8 @@ namespace MainUI
 
                 dgCommodities.Items = _dgCommoditiesItems;
 
-                _eventsSubscriptions.Add(_hostingWindow.GetObservable(Window.ClientSizeProperty).Do(sz => dgCommodities.Height = sz.Height - 230).Subscribe());
-                _eventsSubscriptions.Add(txtSearch.GetObservable(TextBox.TextProperty).Do(TxtSearchOnTextChanged).Subscribe());
+                _eventsSubscriptions.Add(_hostingWindow.GetObservable(Window.ClientSizeProperty).Subscribe(sz => dgCommodities.Height = sz.Height - 230));
+                _eventsSubscriptions.Add(txtSearch.GetObservable(TextBox.TextProperty).Subscribe(TxtSearchOnTextChanged));
             }
 
             internal void GoToCommodity(Commodity com)

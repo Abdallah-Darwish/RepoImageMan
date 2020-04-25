@@ -3,12 +3,14 @@ using System;
 using System.ComponentModel;
 using System.Data.SQLite;
 using System.Linq;
+using System.Reactive.Subjects;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace RepoImageMan
 {
     //TODO: implement IEquatable
-    public class Commodity : IDisposable, INotifyPropertyChanged, INotifySpecificPropertyChanged
+    public class Commodity : IDisposable, IObservable<string>
     {
         public delegate void CommodityDeletedEventHandler(Commodity sender);
 
@@ -28,16 +30,14 @@ namespace RepoImageMan
             await using var con = Package.GetConnection();
             await con.ExecuteAsync(@"DELETE FROM Commodity WHERE id = @id;", new { Id }).ConfigureAwait(false);
         }
+        private readonly ISubject<string> _notificationsSubject = new Subject<string>();
 
-        public event PropertyChangedEventHandler? PropertyChanged;
-        protected readonly NotificationManager _propertyNotificationManager;
-        public INotificationManager PropertyNotificationManager => _propertyNotificationManager;
+        public IDisposable Subscribe(IObserver<string> observer) => _notificationsSubject.Subscribe(observer);
 
-        protected void OnPropertyChanged(string propName)
-        {
-            _propertyNotificationManager.OnPropertyChanged(propName);
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
-        }
+        //Kept as a seperate method in case I want to support INotifyPropertyChanged in the future.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void OnPropertyChanged(string propName) => _notificationsSubject.OnNext(propName);
+
 
         ///<summary>
         /// Order or position of this <see cref="Commodity"/> in the <see cref="Package"/>.
@@ -118,7 +118,6 @@ namespace RepoImageMan
 
         protected Commodity(int id, CommodityPackage package)
         {
-            _propertyNotificationManager = new NotificationManager(this);
             Package = package;
             Id = id;
         }
@@ -254,8 +253,7 @@ namespace RepoImageMan
             if (!_disposedValue)
             {
                 Deleting = null;
-                PropertyChanged = null;
-                _propertyNotificationManager.Dispose();
+                _notificationsSubject.OnCompleted();
                 _disposedValue = true;
             }
         }

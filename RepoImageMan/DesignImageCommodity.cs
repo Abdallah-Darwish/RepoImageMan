@@ -4,6 +4,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 using System;
 using System.ComponentModel;
+using System.Reactive.Linq;
 namespace RepoImageMan
 {
     //Can be moved only using top left corner(easier Life mah nigga)
@@ -40,7 +41,7 @@ namespace RepoImageMan
             {
                 if (value == _isSurrounded) { return; }
                 _isSurrounded = value;
-                UpdateMe(this, new PropertyChangedEventArgs(nameof(IsSurrounded)));
+                UpdateMe();
             }
         }
         public DesignCImage<TPixel> Image { get; }
@@ -108,14 +109,14 @@ namespace RepoImageMan
 
         public Color SurroundingBoxColor
         {
-            get => _surroundingBoxColor; 
+            get => _surroundingBoxColor;
             set
             {
                 _surroundingBoxColor = value;
-                UpdateMe(this, new PropertyChangedEventArgs(nameof(SurroundingBoxColor)));
+                UpdateMe();
             }
         }
-        private void UpdateMe(object sender, PropertyChangedEventArgs e) => Updated?.Invoke(this);
+        private void UpdateMe() => Updated?.Invoke(this);
         private Font _font;
         public Font Font
         {
@@ -127,29 +128,31 @@ namespace RepoImageMan
                 Commodity.Font = new Font(_font, _font.Size * Image.ToOriginalMappingScale.Average());
             }
         }
-        private void UpdateFont(object sender, PropertyChangedEventArgs e)
+        private void UpdateFont()
         {
             _font = new Font(Commodity.Font, Commodity.Font.Size * Image.ToDesignMappingScale.Average());
         }
+        private IDisposable[] _notificationsSubscriptions;
         public DesignImageCommodity(ImageCommodity com, DesignCImage<TPixel> image)
         {
             Commodity = com;
             Image = image;
 
-            Commodity.PropertyNotificationManager
-                .Subscribe(nameof(ImageCommodity.Font), UpdateMe)
-                .Subscribe(nameof(ImageCommodity.Location), UpdateMe)
-                .Subscribe(nameof(ImageCommodity.LabelColor), UpdateMe)
-                .Subscribe(nameof(ImageCommodity.Font), UpdateFont);
+            _notificationsSubscriptions = new IDisposable[]
+            { Commodity
+           .Where(pn =>
+           pn == nameof(ImageCommodity.Font) ||
+           pn == nameof(ImageCommodity.Location) ||
+           pn == nameof(ImageCommodity.LabelColor))
+           .Subscribe(pn => UpdateMe()),
+           Commodity.Where(pn => pn == nameof(ImageCommodity.Font)).Subscribe(pn => UpdateFont())
+            };
 
             UpdateAfterImageResize();
         }
 
 
-        internal void UpdateAfterImageResize()
-        {
-            UpdateFont(Commodity, new PropertyChangedEventArgs("CALLED FROM CONSTRUCTOR"));
-        }
+        internal void UpdateAfterImageResize() => UpdateFont();
 
         #region IDisposable Support
         private bool _disposedValue = false; // To detect redundant calls
@@ -163,11 +166,8 @@ namespace RepoImageMan
             {
                 _disposedValue = true;
                 Updated = null;
-                Commodity?.PropertyNotificationManager
-                    .Unsubscribe(nameof(ImageCommodity.Font), UpdateMe)
-                    .Unsubscribe(nameof(ImageCommodity.Location), UpdateMe)
-                    .Unsubscribe(nameof(ImageCommodity.LabelColor), UpdateMe)
-                    .Unsubscribe(nameof(ImageCommodity.Font), UpdateFont);
+                foreach(var sub in _notificationsSubscriptions) { sub.Dispose(); }
+                _notificationsSubscriptions = null;
             }
         }
         #endregion

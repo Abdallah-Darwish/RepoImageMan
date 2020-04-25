@@ -10,11 +10,13 @@ using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Reactive.Subjects;
+using System.Runtime.CompilerServices;
 
 namespace RepoImageMan
 {
     //TODO: Add FPS limit
-    public sealed class CImage : IDisposable, INotifyPropertyChanged, INotifySpecificPropertyChanged
+    public sealed class CImage : IDisposable, IObservable<string>
     {
         /// <summary>
         /// Returns the expected file name that will be generated for an image.
@@ -27,24 +29,20 @@ namespace RepoImageMan
         public string PackageFileName => $"{Id}.jpg";
         public string PackageFilePath => Path.Combine(Package._packageDirectoryPath, PackageFileName);
 
-        public event PropertyChangedEventHandler? PropertyChanged;
-        private readonly NotificationManager _propertyNotificationManager;
-        public INotificationManager PropertyNotificationManager => _propertyNotificationManager;
-
         /// <summary>
         /// Dimensions of the image.
         /// </summary>
         public Size Size { get; private set; }
+        private readonly ISubject<string> _notificationsSubject = new Subject<string>();
 
-        private void OnPropertyChanged(string propName)
-        {
-            _propertyNotificationManager.OnPropertyChanged(propName);
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
-        }
+        public IDisposable Subscribe(IObserver<string> observer) => _notificationsSubject.Subscribe(observer);
+
+        //Kept as a seperate method in case I want to support INotifyPropertyChanged in the future.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void OnPropertyChanged(string propName) => _notificationsSubject.OnNext(propName);
 
         private CImage(int id, CommodityPackage package)
         {
-            _propertyNotificationManager = new NotificationManager(this);
             Package = package;
             Id = id;
         }
@@ -211,8 +209,7 @@ namespace RepoImageMan
         public async Task Save()
         {
             await using var con = Package.GetConnection();
-            await con.ExecuteAsync("UPDATE CImage SET contrast = @Contrast, brightness = @Brightness WHERE id = @Id",
-                this).ConfigureAwait(false);
+            await con.ExecuteAsync("UPDATE CImage SET contrast = @Contrast, brightness = @Brightness WHERE id = @Id", this).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -223,8 +220,7 @@ namespace RepoImageMan
         {
             await using var con = Package.GetConnection();
 
-            var fields = await con.QueryFirstAsync("SELECT * FROM CImage WHERE id = @Id", new { Id })
-                .ConfigureAwait(false);
+            var fields = await con.QueryFirstAsync("SELECT * FROM CImage WHERE id = @Id", new { Id }).ConfigureAwait(false);
             Contrast = (float)fields.Contrast;
             Brightness = (float)fields.Brightness;
         }
@@ -318,7 +314,7 @@ namespace RepoImageMan
         }
 
         /// <summary>
-        /// Just a lock to prevent the image from being designed by multiple <see cref="DesignCImage{TPixel}"/>s.s
+        /// Just a lock to prevent the image from being designed by multiple <see cref="DesignCImage{TPixel}"/>s.
         /// </summary>
         private int _designInstancesCount = 0;
 
@@ -331,8 +327,7 @@ namespace RepoImageMan
         /// <see cref="true"/> if its open successfully and <paramref name="result"/> will contain an instance of <see cref="DesignCImage{TPixel}"/>,
         /// otherwise <see cref="false"/> and <paramref name="result"/> will contain <see cref="null"/>.
         /// </returns>
-        public bool TryDesign<TPixel>(out DesignCImage<TPixel>? result)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public bool TryDesign<TPixel>(out DesignCImage<TPixel>? result) where TPixel : unmanaged, IPixel<TPixel>
         {
             if (Interlocked.CompareExchange(ref _designInstancesCount, 1, 0) == 0)
             {
@@ -356,10 +351,9 @@ namespace RepoImageMan
         {
             if (_disposedValue) return;
             _disposedValue = true;
-            PropertyChanged = null;
             CommodityRemoved = null;
             CommodityAdded = null;
-            _propertyNotificationManager.Dispose();
+            _notificationsSubject.OnCompleted();
             foreach (var com in _commodities)
             {
                 com.Dispose();
@@ -368,6 +362,7 @@ namespace RepoImageMan
             _commodities.Clear();
             _commoditiesLock.Dispose();
         }
+
 
         #endregion
     }

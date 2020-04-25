@@ -18,7 +18,7 @@ using MessageBox.Avalonia.Enums;
 using System.IO;
 using Avalonia.Threading;
 using SixLabors.ImageSharp.Processing;
-
+using System.Reactive.Linq;
 namespace MainUI
 {
     namespace ImageTabModels
@@ -119,8 +119,7 @@ namespace MainUI
             /// <summary>
             /// <see cref="ImageSource"/> won't be initiazlized and you must do it seperatly, its safe to call it from different threads ON DIFFERENT INSTANCES.
             /// </summary>
-            /// <param name="image"></param>
-            /// <param name="hostingTab"></param>
+            private List<IDisposable> _eventsSubscriptions;
             public TvImagesImageModel(CImage image, CommodityImageWindow.ImageTab hostingTab)
             {
                 _hostingTab = hostingTab;
@@ -128,15 +127,14 @@ namespace MainUI
                 Image = image;
                 UpdatePosition();
                 Commodities = new ObservableCollection<TvImagesCommodityModel>(Image.Commodities.Select(c => new TvImagesCommodityModel(c, this)));
-                //TODO: unsubscribe from events
                 Image.FileUpdated += ImageOnFileUpdated;
                 Image.CommodityAdded += ImageOnCommodityAdded;
                 Image.CommodityRemoved += ImageOnCommodityRemoved;
 
-                foreach (var com in Commodities)
-                {
-                    com.Commodity.PropertyNotificationManager.Subscribe(nameof(Commodity.Position), CommodityOnPositionChanged);
-                }
+                _eventsSubscriptions = Commodities
+                    .Select(com => com.Commodity.Where(pn => pn == nameof(Commodity.Position))
+                    .Select(pn => com).Subscribe(CommodityOnPositionChanged))
+                    .ToList();
                 Image.Deleting += Image_Deleting;
             }
 
@@ -149,10 +147,8 @@ namespace MainUI
 
             private void UpdatePosition() => Position = Image.Commodities.DefaultIfEmpty().Min(c => c?.Position ?? int.MaxValue - 100);
 
-            private void CommodityOnPositionChanged(object sender, PropertyChangedEventArgs _)
+            private void CommodityOnPositionChanged(TvImagesCommodityModel comModel)
             {
-                var com = sender as ImageCommodity;
-                var comModel = GetCommodityModel(com);
                 Commodities.Remove(comModel);
                 AddToCommodities(new[] { comModel });
                 UpdatePosition();
@@ -160,6 +156,7 @@ namespace MainUI
 
             private void ImageOnCommodityRemoved(CImage sender, ImageCommodity commodity)
             {
+                //we should remove the PositionChanged event subscription from _eventsSubscriptions buf fuck it
                 void Work()
                 {
                     Commodities.Remove(GetCommodityModel(commodity));
@@ -195,7 +192,11 @@ namespace MainUI
             private void ImageOnCommodityAdded(CImage sender, ImageCommodity commodity)
             {
                 var comModel = new TvImagesCommodityModel(commodity, this);
-                commodity.PropertyNotificationManager.Subscribe(nameof(Position), CommodityOnPositionChanged);
+                _eventsSubscriptions
+                    .Add(commodity
+                    .Where(pn => pn == nameof(Commodity.Position))
+                    .Select(pn => comModel)
+                    .Subscribe(CommodityOnPositionChanged));
                 AddToCommodities(new[] { comModel });
                 UpdatePosition();
             }
@@ -220,8 +221,14 @@ namespace MainUI
 
             private void OnPropertyChanged([CallerMemberName] string propertyName = null)
             {
-                if (Dispatcher.UIThread.CheckAccess()) { PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName)); }
-                else { Dispatcher.UIThread.Post(() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName))); }
+                if (Dispatcher.UIThread.CheckAccess())
+                {
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+                }
+                else
+                {
+                    Dispatcher.UIThread.Post(() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName)));
+                }
             }
             public void Dispose()
             {
@@ -232,8 +239,12 @@ namespace MainUI
                 Image.FileUpdated -= ImageOnFileUpdated;
                 Image.CommodityAdded -= ImageOnCommodityAdded;
                 Image.CommodityRemoved -= ImageOnCommodityRemoved;
+                foreach (var sub in _eventsSubscriptions) { sub.Dispose(); }
+                _eventsSubscriptions.Clear();
+                _eventsSubscriptions = null;
                 while (Commodities.Count > 0) { Commodities[0].Dispose(); }
                 Commodities.Clear();
+                Image.Deleting -= Image_Deleting;
             }
         }
 
@@ -243,11 +254,14 @@ namespace MainUI
             public Commodity Commodity { get; }
             public string Name => Commodity.Name;
 
+            private readonly IDisposable _commodityNameChangedSubscription;
             public TvImagesCommodityModel(Commodity commodity, TvImagesImageModel image)
             {
                 Commodity = commodity;
                 Image = image;
-                Commodity.PropertyNotificationManager.Subscribe(nameof(RepoImageMan.Commodity.Name), CommodityOnNameChanged);
+                _commodityNameChangedSubscription = Commodity
+                    .Where(pn => pn == nameof(Commodity.Name))
+                    .Subscribe(pn => OnPropertyChanged(nameof(Commodity.Name)));
             }
 
             private void CommodityOnNameChanged(object sender, PropertyChangedEventArgs e) => OnPropertyChanged(e.PropertyName);
@@ -265,7 +279,7 @@ namespace MainUI
             public void Dispose()
             {
                 Image.Commodities.Remove(this);
-                Commodity.PropertyNotificationManager.Unsubscribe(nameof(RepoImageMan.Commodity.Name), CommodityOnNameChanged);
+                _commodityNameChangedSubscription.Dispose();
             }
         }
     }
@@ -277,8 +291,7 @@ namespace MainUI
             private readonly CommodityImageWindow _hostingWindow;
             private readonly TreeView tvImages;
 
-            internal readonly ObservableCollection<TvImagesImageModel> _tvImagesItems =
-                new ObservableCollection<TvImagesImageModel>();
+            internal readonly ObservableCollection<TvImagesImageModel> _tvImagesItems = new ObservableCollection<TvImagesImageModel>();
 
             internal readonly List<TvImagesImageModel> _tvImagesModels = new List<TvImagesImageModel>();
             private readonly ContextMenu tvImagesCTXMenu;
@@ -381,14 +394,14 @@ namespace MainUI
 
             private async Task DeleteSelectedImagesAndCommodities()
             {
-                foreach (var selectedImage in tvImages.SelectedItems.OfType<TvImagesImageModel>().ToArray())
-                {
-                    await selectedImage.Image.Delete();
-                }
 
                 foreach (var selectedCommodity in tvImages.SelectedItems.OfType<TvImagesCommodityModel>().ToArray())
                 {
                     await selectedCommodity.Commodity.Delete();
+                }
+                foreach (var selectedImage in tvImages.SelectedItems.OfType<TvImagesImageModel>().ToArray())
+                {
+                    await selectedImage.Image.Delete();
                 }
             }
             private async void MiDeleteSelectedImagesAndCommdoities_Click(object? sender, RoutedEventArgs e) => await DeleteSelectedImagesAndCommodities();
