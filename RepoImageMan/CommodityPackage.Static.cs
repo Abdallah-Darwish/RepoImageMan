@@ -63,12 +63,14 @@ WHERE ic.id IS NULL;").ConfigureAwait(false);
 	Position INTEGER UNIQUE,
 	Cost REAL NOT NULL DEFAULT(0.0) CHECK(Cost >= 0.0),
 	WholePrice REAL NOT NULL DEFAULT(0.0) CHECK(WholePrice >= 0.0),
-	PartialPrice REAL NOT NULL DEFAULT(0.0) CHECK(PartialPrice >= 0.0)
+	PartialPrice REAL NOT NULL DEFAULT(0.0) CHECK(PartialPrice >= 0.0),
+	IsExported BOOLEAN NOT NULL DEFAULT(FALSE)
 );
 CREATE TABLE CImage (
 	Id INTEGER NOT NULL PRIMARY KEY,
 	Contrast REAL NOT NULL DEFAULT(1.0) CHECK(Contrast >= 0.0),
-	Brightness REAL NOT NULL DEFAULT(1.0) CHECK(Brightness >= 0.0)
+	Brightness REAL NOT NULL DEFAULT(1.0) CHECK(Brightness >= 0.0),
+	IsExported BOOLEAN NOT NULL DEFAULT(FALSE)
 );
 CREATE TABLE ImageCommodity (
 	Id INTEGER NOT NULL PRIMARY KEY REFERENCES Commodity(Id),

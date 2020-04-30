@@ -44,17 +44,32 @@
         <RowDefinition Height="35" />
       </Grid.RowDefinitions>
       <TextBlock Text="Font" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left"/>
-      <ComboBox Grid.Row="0" Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+      <ComboBox Grid.Row="0" Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <ComboBox.ItemTemplate>
+          <DataTemplate>
+            <TextBlock Text="{Binding Name, Mode=OneTime}" FontFamily="{Binding Family, Mode=OneTime}"/>
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
       <TextBlock Text="Color" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Left"/>
-      <ComboBox Grid.Row="0" Grid.Column="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+      <ComboBox Name="cbxLabelColor" Grid.Row="0" Grid.Column="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <ComboBox.ItemTemplate>
+          <DataTemplate>
+            <StackPanel>
+              <Image Source="{Binding Sample, Mode=OneTime}" Margin="0 0 1 0"/>
+              <TextBlock Text="{Binding Name, Mode=OneTime}"/>
+            </StackPanel>
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
       <TextBlock Grid.Row="0" Grid.Column="8" Text="Size" HorizontalAlignment="Left"/>
-      <NumericUpDown Grid.Row="0" Grid.Column="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+      <NumericUpDown Name="nudLabelSize" Grid.Row="0" Grid.Column="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
 
       <TextBlock Grid.Row="2" Grid.Column="0" Text="Contrast" HorizontalAlignment="Left"/>
-      <NumericUpDown Grid.Row="2" Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Minimum="0.0"/>
+      <NumericUpDown Name="nudImageContrast" Grid.Row="2" Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Minimum="0.0"/>
 
       <TextBlock Grid.Row="2" Grid.Column="4" Text="Brightness" HorizontalAlignment="Left"/>
-      <NumericUpDown Grid.Row="2" Grid.Column="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Minimum="0.0"/>
+      <NumericUpDown Name="nudImageBrightness" Grid.Row="2" Grid.Column="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Minimum="0.0"/>
     </Grid>
   </StackPanel>
 </Window>

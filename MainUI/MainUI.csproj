@@ -14,20 +14,27 @@
     </AvaloniaResource>
   </ItemGroup>
   <ItemGroup>
+    <AvaloniaResource Remove="ColorBox.xaml" />
     <AvaloniaResource Remove="DesigningWindow.xaml" />
   </ItemGroup>
   <ItemGroup>
+    <None Remove="ColorBox.xaml" />
     <None Remove="DesigningWindow.xaml" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="0.9.7" />
-    <PackageReference Include="Avalonia.Controls.DataGrid" Version="0.9.7" />
-    <PackageReference Include="Avalonia.Desktop" Version="0.9.7" />
+    <PackageReference Include="Avalonia" Version="0.9.9" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="0.9.9" />
+    <PackageReference Include="Avalonia.Desktop" Version="0.9.9" />
     <PackageReference Include="MessageBox.Avalonia" Version="0.9.6.1" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="DesigningWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="ColorBox.xaml">
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
   </ItemGroup>

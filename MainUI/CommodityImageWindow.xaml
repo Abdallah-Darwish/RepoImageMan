@@ -11,7 +11,14 @@
       <StackPanel>
         <DataGrid Name="dgCommodities" CanUserResizeColumns="True" CanUserSortColumns="True" SelectionMode="Extended">
           <DataGrid.Columns>
-            <DataGridCheckBoxColumn Binding="{Binding Export, Mode=TwoWay}" IsThreeState="False" />
+            <!--Didn't use DataGridCheckBoxColumn because it intriduces some weird behaviour-->
+            <DataGridTemplateColumn Header="Export">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <CheckBox IsChecked="{Binding IsExported, Mode=TwoWay}" IsThreeState="False"/>
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
             <DataGridTextColumn Header="Name" Binding="{Binding Name, Mode=OneWay}" />
             <DataGridTextColumn Header="Cost" Binding="{Binding Cost, Mode=OneWay}" />
             <DataGridTextColumn Header="Whole Price" Binding="{Binding WholePrice, Mode=OneWay}" />
@@ -92,12 +99,15 @@
         <TreeView.DataTemplates>
           <TreeDataTemplate DataType="imageTabModels:TvImagesImageModel" ItemsSource="{Binding Commodities, Mode=OneWay}">
             <StackPanel Orientation="Horizontal">
-              <CheckBox IsChecked="{Binding Export, Mode=TwoWay}" />
+              <CheckBox IsChecked="{Binding IsExported, Mode=TwoWay}" IsThreeState="False" />
               <Image Source="{Binding ImageSource, Mode=OneWay}" PointerPressed="TvImages_ImageClicked" />
             </StackPanel>
           </TreeDataTemplate>
           <DataTemplate DataType="imageTabModels:TvImagesCommodityModel">
-            <TextBlock Text="{Binding Name, Mode=OneWay}" FontSize="13" />
+            <StackPanel Orientation="Horizontal">
+              <CheckBox IsChecked="{Binding IsExported, Mode=TwoWay}" IsThreeState="False"/>
+              <TextBlock Text="{Binding Name, Mode=OneWay}" FontSize="13" />
+            </StackPanel>
           </DataTemplate>
         </TreeView.DataTemplates>
         <TreeView.ContextMenu>
@@ -108,13 +118,20 @@
               <MenuItem Header="Export Selected" Name="miExportSelectedImages" />
               <MenuItem Header="Un-Export Selected" Name="miUnExportSelectedImages" />
             </MenuItem>
-            <MenuItem Header="Create(INS)" Name="miCreateImage" />
+            <MenuItem Header="Save And Reload">
+              <MenuItem Header="Save All To Db" Name="miSaveAllImagesAndCommoditiesToDb" />
+              <MenuItem Header="Save Selected To Db" Name="miSaveSelectedImagesAndCommoditiesToDb"
+                        ToolTip.Tip="Saves the changes done to ALL OF SELECTED commodities and images(mainly &lt;Export&gt;) to DB so they are permanent." />
+              <MenuItem Header="Reload All From Db" Name="miReloadAllImagesAndCommoditiesFromDb" />
+              <MenuItem Header="Reload Selected From Db" Name="miReloadSelectedImagesAndCommoditiesToDb"
+                        ToolTip.Tip="Reloads ALL OF SELECTED images and commodities from DB discarding all changes in memory(except position)." />
+            </MenuItem>
+            <MenuItem Header="Create" >
+              <MenuItem Header="Image" Name="miCreateImage"/>
+              <MenuItem Header="Commodity" Name="miCreateImageCommodity"/>
+            </MenuItem>
             <MenuItem Header="Delete(DEL)" Name="miDeleteSelectedImagesAndCommdoities" />
             <MenuItem Header="Replace Image" Name="miReplaceImageFile" ToolTip.Tip="Changes the image while keeping the commodities and position."/>
-            <!--
-You can design the image and modify the commodities there
-<MenuItem Header="Add Commodity" Name="miAddCommodityToImage" ToolTip.Tip="Adds a new commodity to the "/>
--->
             <MenuItem Header="Go to Commodity" Name="miGoToCommodity" />
             <MenuItem Header="Move" Name="miMoveImage">
               <MenuItem Name="miMoveSelectedImage" />

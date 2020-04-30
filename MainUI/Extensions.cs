@@ -1,12 +1,40 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
+using System.Threading;
 using IBitmap = Avalonia.Media.Imaging.IBitmap;
 
 namespace MainUI
 {
     public static class Extensions
     {
+        public static Task ForEachAsync<T>(this IEnumerable<T> source, Func<T, Task> body, int degreeOfParallelism = 0)
+        {
+            if (degreeOfParallelism <= 0) { degreeOfParallelism = Environment.ProcessorCount; }
+            var sourceEnum = source.GetEnumerator();
+            var tasks = new Task[degreeOfParallelism];
+            SpinLock sourceLock = new SpinLock(false);
+            for (int i = 0; i < degreeOfParallelism; i++)
+            {
+                tasks[i] = Task.Run(async () =>
+                {
+                    bool _ = false;
+                    sourceLock.Enter(ref _);
+                    T sourceItem;
+                    try
+                    {
+                        if (sourceEnum.MoveNext() == false) { return; }
+                        sourceItem = sourceEnum.Current;
+                    }
+                    finally { sourceLock.Exit(); }
+                    await body(sourceItem).ConfigureAwait(false);
+                });
+            }
+            return Task.WhenAll(tasks).ContinueWith(_ => sourceEnum.Dispose());
+        }
         public static IBitmap Resize(this IBitmap bmp, Avalonia.Size sz)
         {
             using var imgStream = new MemoryStream(bmp.PixelSize.Height * bmp.PixelSize.Width);

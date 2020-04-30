@@ -28,7 +28,7 @@ namespace RepoImageMan
         /// </summary>
         public string PackageFileName => $"{Id}.jpg";
         public string PackageFilePath => Path.Combine(Package._packageDirectoryPath, PackageFileName);
-
+       
         /// <summary>
         /// Dimensions of the image.
         /// </summary>
@@ -39,7 +39,7 @@ namespace RepoImageMan
 
         //Kept as a seperate method in case I want to support INotifyPropertyChanged in the future.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void OnPropertyChanged(string propName) => _notificationsSubject.OnNext(propName);
+        private void OnPropertyChanged([CallerMemberName] string propName = null) => _notificationsSubject.OnNext(propName);
 
         private CImage(int id, CommodityPackage package)
         {
@@ -97,17 +97,23 @@ namespace RepoImageMan
                 {
                     throw new ArgumentOutOfRangeException(nameof(value), $"{nameof(Contrast)} can't < 0.");
                 }
-
-                if (value == _contrast)
-                {
-                    return;
-                }
+                if (value == _contrast) { return; }
 
                 _contrast = value;
-                OnPropertyChanged(nameof(Contrast));
+                OnPropertyChanged();
             }
         }
-
+        private bool _isExported;
+        public bool IsExported
+        {
+            get => _isExported;
+            set
+            {
+                if (value == _isExported) { return; }
+                _isExported = value;
+                OnPropertyChanged();
+            }
+        }
         private float _brightness;
 
         /// <summary>
@@ -123,13 +129,10 @@ namespace RepoImageMan
                     throw new ArgumentOutOfRangeException(nameof(value), $"{nameof(Brightness)} can't < 0.");
                 }
 
-                if (value == _brightness)
-                {
-                    return;
-                }
+                if (value == _brightness) { return; }
 
                 _brightness = value;
-                OnPropertyChanged(nameof(Brightness));
+                OnPropertyChanged();
             }
         }
 
@@ -173,7 +176,7 @@ namespace RepoImageMan
             {
                 _commoditiesLock.Release();
             }
-
+            await Package.AddImageCommodity(newCom).ConfigureAwait(false);
             CommodityAdded?.Invoke(this, newCom);
             return newCom;
         }
@@ -209,7 +212,7 @@ namespace RepoImageMan
         public async Task Save()
         {
             await using var con = Package.GetConnection();
-            await con.ExecuteAsync("UPDATE CImage SET contrast = @Contrast, brightness = @Brightness WHERE id = @Id", this).ConfigureAwait(false);
+            await con.ExecuteAsync("UPDATE CImage SET contrast = @Contrast, brightness = @Brightness, isExported = @IsExported WHERE id = @Id", this).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -223,6 +226,7 @@ namespace RepoImageMan
             var fields = await con.QueryFirstAsync("SELECT * FROM CImage WHERE id = @Id", new { Id }).ConfigureAwait(false);
             Contrast = (float)fields.Contrast;
             Brightness = (float)fields.Brightness;
+            IsExported = (bool)fields.IsExported;
         }
 
         public delegate void ImageFileUpdatedEventHandler(CImage image);

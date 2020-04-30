@@ -36,7 +36,7 @@ namespace RepoImageMan
 
         //Kept as a seperate method in case I want to support INotifyPropertyChanged in the future.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void OnPropertyChanged(string propName) => _notificationsSubject.OnNext(propName);
+        protected void OnPropertyChanged([CallerMemberName]string propName = null) => _notificationsSubject.OnNext(propName);
 
 
         ///<summary>
@@ -113,7 +113,7 @@ namespace RepoImageMan
         {
             await con.ExecuteAsync("UPDATE Commodity SET position = @newPosition WHERE id = @Id", new { Id, newPosition }).ConfigureAwait(false);
             Position = newPosition;
-            OnPropertyChanged(nameof(Position));
+            OnPropertyChanged();
         }
 
         protected Commodity(int id, CommodityPackage package)
@@ -152,7 +152,7 @@ namespace RepoImageMan
                 if (value == _name) { return; }
 
                 _name = value;
-                OnPropertyChanged(nameof(Name));
+                OnPropertyChanged();
             }
         }
 
@@ -171,7 +171,7 @@ namespace RepoImageMan
                 if (value == _wholePrice) { return; }
 
                 _wholePrice = value;
-                OnPropertyChanged(nameof(WholePrice));
+                OnPropertyChanged();
             }
         }
 
@@ -190,7 +190,7 @@ namespace RepoImageMan
                 if (value == _partialPrice) { return; }
 
                 _partialPrice = value;
-                OnPropertyChanged(nameof(PartialPrice));
+                OnPropertyChanged();
             }
         }
 
@@ -206,10 +206,20 @@ namespace RepoImageMan
                 if (value == _cost) { return; }
 
                 _cost = value;
-                OnPropertyChanged(nameof(Cost));
+                OnPropertyChanged();
             }
         }
-
+        private bool _isExported;
+        public bool IsExported
+        {
+            get => _isExported;
+            set
+            {
+                if (value == _isExported) { return; }
+                _isExported = value;
+                OnPropertyChanged();
+            }
+        }
         /// <summary>
         /// The <see cref="CommodityPackage"/> that this <see cref="Commodity"/> belongs to.
         /// </summary>
@@ -223,7 +233,7 @@ namespace RepoImageMan
         {
             await using var con = Package.GetConnection();
             await con
-                .ExecuteAsync("UPDATE Commodity SET name = @Name, wholePrice = @WholePrice, partialPrice = @PartialPrice, cost = @Cost WHERE id = @Id", this)
+                .ExecuteAsync("UPDATE Commodity SET name = @Name, wholePrice = @WholePrice, partialPrice = @PartialPrice, cost = @Cost, isExported = @IsExported WHERE id = @Id", this)
                 .ConfigureAwait(false);
         }
 
@@ -240,6 +250,7 @@ namespace RepoImageMan
             PartialPrice = (decimal)(double)dbFields.PartialPrice;
             Cost = (decimal)(double)dbFields.Cost;
             Position = (int)dbFields.Position;
+            IsExported = (bool)dbFields.IsExported;
         }
 
         public override string ToString() => $"{Id}: {Name}";

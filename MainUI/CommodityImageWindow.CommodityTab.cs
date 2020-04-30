@@ -46,18 +46,11 @@ namespace MainUI
                 public decimal WholePrice => Commodity.WholePrice;
 
                 public int Position => Commodity.Position;
-                private bool _export;
 
-                public bool Export
+                public bool IsExported
                 {
-                    get => _export;
-                    set
-                    {
-                        if (value == _export) { return; }
-
-                        _export = value;
-                        OnPropertyChanged();
-                    }
+                    get => Commodity.IsExported;
+                    set => Commodity.IsExported = value;
                 }
 
                 /// <summary>
@@ -87,28 +80,22 @@ namespace MainUI
 
                 public event PropertyChangedEventHandler PropertyChanged;
 
-                private void OnPropertyChanged([CallerMemberName] string propertyName = null)
+                private void CommodityOnPropertyChanged([CallerMemberName]string propName = null)
                 {
-                    if (Dispatcher.UIThread.CheckAccess())
+                    void Work()
                     {
-                        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+                        if (propName == nameof(Commodity.Position)) { RePositionInDgItems(); }
+                        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
                     }
-                    else
-                    {
-                        Dispatcher.UIThread.Post(() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName)));
-                    }
-                }
-
-                private void CommodityOnPropertyChanged(string propName)
-                {
-                    if (propName == nameof(Commodity.Position)) { RePositionInDgItems(); }
-
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
+                    if (Dispatcher.UIThread.CheckAccess()) { Work(); }
+                    else { Work(); }
                 }
                 private IDisposable _commodityNotificationsSubscription;
                 public DgCommoditiesModel(Commodity com, CommodityTab hostingTab)
                 {
                     _hostingTab = hostingTab;
+                    _hostingTab._dgCommoditiesItems.Add(this);
+                    _hostingTab._dgCommoditiesModels.Add(this);
                     Commodity = com;
                     _commodityNotificationsSubscription = Commodity.Subscribe(CommodityOnPropertyChanged);
                     Commodity.Deleting += CommodityOnDeleting;
@@ -136,7 +123,7 @@ namespace MainUI
                 }
             }
 
-            private readonly List<DgCommoditiesModel> _dgCommoditiesModels;
+            private readonly List<DgCommoditiesModel> _dgCommoditiesModels = new List<DgCommoditiesModel>();
             private readonly CommodityImageWindow _hostingWindow;
 
             private readonly ObservableCollection<DgCommoditiesModel> _dgCommoditiesItems = new ObservableCollection<DgCommoditiesModel>();
@@ -217,36 +204,44 @@ namespace MainUI
                 {
                     txtCommodityName, nudCommodityCost, nudCommodityPartialPrice, nudCommodityWholePrice,btnSaveCommodityToMemory
                 };
-                _dgCommoditiesModels = _hostingWindow._package.Commodities.Select(c => new DgCommoditiesModel(c, this)).ToList();
+                foreach (var com in _hostingWindow._package.Commodities)
+                {
+                    new DgCommoditiesModel(com, this);
+                }
 
 
                 nudCommodityCost.FormatString = nudCommodityWholePrice.FormatString = nudCommodityPartialPrice.FormatString = "0.00";
                 dgCommodities.SelectionChanged += DgCommoditiesOnSelectionChanged;
                 dgCommodities.KeyDown += DgCommoditiesOnKeyDown;
-                dgCommodities.CellPointerPressed += DgCommoditiesOnCellPointerPressed;
-                _hostingWindow._package.CommodityAdded += PackageOnCommodityAdded;
+                dgCommodities.CellPointerPressed += DgCommodities_CellPointerPressed;
+                _hostingWindow._package.CommodityAdded += Package_CommodityAdded;
 
                 dgCommoditiesCTXMenu.ContextMenuOpening += DgCommoditiesCTXMenuOnContextMenuOpening;
                 miCreateCommodity.Click += async (sender, args) => await CreateNewCommodity();
-                miExportAllCommodities.Click += MiExportAllCommoditiesOnClick;
-                miUnExportAllCommodities.Click += MiUnExportAllCommoditiesOnClick;
-                miExportSelectedCommodities.Click += MiExportSelectedCommoditiesOnClick;
-                miUnExportSelectedCommodities.Click += MiUnExportSelectedCommoditiesOnClick;
+                miExportAllCommodities.Click += MiExportAllCommodities_Click;
+                miUnExportAllCommodities.Click += MiUnExportAllCommodities_Click;
+                miExportSelectedCommodities.Click += MiExportSelectedCommodities_Click;
+                miUnExportSelectedCommodities.Click += MiUnExportSelectedCommodities_Click;
                 miDeleteCommodity.Click += async (sender, args) => await DeleteSelectedCommodities();
-                miMoveSelectedCommodity.Click += MiMoveSelectedCommodityOnClick;
-                miSaveAllCommoditiesToDb.Click += MiSaveAllCommoditiesToDbOnClick;
-                miSaveSelectedCommoditiesToDb.Click += MiSaveSelectedCommoditiesToDbOnClick;
-                miReloadAllCommoditiesFromDb.Click += MiReloadAllCommoditiesFromDbOnClick;
-                miReloadSelectedCommoditiesToDb.Click += MiReloadSelectedCommoditiesToDbOnClick;
-                miMoveBeforeSelectedCommodity.Click += MiMoveBeforeSelectedCommodityOnClick;
-                miMoveAfterSelectedCommodity.Click += MiMoveAfterSelectedCommodityOnClick;
-                miGoToImage.Click += MiGoToImageOnClick;
-                btnSaveCommodityToMemory.Click += BtnSaveCommodityToMemoryOnClick;
+                miMoveSelectedCommodity.Click += MiMoveSelectedCommodity_Click;
+                miSaveAllCommoditiesToDb.Click += MiSaveAllCommoditiesToDb_Click;
+                miSaveSelectedCommoditiesToDb.Click += MiSaveSelectedCommoditiesToDb_Click;
+                miReloadAllCommoditiesFromDb.Click += MiReloadAllCommoditiesFromDb_Click;
+                miReloadSelectedCommoditiesToDb.Click += MiReloadSelectedCommoditiesToDb_Click;
+                miMoveBeforeSelectedCommodity.Click += MiMoveBeforeSelectedCommodity_Click;
+                miMoveAfterSelectedCommodity.Click += MiMoveAfterSelectedCommodity_Click;
+                miGoToImage.Click += MiGoToImage_Click;
+                btnSaveCommodityToMemory.Click += BtnSaveCommodityToMemory_Click;
 
                 dgCommodities.Items = _dgCommoditiesItems;
 
                 _eventsSubscriptions.Add(_hostingWindow.GetObservable(Window.ClientSizeProperty).Subscribe(sz => dgCommodities.Height = sz.Height - 230));
                 _eventsSubscriptions.Add(txtSearch.GetObservable(TextBox.TextProperty).Subscribe(TxtSearchOnTextChanged));
+            }
+
+            private void MiExportAllCommodities_Click(object? sender, RoutedEventArgs e)
+            {
+                foreach (var com in _dgCommoditiesItems) { com.IsExported = true; }
             }
 
             internal void GoToCommodity(Commodity com)
@@ -257,9 +252,10 @@ namespace MainUI
                 tabCommodities.IsSelected = true;
                 dgCommodities.SelectedItems.Clear();
                 dgCommodities.SelectedItems.Add(comModel);
+                dgCommodities.ScrollIntoView(comModel, null);
             }
 
-            private void DgCommoditiesOnCellPointerPressed(object? _, DataGridCellPointerPressedEventArgs e)
+            private void DgCommodities_CellPointerPressed(object? _, DataGridCellPointerPressedEventArgs e)
             {
                 if (!e.PointerPressedEventArgs.GetCurrentPoint(null).Properties.IsRightButtonPressed ||
                     !(e.Row?.DataContext is DgCommoditiesModel selectedCom) ||
@@ -268,7 +264,7 @@ namespace MainUI
                 dgCommodities.SelectedItems.Add(selectedCom);
             }
 
-            private void MiMoveSelectedCommodityOnClick(object? sender, RoutedEventArgs e)
+            private void MiMoveSelectedCommodity_Click(object? sender, RoutedEventArgs e)
             {
                 _commodityToMove = GetSelectedCommodity();
                 _commodityToMoveSelectionTime = DateTime.UtcNow;
@@ -284,55 +280,49 @@ namespace MainUI
                 _hostingWindow._imageTab.GoToCommodity(selectedImageCom);
             }
 
-            private void MiGoToImageOnClick(object? sender, RoutedEventArgs e) => GoToSelectedCommodityImage();
+            private void MiGoToImage_Click(object? sender, RoutedEventArgs e) => GoToSelectedCommodityImage();
 
-            private async void MiReloadSelectedCommoditiesToDbOnClick(object? sender, RoutedEventArgs e)
+            private async void MiReloadSelectedCommoditiesToDb_Click(object? sender, RoutedEventArgs e)
             {
-                foreach (var com in dgCommodities.SelectedItems.Cast<DgCommoditiesModel>())
-                {
-                    await com.Commodity.Reload();
-                }
+                await dgCommodities.SelectedItems.Cast<DgCommoditiesModel>().ForEachAsync(com => com.Commodity.Reload());
             }
 
-            private async void MiReloadAllCommoditiesFromDbOnClick(object? sender, RoutedEventArgs e)
+            private async void MiReloadAllCommoditiesFromDb_Click(object? sender, RoutedEventArgs e)
             {
-                foreach (var com in _dgCommoditiesItems) { await com.Commodity.Reload(); }
+                await _dgCommoditiesItems.ForEachAsync(com => com.Commodity.Reload());
             }
 
-            private async void MiSaveSelectedCommoditiesToDbOnClick(object? sender, RoutedEventArgs e)
+            private async void MiSaveSelectedCommoditiesToDb_Click(object? sender, RoutedEventArgs e)
             {
-                foreach (var com in dgCommodities.SelectedItems.Cast<DgCommoditiesModel>())
-                {
-                    await com.Commodity.Save();
-                }
+                await dgCommodities.SelectedItems.Cast<DgCommoditiesModel>().ForEachAsync(com => com.Commodity.Save());
             }
 
-            private async void MiSaveAllCommoditiesToDbOnClick(object? sender, RoutedEventArgs e)
+            private async void MiSaveAllCommoditiesToDb_Click(object? sender, RoutedEventArgs e)
             {
-                foreach (var com in _dgCommoditiesItems) { await com.Commodity.Save(); }
+                await _dgCommoditiesItems.ForEachAsync(com => com.Commodity.Save());
             }
 
-            private void MiUnExportSelectedCommoditiesOnClick(object? sender, RoutedEventArgs e)
+            private void MiUnExportSelectedCommodities_Click(object? sender, RoutedEventArgs e)
             {
-                foreach (var com in dgCommodities.SelectedItems.Cast<DgCommoditiesModel>()) { com.Export = false; }
+                foreach (var com in dgCommodities.SelectedItems.Cast<DgCommoditiesModel>()) { com.IsExported = false; }
             }
 
-            private void MiExportSelectedCommoditiesOnClick(object? sender, RoutedEventArgs e)
+            private void MiExportSelectedCommodities_Click(object? sender, RoutedEventArgs e)
             {
-                foreach (var com in dgCommodities.SelectedItems.Cast<DgCommoditiesModel>()) { com.Export = true; }
+                foreach (var com in dgCommodities.SelectedItems.Cast<DgCommoditiesModel>()) { com.IsExported = true; }
             }
 
-            private void MiUnExportAllCommoditiesOnClick(object? sender, RoutedEventArgs e)
+            private void MiUnExportAllCommodities_Click(object? sender, RoutedEventArgs e)
             {
-                foreach (var com in _dgCommoditiesItems) { com.Export = false; }
+                foreach (var com in _dgCommoditiesItems) { com.IsExported = false; }
             }
 
             private void MiExportAllCommoditiesOnClick(object? sender, RoutedEventArgs e)
             {
-                foreach (var com in _dgCommoditiesItems) { com.Export = true; }
+                foreach (var com in _dgCommoditiesItems) { com.IsExported = true; }
             }
 
-            private async void MiMoveAfterSelectedCommodityOnClick(object? sender, RoutedEventArgs e)
+            private async void MiMoveAfterSelectedCommodity_Click(object? sender, RoutedEventArgs e)
             {
                 var selectedCom = GetSelectedCommodity()!;
 
@@ -346,7 +336,7 @@ namespace MainUI
                 ResetCommodityToMove();
             }
 
-            private async void MiMoveBeforeSelectedCommodityOnClick(object? sender, RoutedEventArgs e)
+            private async void MiMoveBeforeSelectedCommodity_Click(object? sender, RoutedEventArgs e)
             {
                 var selectedCom = GetSelectedCommodity()!;
 
@@ -404,7 +394,7 @@ namespace MainUI
                                                                       : dgCommodities.SelectedItems[0] as DgCommoditiesModel;
 
 
-            private void BtnSaveCommodityToMemoryOnClick(object? sender, RoutedEventArgs e) => GetSelectedCommodity()?.SaveToMemory();
+            private void BtnSaveCommodityToMemory_Click(object? sender, RoutedEventArgs e) => GetSelectedCommodity()?.SaveToMemory();
 
             private async void DgCommoditiesOnKeyDown(object? sender, KeyEventArgs e)
             {
@@ -446,10 +436,7 @@ namespace MainUI
                 }
             }
 
-            private void PackageOnCommodityAdded(CommodityPackage _, Commodity com)
-            {
-                _dgCommoditiesModels.Add(new DgCommoditiesModel(com, this));
-            }
+            private void Package_CommodityAdded(CommodityPackage _, Commodity com) => new DgCommoditiesModel(com, this);
 
             private void TxtSearchOnTextChanged(string _)
             {

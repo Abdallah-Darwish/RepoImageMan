@@ -76,20 +76,7 @@ namespace MainUI
                     return name.Length <= 10 ? name : $"{name.Substring(0, 7)}...";
                 }
             }
-
-            private bool _export;
-            public bool Export
-            {
-                get => _export;
-                set
-                {
-                    if (value == _export) { return; }
-
-                    _export = value;
-                    OnPropertyChanged();
-                }
-            }
-
+            public bool IsExported { get => Image.IsExported; set => Image.IsExported = value; }
             private IBitmap _imageSource;
             public IBitmap ImageSource
             {
@@ -133,8 +120,12 @@ namespace MainUI
 
                 _eventsSubscriptions = Commodities
                     .Select(com => com.Commodity.Where(pn => pn == nameof(Commodity.Position))
-                    .Select(pn => com).Subscribe(CommodityOnPositionChanged))
+                        .Select(pn => com)
+                        .Subscribe(CommodityOnPositionChanged))
                     .ToList();
+                _eventsSubscriptions.Add(Image
+                    .Where(pn => pn == nameof(CImage.IsExported))
+                    .Subscribe(pn => OnPropertyChanged(pn)));
                 Image.Deleting += Image_Deleting;
             }
 
@@ -189,7 +180,7 @@ namespace MainUI
                 }
             }
 
-            private void ImageOnCommodityAdded(CImage sender, ImageCommodity commodity)
+            private void ImageOnCommodityAdded(CImage _, ImageCommodity commodity)
             {
                 var comModel = new TvImagesCommodityModel(commodity, this);
                 _eventsSubscriptions
@@ -254,17 +245,21 @@ namespace MainUI
             public Commodity Commodity { get; }
             public string Name => Commodity.Name;
 
-            private readonly IDisposable _commodityNameChangedSubscription;
+            public bool IsExported
+            {
+                get => Commodity.IsExported;
+                set => Commodity.IsExported = value;
+            }
+
+            private readonly IDisposable _commodityNotificationsSubscription;
             public TvImagesCommodityModel(Commodity commodity, TvImagesImageModel image)
             {
                 Commodity = commodity;
                 Image = image;
-                _commodityNameChangedSubscription = Commodity
-                    .Where(pn => pn == nameof(Commodity.Name))
-                    .Subscribe(pn => OnPropertyChanged(nameof(Commodity.Name)));
+                _commodityNotificationsSubscription = Commodity
+                    .Where(pn => pn == nameof(Commodity.Name) || pn == nameof(Commodity.IsExported))
+                    .Subscribe(pn => OnPropertyChanged(pn));
             }
-
-            private void CommodityOnNameChanged(object sender, PropertyChangedEventArgs e) => OnPropertyChanged(e.PropertyName);
 
             public event PropertyChangedEventHandler PropertyChanged;
 
@@ -279,7 +274,7 @@ namespace MainUI
             public void Dispose()
             {
                 Image.Commodities.Remove(this);
-                _commodityNameChangedSubscription.Dispose();
+                _commodityNotificationsSubscription.Dispose();
             }
         }
     }
@@ -302,13 +297,18 @@ namespace MainUI
                 miUnExportAllImages,
                 miUnExportSelectedImages,
                 miCreateImage,
+                miCreateImageCommodity,
                 miDeleteSelectedImagesAndCommdoities,
                 miMoveImage,
                 miMoveSelectedImage,
                 miMoveBeforeSelectedImage,
                 miMoveAfterSelectedImage,
                 miGoToCommodity,
-                miReplaceImageFile;
+                miReplaceImageFile,
+                miSaveAllImagesAndCommoditiesToDb,
+                miSaveSelectedImagesAndCommoditiesToDb,
+                miReloadAllImagesAndCommoditiesFromDb,
+                miReloadSelectedImagesAndCommoditiesToDb;
 
             private readonly TabItem tabImages;
 
@@ -324,6 +324,7 @@ namespace MainUI
                 tvImages = _hostingWindow.Get<TreeView>(nameof(tvImages));
                 tvImagesCTXMenu = _hostingWindow.Get<ContextMenu>(nameof(tvImagesCTXMenu));
                 miCreateImage = _hostingWindow.Get<MenuItem>(nameof(miCreateImage));
+                miCreateImageCommodity = _hostingWindow.Get<MenuItem>(nameof(miCreateImageCommodity));
                 miExportImages = _hostingWindow.FindControl<MenuItem>(nameof(miExportImages));
                 miExportSelectedImages = _hostingWindow.FindControl<MenuItem>(nameof(miExportSelectedImages));
                 miUnExportSelectedImages = _hostingWindow.FindControl<MenuItem>(nameof(miUnExportSelectedImages));
@@ -336,6 +337,11 @@ namespace MainUI
                 miMoveAfterSelectedImage = _hostingWindow.Get<MenuItem>(nameof(miMoveAfterSelectedImage));
                 miGoToCommodity = _hostingWindow.FindControl<MenuItem>(nameof(miGoToCommodity));
                 miReplaceImageFile = _hostingWindow.FindControl<MenuItem>(nameof(miReplaceImageFile));
+                miSaveAllImagesAndCommoditiesToDb = _hostingWindow.FindControl<MenuItem>(nameof(miSaveAllImagesAndCommoditiesToDb));
+                miSaveSelectedImagesAndCommoditiesToDb = _hostingWindow.FindControl<MenuItem>(nameof(miSaveSelectedImagesAndCommoditiesToDb));
+                miReloadAllImagesAndCommoditiesFromDb = _hostingWindow.FindControl<MenuItem>(nameof(miReloadAllImagesAndCommoditiesFromDb));
+                miReloadSelectedImagesAndCommoditiesToDb = _hostingWindow.FindControl<MenuItem>(nameof(miReloadSelectedImagesAndCommoditiesToDb));
+
 
                 _hostingWindow._package.ImageAdded += Package_ImageAdded;
                 foreach (var img in _hostingWindow._package.Images)
@@ -348,18 +354,65 @@ namespace MainUI
 
                 tvImages.KeyDown += TvImages_KeyDown;
 
-                tvImagesCTXMenu.ContextMenuOpening += TvImagesCTXMenuOnContextMenuOpening;
-                miExportAllImages.Click += MiExportAllImagesOnClick;
-                miUnExportAllImages.Click += MiUnExportAllImagesOnClick;
-                miExportSelectedImages.Click += MiExportSelectedImagesOnClick;
-                miUnExportSelectedImages.Click += MiUnExportSelectedImagesOnClick;
-                miGoToCommodity.Click += MiGoToCommodityOnClick;
-                miMoveSelectedImage.Click += MiMoveSelectedImageOnClick;
-                miMoveBeforeSelectedImage.Click += MiMoveBeforeSelectedImageOnClick;
-                miMoveAfterSelectedImage.Click += MiMoveAfterSelectedImageOnClick;
+                tvImagesCTXMenu.ContextMenuOpening += TvImagesCTXMenu_ContextMenuOpening;
+                miExportAllImages.Click += MiExportAllImages_Click;
+                miUnExportAllImages.Click += MiUnExportAll_Click;
+                miExportSelectedImages.Click += MiExportSelected_Click;
+                miUnExportSelectedImages.Click += MiUnExportSelected_Click;
+                miGoToCommodity.Click += MiGoToCommodity_Click;
+                miMoveSelectedImage.Click += MiMoveSelectedImage_Click;
+                miMoveBeforeSelectedImage.Click += MiMoveBeforeSelectedImage_Click;
+                miMoveAfterSelectedImage.Click += MiMoveAfterSelectedImage_Click;
                 miReplaceImageFile.Click += MiReplaceImageFile_Click;
                 miDeleteSelectedImagesAndCommdoities.Click += MiDeleteSelectedImagesAndCommdoities_Click;
                 miCreateImage.Click += MiCreateImage_Click;
+                miCreateImageCommodity.Click += MiCreateImageCommodity_Click;
+                miSaveAllImagesAndCommoditiesToDb.Click += MiSaveAllImagesAndCommoditiesToDb_Click;
+                miSaveSelectedImagesAndCommoditiesToDb.Click += MiSaveSelectedImagesAndCommoditiesToDb_Click;
+                miReloadAllImagesAndCommoditiesFromDb.Click += MiReloadAllImagesAndCommoditiesFromDb_Click;
+                miReloadSelectedImagesAndCommoditiesToDb.Click += MiReloadSelectedImagesAndCommoditiesToDb_Click;
+            }
+
+            private async void MiReloadSelectedImagesAndCommoditiesToDb_Click(object? sender, RoutedEventArgs e)
+            {
+                await tvImages.SelectedItems.OfType<TvImagesImageModel>().ForEachAsync(img => img.Image.Reload());
+                await tvImages.SelectedItems.OfType<TvImagesCommodityModel>().ForEachAsync(com => com.Commodity.Reload());
+            }
+
+            private async void MiReloadAllImagesAndCommoditiesFromDb_Click(object? sender, RoutedEventArgs e)
+            {
+                await _tvImagesModels.ForEachAsync(async img =>
+                {
+                    await img.Image.Reload();
+                    foreach (var com in img.Image.Commodities)
+                    {
+                        await com.Reload();
+                    }
+                });
+            }
+
+            private async void MiSaveSelectedImagesAndCommoditiesToDb_Click(object? sender, RoutedEventArgs e)
+            {
+                await tvImages.SelectedItems.OfType<TvImagesImageModel>().ForEachAsync(img => img.Image.Save());
+                await tvImages.SelectedItems.OfType<TvImagesCommodityModel>().ForEachAsync(com => com.Commodity.Save());
+            }
+
+            private async void MiSaveAllImagesAndCommoditiesToDb_Click(object? sender, RoutedEventArgs e)
+            {
+                await _tvImagesModels.ForEachAsync(async img =>
+                {
+                    await img.Image.Save();
+                    foreach (var com in img.Image.Commodities)
+                    {
+                        await com.Save();
+                    }
+                });
+            }
+
+            private async void MiCreateImageCommodity_Click(object? sender, RoutedEventArgs e)
+            {
+                var selectedImage = GetSelectedImage()!;
+                await selectedImage.Image.AddCommodity();
             }
 
             private void Package_ImageAdded(CommodityPackage _, CImage image)
@@ -439,7 +492,7 @@ namespace MainUI
                 await selectedImage.Image.ReplaceFile(imgStream);
             }
 
-            private async void MiMoveAfterSelectedImageOnClick(object? sender, RoutedEventArgs e)
+            private async void MiMoveAfterSelectedImage_Click(object? sender, RoutedEventArgs e)
             {
                 var selectedImage = GetSelectedImage()!;
                 if (selectedImage.Commodities.Count == 0)
@@ -468,7 +521,7 @@ namespace MainUI
                 ResetImageToMove();
             }
 
-            private async void MiMoveBeforeSelectedImageOnClick(object? sender, RoutedEventArgs e)
+            private async void MiMoveBeforeSelectedImage_Click(object? sender, RoutedEventArgs e)
             {
                 var selectedImage = GetSelectedImage()!;
                 if (selectedImage.Commodities.Count == 0)
@@ -496,7 +549,7 @@ namespace MainUI
                 ResetImageToMove();
             }
 
-            private async void MiMoveSelectedImageOnClick(object? sender, RoutedEventArgs e)
+            private async void MiMoveSelectedImage_Click(object? sender, RoutedEventArgs e)
             {
                 _imageToMove = GetSelectedImage()!;
                 if (_imageToMove.Commodities.Count == 0)
@@ -524,7 +577,7 @@ namespace MainUI
                 _imageToMoveSelectionTime = DateTime.UtcNow - (ImageMovingWindow * 2);
             }
 
-            private void MiGoToCommodityOnClick(object? sender, RoutedEventArgs e)
+            private void MiGoToCommodity_Click(object? sender, RoutedEventArgs e)
             {
                 if (tvImages.SelectedItems.Count != 1 || !(tvImages.SelectedItems[0] is TvImagesCommodityModel com))
                 {
@@ -541,27 +594,37 @@ namespace MainUI
                 tvImages.SelectedItems.Add(_tvImagesModels.First(c => c.Image.Id == com.Image.Id) /*.GetCommodityModel(com)*/);
             }
 
-            private void MiUnExportSelectedImagesOnClick(object? sender, RoutedEventArgs e)
+            private void MiUnExportSelected_Click(object? sender, RoutedEventArgs e)
             {
-                foreach (var img in tvImages.SelectedItems.OfType<TvImagesImageModel>()) { img.Export = false; }
+                foreach (var img in tvImages.SelectedItems.OfType<TvImagesImageModel>()) { img.IsExported = false; }
+                foreach (var com in tvImages.SelectedItems.OfType<TvImagesCommodityModel>()) { com.IsExported = false; }
             }
 
-            private void MiExportSelectedImagesOnClick(object? sender, RoutedEventArgs e)
+            private void MiExportSelected_Click(object? sender, RoutedEventArgs e)
             {
-                foreach (var img in tvImages.SelectedItems.OfType<TvImagesImageModel>()) { img.Export = true; }
+                foreach (var img in tvImages.SelectedItems.OfType<TvImagesImageModel>()) { img.IsExported = true; }
+                foreach (var com in tvImages.SelectedItems.OfType<TvImagesCommodityModel>()) { com.IsExported = true; }
             }
 
-            private void MiUnExportAllImagesOnClick(object? sender, RoutedEventArgs e)
+            private void MiUnExportAll_Click(object? sender, RoutedEventArgs e)
             {
-                foreach (var img in _tvImagesItems) { img.Export = false; }
+                foreach (var img in _tvImagesItems)
+                {
+                    img.IsExported = false;
+                    foreach (var com in img.Commodities) { com.IsExported = false; }
+                }
             }
 
-            private void MiExportAllImagesOnClick(object? sender, RoutedEventArgs e)
+            private void MiExportAllImages_Click(object? sender, RoutedEventArgs e)
             {
-                foreach (var img in _tvImagesItems) { img.Export = true; }
+                foreach (var img in _tvImagesItems)
+                {
+                    img.IsExported = true;
+                    foreach (var com in img.Commodities) { com.IsExported = true; }
+                }
             }
 
-            private void TvImagesCTXMenuOnContextMenuOpening(object sender, CancelEventArgs e)
+            private void TvImagesCTXMenu_ContextMenuOpening(object sender, CancelEventArgs e)
             {
                 if (DateTime.UtcNow - _imageToMoveSelectionTime > ImageMovingWindow) { ResetImageToMove(); }
 
@@ -569,7 +632,7 @@ namespace MainUI
                 miExportSelectedImages.IsVisible = miUnExportSelectedImages.IsVisible = miDeleteSelectedImagesAndCommdoities.IsVisible = tvImages.SelectedItems.Count > 0;
 
                 var selectedImage = GetSelectedImage();
-                miMoveImage.IsVisible = miReplaceImageFile.IsVisible = tvImages.SelectedItems.Count == 1 && selectedImage != null;
+                miCreateImageCommodity.IsVisible = miMoveImage.IsVisible = miReplaceImageFile.IsVisible = tvImages.SelectedItems.Count == 1 && selectedImage != null;
                 miMoveAfterSelectedImage.IsVisible = miMoveBeforeSelectedImage.IsVisible =
                                                          _imageToMove != null && selectedImage != _imageToMove;
                 miGoToCommodity.IsVisible = tvImages.SelectedItems.Count == 1 && tvImages.SelectedItems[0] is TvImagesCommodityModel;

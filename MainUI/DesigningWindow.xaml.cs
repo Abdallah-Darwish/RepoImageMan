@@ -25,18 +25,11 @@ namespace MainUI
         private readonly MenuItem miDeleteSelectedCommodity, miReloadSelectedCommodity;
         private readonly ContextMenu imgPlaygroundCTXMenu;
         private readonly DesignCImage<TPixel> _image;
-        private readonly MemoryStream _imageBuffer;
-        private readonly SixLabors.ImageSharp.Formats.Bmp.BmpEncoder _encoder = new SixLabors.ImageSharp.Formats.Bmp.BmpEncoder
-        {
-            BitsPerPixel = SixLabors.ImageSharp.Formats.Bmp.BmpBitsPerPixel.Pixel32,
-            SupportTransparency = false,
-            Quantizer = SixLabors.ImageSharp.Processing.KnownQuantizers.Octree
-        };
         private bool _isSelectedCommodityHooked = false;
         private SizeF _toImageMappingScale, _fromImageMappingScale;
         private readonly Settings _settings;
         private DesignImageCommodity<TPixel>? _selectedCommodity;
-
+        private readonly NumericUpDown nudImageContrast, nudImageBrightness, nudLabelSize;
 
         private string GetCommdoityShortName(DesignImageCommodity<TPixel> com)
         {
@@ -73,7 +66,8 @@ namespace MainUI
         /// </summary>
         private void ResizeImage()
         {
-            if (_settings.DesigningWindowResizingScale.Width != 0.0f && _settings.DesigningWindowResizingScale.Height != 0.0f )            {
+            if (_settings.DesigningWindowResizingScale.Width != 0.0f && _settings.DesigningWindowResizingScale.Height != 0.0f)
+            {
                 if (_settings.IsDesigningWindowResizingScaleDynamic)
                 {
                     _image.InstanceSize = new Size
@@ -102,8 +96,7 @@ namespace MainUI
             miDeleteSelectedCommodity = this.FindControl<MenuItem>(nameof(miDeleteSelectedCommodity));
             miReloadSelectedCommodity = this.FindControl<MenuItem>(nameof(miReloadSelectedCommodity));
             imgPlaygroundCTXMenu = this.FindControl<ContextMenu>(nameof(imgPlaygroundCTXMenu));
-            _image = image;
-            _imageBuffer = new MemoryStream(_image.Image.Size.Width * _image.Image.Size.Height * (_image.RenderedImage.PixelType.BitsPerPixel / 8) + 100);
+            _image = image ?? throw new ArgumentNullException(nameof(image));
             _image.ImageUpdated += Image_ImageUpdated;
             imgPlayground.PointerPressed += ImgPlayground_PointerPressed;
             imgPlayground.PointerReleased += ImgPlayground_PointerReleased;
@@ -166,15 +159,14 @@ namespace MainUI
             }
             using (var bmpBuffer = bmp.Lock())
             {
-                var wtf = System.Runtime.InteropServices.MemoryMarshal.AsBytes(_image.RenderedImage.GetPixelSpan());
-                var y = wtf.Length / 1000000;
+                var renderedImagePixels = System.Runtime.InteropServices.MemoryMarshal.AsBytes(_image.RenderedImage.GetPixelSpan());
                 Span<byte> bmpBufferSpan;
                 unsafe
                 {
                     bmpBufferSpan = new Span<byte>(bmpBuffer.Address.ToPointer(), bmpBuffer.Size.Height * bmpBuffer.RowBytes);
                 }
 
-                wtf.CopyTo(bmpBufferSpan);
+                renderedImagePixels.CopyTo(bmpBufferSpan);
             }
             imgPlayground.Source = null;
             imgPlayground.Source = bmp;

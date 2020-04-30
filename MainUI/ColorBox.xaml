@@ -1,0 +1,20 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="MainUI.Controls.ColorBox">
+  <ComboBox Name="cbxColors" AutoScrollToSelectedItem="True">
+    <ComboBox.ItemTemplate>
+      <DataTemplate>
+        <StackPanel Orientation="Horizontal">
+          <Image Source="{Binding Sample, Mode=OneTime}"
+                 Width="{Binding $parent[UserControl].ColorSampleSize.Width, Mode=OneWay}"
+                 Height="{Binding $parent[UserControl].ColorSampleSize.Height, Mode=OneWay}"
+                 Margin="0 0 1 0"/>
+          <TextBlock Text="{Binding Name, Mode=OneTime}"/>
+        </StackPanel>
+      </DataTemplate>
+    </ComboBox.ItemTemplate>
+  </ComboBox>
+</UserControl>
