@@ -1,0 +1,18 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="MainUI.Controls.FontBox">
+  <ComboBox Name="cbxFonts" AutoScrollToSelectedItem="True">
+    <ComboBox.ItemTemplate>
+      <DataTemplate>
+          <TextBlock Text="{Binding Name, Mode=OneTime}" 
+                     FontFamily="{Binding ., Mode=OneTime}"
+                     FontSize="{Binding $parent[UserControl].FontSize, Mode=OneWay}"
+                     FontStyle="{Binding $parent[UserControl].FontStyle, Mode=OneWay}"
+                     FontWeight="{Binding $parent[UserControl].FontWeight, Mode=OneWay}"/>
+      </DataTemplate>
+    </ComboBox.ItemTemplate>
+  </ComboBox>
+</UserControl>

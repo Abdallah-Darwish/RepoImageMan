@@ -15,6 +15,9 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using System.Diagnostics.Tracing;
 using System.Diagnostics;
 using System.Reactive.Linq;
+using System.IO;
+using System.Threading;
+
 namespace RepoImageMan
 {
     /// <summary>
@@ -89,7 +92,8 @@ namespace RepoImageMan
         /// </summary>
         public DesignImageCommodity<TPixel>? FirstOnPoint(PointF p) => _commodities.AsParallel().FirstOrDefault(com => com.IsInside(p));
 
-        public Image<TPixel> RenderedImage { get; private set; }
+        private Image<TPixel> _renderedImage;
+        public Image<TPixel> RenderedImage => _renderedImage;
 
         /// <summary>
         /// Contains the image with <see cref="CImage.Contrast"/> and <see cref="CImage.Brightness"/> applied to it and resized but nothing is written on it.
@@ -101,8 +105,15 @@ namespace RepoImageMan
         /// </summary>
         private readonly Image<TPixel> _originalImage;
 
+        private readonly object _renderingLock = new object();
+        /// <summary>
+        /// You must lock on <see cref="_renderingLock"/> before calling.
+        /// </summary>
         private void Render()
         {
+            if (Commodities.Count == 0) { return; }
+            Trace.WriteLine("Cloning playground image");
+            var frame = _renderingPlayground.Clone(c => c.Resize(InstanceSize));
             void CopyRow(ReadOnlyMemory<TPixel> rowMemory, Point p)
             {
                 int toBeRemoved = 0;
@@ -112,7 +123,7 @@ namespace RepoImageMan
                     p.X = 0;
                 }
 
-                var dstRow = MemoryMarshal.AsBytes(RenderedImage.GetPixelRowSpan(p.Y).Slice(p.X));
+                var dstRow = MemoryMarshal.AsBytes(frame.GetPixelRowSpan(p.Y).Slice(p.X));
                 var srcRow = MemoryMarshal.AsBytes(rowMemory.Span);
                 if (toBeRemoved > 0)
                 {
@@ -123,7 +134,6 @@ namespace RepoImageMan
                 {
                     srcRow = srcRow[..dstRow.Length];
                 }
-
                 Vector<byte> srcV, dstV;
 
                 for (; srcRow.Length >= Vector<byte>.Count;)
@@ -131,7 +141,11 @@ namespace RepoImageMan
                     srcV = new Vector<byte>(srcRow);
                     dstV = new Vector<byte>(dstRow);
                     dstV |= srcV;
+
+                    //dstV = Vector<byte>.Zero;
+
                     dstV.CopyTo(dstRow);
+                    string x = string.Join(", ", dstRow[..Vector<byte>.Count].ToArray()), y=dstV.ToString();
 
                     //p.X += Vector<int>.Count;
                     srcRow = srcRow.Slice(Vector<byte>.Count);
@@ -147,15 +161,12 @@ namespace RepoImageMan
             void SurroundCommodity(DesignImageCommodity<TPixel> com)
             {
                 var comHandle = Image.Package.GetHandle<TPixel>(com.HandleSize);
-                RenderedImage.Mutate(c =>
+                frame.Mutate(c =>
                 c.DrawPolygon(com.SurroundingBoxColor, com.SurroundingBoxThickness, com.GetSurroundingBox())
                 .DrawImage(comHandle, com.HandleLocation, 1f));
             }
-            Trace.WriteLine("Disposing old image");
-            RenderedImage?.Dispose();
 
-            Trace.WriteLine("Cloning playground image");
-            RenderedImage = _renderingPlayground.Clone(c => c.Resize(InstanceSize));
+            Trace.WriteLine("Disposing old image");
 
             var copyingJobs = new List<(ReadOnlyMemory<TPixel> Row, Point RowLocation)>();
             var labelsCache = Image.Package.GetLabelsCache<TPixel>();
@@ -175,7 +186,7 @@ namespace RepoImageMan
                 Trace.WriteLine($"Splitting commodity {com.Commodity} label into rows");
                 var comLocation = (Point)com.Location;
                 for (int labelRowIndex = 0;
-                    labelRowIndex < comLabel.Length && comLocation.Y < RenderedImage.Height;
+                    labelRowIndex < comLabel.Length && comLocation.Y < frame.Height;
                     labelRowIndex++, comLocation.Y++)
                 {
                     copyingJobs.Add((comLabel[labelRowIndex].AsMemory(), comLocation));
@@ -191,7 +202,7 @@ namespace RepoImageMan
             Trace.WriteLine($"Copying rows to final image");
             if (Parallel.ForEach(copyingJobs, tu => CopyRow(tu.Row, tu.RowLocation)).IsCompleted == false)
             {
-                RenderedImage.Mutate(c => c.Fill(Color.Red));
+                frame.Mutate(c => c.Fill(Color.Red));
                 throw new Exception($"Rendering wasn't done, successfully !!!{Environment.NewLine}Couldn't RENDER labels correctly.");
             }
             Trace.WriteLine("Finished copying rows");
@@ -199,10 +210,13 @@ namespace RepoImageMan
 
             if (Parallel.ForEach(Commodities.Where(c => c.IsSurrounded), SurroundCommodity).IsCompleted == false)
             {
-                RenderedImage.Mutate(c => c.Fill(Color.Green));
+                frame.Mutate(c => c.Fill(Color.Green));
                 throw new Exception($"Rendering wasn't done, successfully !!!{Environment.NewLine}Couldn't SURROUND labels correctly.");
             }
             Trace.WriteLine("Finished Surrounding commodities");
+            var oldFrame = Interlocked.Exchange(ref _renderedImage, frame);
+            Trace.WriteLine("Disposing old frame");
+            oldFrame?.Dispose();
         }
 
         private void AddCommodity(ImageCommodity com)
@@ -214,15 +228,52 @@ namespace RepoImageMan
         }
 
         private void CommodityUpdated(DesignImageCommodity<TPixel> sender) => UpdateMe();
-
+        private int _breakBetweenFrames = 0;
+        public int BreakBetweenFrames
+        {
+            get => _breakBetweenFrames;
+            set
+            {
+                if (value < 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, $"{nameof(BreakBetweenFrames)} must be >= 0.");
+                }
+                _breakBetweenFrames = value;
+            }
+        }
+        private volatile int _lastFrameNumber = 0;
         private void UpdateMe()
         {
-            Render();
-            ImageUpdated?.Invoke(this);
+            if (BreakBetweenFrames == 0)
+            {
+                lock (_renderingLock)
+                {
+                    Render();
+                    ImageUpdated?.Invoke(this);
+                }
+            }
+            else
+            {
+                async Task Work()
+                {
+                    int currentFrameNumber = Interlocked.Increment(ref _lastFrameNumber);
+
+                    await Task.Delay(_breakBetweenFrames).ConfigureAwait(false);
+                    lock (_renderingLock)
+                    {
+                        if (_lastFrameNumber != currentFrameNumber) { return; }
+                        Trace.WriteLine($"Rendring with frame number {currentFrameNumber}");
+                        Render();
+                        ImageUpdated?.Invoke(this);
+                    }
+                }
+                Task.Run(Work);
+            }
         }
         private IDisposable _imageBrightnessContrastSubscription;
         internal DesignCImage(CImage image)
         {
+            BreakBetweenFrames = 60000;
             Image = image;
             _instanceSize = image.Size;
 
@@ -243,14 +294,20 @@ namespace RepoImageMan
             _imageBrightnessContrastSubscription = Image
                  .Where(pn => pn == nameof(CImage.Contrast) || pn == nameof(CImage.Brightness))
                  .Subscribe(pn => UpdatePlayground());
-            Render();
+
+            BreakBetweenFrames = 0;
+            UpdateMe();
+            BreakBetweenFrames = 5;
+
         }
 
         private void CommodityAdded(CImage sender, ImageCommodity com) => AddCommodity(com);
 
         private void UpdatePlayground()
         {
+            _renderingPlayground?.Dispose();
             _renderingPlayground = _originalImage.Clone(c => c.Contrast(Image.Contrast).Brightness(Image.Brightness));
+            UpdateMe();
         }
 
         private void CommodityRemoved(CImage sender, ImageCommodity com)

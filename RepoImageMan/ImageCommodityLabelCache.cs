@@ -58,7 +58,6 @@ namespace RepoImageMan
 
         private static TPixel[][] RenderLabel(LabelRenderingOptions options)
         {
-            //TODO: Profile me and see how much am I called ?
             Trace.WriteLine($"Rendering label with options {options}");
             Size expectedSize = (Size)TextMeasurer.Measure(options.Text, options);
             expectedSize.Height += 4;

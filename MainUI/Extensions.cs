@@ -47,8 +47,8 @@ namespace MainUI
             imgStream.Position = 0;
             return new Avalonia.Media.Imaging.Bitmap(imgStream);
         }
-        public static SixLabors.Primitives.PointF ToSixLabors(this Avalonia.Point p) => new SixLabors.Primitives.PointF((float)p.X, (float)p.Y);
-        public static SixLabors.Primitives.SizeF ToSixLabors(this Avalonia.Size sz) => new SixLabors.Primitives.SizeF((float)sz.Width, (float)sz.Height);
+        public static SixLabors.Primitives.PointF ToSixLabors(this in Avalonia.Point p) => new SixLabors.Primitives.PointF((float)p.X, (float)p.Y);
+        public static SixLabors.Primitives.SizeF ToSixLabors(this in Avalonia.Size sz) => new SixLabors.Primitives.SizeF((float)sz.Width, (float)sz.Height);
         public static IBitmap LoadResizedBitmap(this Stream originalImageStream, Avalonia.Size sz)
         {
             using var img = Image.Load(originalImageStream);
@@ -58,5 +58,13 @@ namespace MainUI
             resizedImageStream.Position = 0;
             return new Avalonia.Media.Imaging.Bitmap(resizedImageStream);
         }
+
+        public static SixLabors.ImageSharp.Color ToSixLabors(this in Avalonia.Media.Color c) => SixLabors.ImageSharp.Color.FromRgba(c.R, c.G, c.B, c.A);
+        public static Avalonia.Media.Color ToAvalonia(this in SixLabors.ImageSharp.Color c)
+        {
+            var cp = c.ToPixel<SixLabors.ImageSharp.PixelFormats.Rgba32>();
+            return Avalonia.Media.Color.FromArgb(cp.A, cp.R, cp.G, cp.B);
+        }
+
     }
 }

@@ -104,7 +104,7 @@ namespace RepoImageMan
             return boxCorners;
         }
 
-        public float SurroundingBoxThickness => Font.Size / 10f;
+        public float SurroundingBoxThickness => Math.Max(1f, Font.Size / 10f);
         private Color _surroundingBoxColor = Color.Red;
 
         public Color SurroundingBoxColor
@@ -130,7 +130,7 @@ namespace RepoImageMan
         }
         private void UpdateFont()
         {
-            _font = new Font(Commodity.Font, Commodity.Font.Size * Image.ToDesignMappingScale.Average());
+            _font = new Font(Commodity.Font, /*skip unnecessary fractions*/(int)(Commodity.Font.Size * Image.ToDesignMappingScale.Average()));
         }
         private IDisposable[] _notificationsSubscriptions;
         public DesignImageCommodity(ImageCommodity com, DesignCImage<TPixel> image)
@@ -139,13 +139,17 @@ namespace RepoImageMan
             Image = image;
 
             _notificationsSubscriptions = new IDisposable[]
-            { Commodity
-           .Where(pn =>
-           pn == nameof(ImageCommodity.Font) ||
-           pn == nameof(ImageCommodity.Location) ||
-           pn == nameof(ImageCommodity.LabelColor))
-           .Subscribe(pn => UpdateMe()),
-           Commodity.Where(pn => pn == nameof(ImageCommodity.Font)).Subscribe(pn => UpdateFont())
+            {
+                //order is impoertant here, so we would update the font before rendering
+                Commodity
+                .Where(pn => pn == nameof(ImageCommodity.Font))
+                .Subscribe(pn => UpdateFont()),
+                Commodity
+                .Where(pn =>
+                pn == nameof(ImageCommodity.Font) ||
+                pn == nameof(ImageCommodity.Location) ||
+                pn == nameof(ImageCommodity.LabelColor))
+                .Subscribe(pn => UpdateMe()),
             };
 
             UpdateAfterImageResize();
@@ -166,7 +170,7 @@ namespace RepoImageMan
             {
                 _disposedValue = true;
                 Updated = null;
-                foreach(var sub in _notificationsSubscriptions) { sub.Dispose(); }
+                foreach (var sub in _notificationsSubscriptions) { sub.Dispose(); }
                 _notificationsSubscriptions = null;
             }
         }

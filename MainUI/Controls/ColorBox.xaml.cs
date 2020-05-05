@@ -65,7 +65,9 @@ namespace MainUI.Controls
             set
             {
                 if (value.Equals(SelectedColor)) { return; }
-                cbxColors.SelectedItem = Colors.First(i => i.Color.Equals(value));
+                //value of this property will be set down in the SelectionChanged event
+                cbxColors.SelectedItem = Colors.FirstOrDefault(i => i.Color.Equals(value)) ?? 
+                    throw new ArgumentOutOfRangeException(nameof(value), value, $"Unsupported color, please choose color from {nameof(Colors)} .");
             }
         }
 

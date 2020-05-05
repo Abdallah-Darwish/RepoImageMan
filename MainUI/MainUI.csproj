@@ -15,10 +15,12 @@
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Remove="ColorBox.xaml" />
+    <AvaloniaResource Remove="Controls\FontBox.xaml" />
     <AvaloniaResource Remove="DesigningWindow.xaml" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="ColorBox.xaml" />
+    <None Remove="Controls\FontBox.xaml" />
     <None Remove="DesigningWindow.xaml" />
   </ItemGroup>
   <ItemGroup>
@@ -34,7 +36,12 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="ColorBox.xaml">
+    <EmbeddedResource Include="Controls\ColorBox.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Controls\FontBox.xaml">
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
   </ItemGroup>

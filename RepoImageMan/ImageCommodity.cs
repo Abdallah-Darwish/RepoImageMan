@@ -38,7 +38,7 @@ namespace RepoImageMan
             {
                 if (value == _labelColor) { return; }
                 _labelColor = value;
-                OnPropertyChanged(nameof(Color));
+                OnPropertyChanged();
             }
         }
 
@@ -51,9 +51,10 @@ namespace RepoImageMan
             get => _font;
             set
             {
-                if (value == _font) { return; }
+                if (value == null) { throw new ArgumentNullException(nameof(value)); }
+                if (value.Equals(/*_font maybe null on initialization*/_font)) { return; }
                 _font = value;
-                OnPropertyChanged(nameof(Font));
+                OnPropertyChanged();
             }
         }
         private PointF _location;
@@ -73,7 +74,7 @@ namespace RepoImageMan
                     throw new ArgumentOutOfRangeException(nameof(value), value, $"{nameof(Location)} must be in [(0, 0), ({Image.Size.Width}, {Image.Size.Height})].");
                 }
                 _location = value;
-                OnPropertyChanged(nameof(Location));
+                OnPropertyChanged();
             }
         }
         /// <summary>

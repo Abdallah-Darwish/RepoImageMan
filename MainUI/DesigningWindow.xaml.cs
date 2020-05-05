@@ -14,6 +14,10 @@ using TPixel = SixLabors.ImageSharp.PixelFormats.Rgba32;
 using System.Diagnostics;
 using SixLabors.ImageSharp.Advanced;
 using System.Linq;
+using Avalonia.Interactivity;
+using System.ComponentModel;
+using MainUI.Controls;
+using Avalonia.Threading;
 
 namespace MainUI
 {
@@ -25,6 +29,8 @@ namespace MainUI
         private readonly MenuItem miDeleteSelectedCommodity, miReloadSelectedCommodity;
         private readonly ContextMenu imgPlaygroundCTXMenu;
         private readonly DesignCImage<TPixel> _image;
+        private readonly ColorBox cbLabelColor;
+        private readonly FontBox fbLabelFont;
         private bool _isSelectedCommodityHooked = false;
         private SizeF _toImageMappingScale, _fromImageMappingScale;
         private readonly Settings _settings;
@@ -37,6 +43,7 @@ namespace MainUI
             return name.Length <= 10 ? name : $"{name.Substring(0, 7)}...";
         }
 
+        private IDisposable[] _selectedCommodityNotificationSubs;
         private DesignImageCommodity<TPixel>? SelectedCommodity
         {
             get => _selectedCommodity;
@@ -47,13 +54,32 @@ namespace MainUI
                 {
                     _selectedCommodity.Commodity.Deleting -= SelectedCommodity_Deleting;
                     _selectedCommodity.IsSurrounded = false;
+                    foreach (var sub in _selectedCommodityNotificationSubs)
+                    {
+                        sub.Dispose();
+                    }
                 }
                 _selectedCommodity = value;
                 if (_selectedCommodity != null)
                 {
-                    _selectedCommodity.Commodity.Deleting -= SelectedCommodity_Deleting;
-
+                    _selectedCommodity.Commodity.Deleting += SelectedCommodity_Deleting;
                     _selectedCommodity.IsSurrounded = true;
+                    _selectedCommodityNotificationSubs = new IDisposable[]
+                    {
+                        _selectedCommodity.Commodity
+                        .Where(pn => pn == nameof(ImageCommodity.LabelColor))
+                        .Subscribe(_ => cbLabelColor.SelectedColor = _selectedCommodity.Commodity.LabelColor.ToAvalonia()),
+                        _selectedCommodity.Commodity
+                        .Where(pn => pn == nameof(ImageCommodity.Font))
+                        .Subscribe(_ =>
+                        {
+                            fbLabelFont.SelectedFontFamily = new Avalonia.Media.FontFamily(_selectedCommodity.Commodity.Font.Name);
+                            nudLabelSize.Value = _selectedCommodity.Commodity.Font.Size;
+                        })
+                    };
+                    nudLabelSize.Value = _selectedCommodity.Commodity.Font.Size;
+                    cbLabelColor.SelectedColor = _selectedCommodity.Commodity.LabelColor.ToAvalonia();
+                    fbLabelFont.SelectedFontFamily = new Avalonia.Media.FontFamily(_selectedCommodity.Commodity.Font.Name);
                 }
             }
         }
@@ -96,6 +122,13 @@ namespace MainUI
             miDeleteSelectedCommodity = this.FindControl<MenuItem>(nameof(miDeleteSelectedCommodity));
             miReloadSelectedCommodity = this.FindControl<MenuItem>(nameof(miReloadSelectedCommodity));
             imgPlaygroundCTXMenu = this.FindControl<ContextMenu>(nameof(imgPlaygroundCTXMenu));
+            cbLabelColor = this.FindControl<ColorBox>(nameof(cbLabelColor));
+            fbLabelFont = this.FindControl<FontBox>(nameof(fbLabelFont));
+            nudLabelSize = this.FindControl<NumericUpDown>(nameof(nudLabelSize));
+            nudImageContrast = this.FindControl<NumericUpDown>(nameof(nudImageContrast));
+            nudImageBrightness = this.FindControl<NumericUpDown>(nameof(nudImageBrightness));
+
+
             _image = image ?? throw new ArgumentNullException(nameof(image));
             _image.ImageUpdated += Image_ImageUpdated;
             imgPlayground.PointerPressed += ImgPlayground_PointerPressed;
@@ -103,18 +136,33 @@ namespace MainUI
             imgPlayground.PointerMoved += ImgPlayground_PointerMoved;
 
 
-            _eventsSubscriptions.Add(this.GetObservable(Window.ClientSizeProperty).Do(sz =>
+            _eventsSubscriptions.Add(this.GetObservable(Window.ClientSizeProperty).Subscribe(sz =>
             {
                 imgPlayground.Height = sz.Height - 100;
                 imgPlayground.Width = sz.Width - 10;
-            }).Subscribe());
+            }));
 
 
             _eventsSubscriptions.Add(
                 imgPlayground.GetObservable(Image.WidthProperty)
                 .Merge(imgPlayground.GetObservable(Image.HeightProperty))
-                .Do(_ => ResizeImage())
-                .Subscribe());
+                .Subscribe(_ => ResizeImage()));
+            _eventsSubscriptions.Add(cbLabelColor.GetObservable(ColorBox.SelectedColorProperty).Subscribe(c =>
+            {
+                var selectedCom = SelectedCommodity;
+                if (selectedCom == null) { return; }
+                selectedCom.Commodity.LabelColor = c.ToSixLabors();
+            }));
+            _eventsSubscriptions.Add(fbLabelFont.GetObservable(FontBox.SelectedFontFamilyProperty).Subscribe(f =>
+            {
+                var selectedCom = SelectedCommodity?.Commodity;
+                if (selectedCom == null) { return; }
+                selectedCom.Font = SixLabors.Fonts.SystemFonts.CreateFont(f.Name, selectedCom.Font.Size);
+            }));
+            nudLabelSize.ValueChanged += NudLabelSize_ValueChanged;
+            nudImageContrast.ValueChanged += NudImageContrast_ValueChanged;
+            nudImageBrightness.ValueChanged += NudImageBrightness_ValueChanged;
+
             ReloadPlayground();
 
             imgPlaygroundCTXMenu.ContextMenuOpening += ImgPlaygroundCTXMenu_ContextMenuOpening;
@@ -123,12 +171,23 @@ namespace MainUI
 
         }
 
-        private async void MiReloadSelectedCommodity_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await SelectedCommodity!.Commodity.Reload();
+        private void NudImageBrightness_ValueChanged(object? sender, NumericUpDownValueChangedEventArgs e) => _image.Image.Brightness = (float)e.NewValue;
 
-        private async void MiDeleteSelectedCommodity_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) =>
+        private void NudImageContrast_ValueChanged(object? sender, NumericUpDownValueChangedEventArgs e) => _image.Image.Contrast = (float)e.NewValue;
+
+        private void NudLabelSize_ValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+        {
+            var selectedCom = SelectedCommodity?.Commodity;
+            if (selectedCom == null) { return; }
+            selectedCom.Font = new SixLabors.Fonts.Font(selectedCom.Font, (float)e.NewValue);
+        }
+
+        private async void MiReloadSelectedCommodity_Click(object? sender, RoutedEventArgs e) => await SelectedCommodity!.Commodity.Reload();
+
+        private async void MiDeleteSelectedCommodity_Click(object? sender, RoutedEventArgs e) =>
             await SelectedCommodity!.Commodity.Delete();
 
-        private void ImgPlaygroundCTXMenu_ContextMenuOpening(object sender, System.ComponentModel.CancelEventArgs e)
+        private void ImgPlaygroundCTXMenu_ContextMenuOpening(object sender, CancelEventArgs e)
         {
             var selectedCommodity = SelectedCommodity;
             miDeleteSelectedCommodity.IsVisible = miReloadSelectedCommodity.IsVisible = selectedCommodity != null;
@@ -149,16 +208,18 @@ namespace MainUI
 
         private void ReloadPlayground()
         {
-            var bmp = imgPlayground.Source as WriteableBitmap;
+            WriteableBitmap? bmp = null;
+            if (Dispatcher.UIThread.CheckAccess()) { bmp = imgPlayground.Source as WriteableBitmap; }
+            else { Dispatcher.UIThread.Post(() => bmp = imgPlayground.Source as WriteableBitmap); }
             if (bmp == null || (int)bmp.PixelSize.Width != _image.RenderedImage.Width || (int)bmp.PixelSize.Height != _image.RenderedImage.Height)
             {
-                Trace.WriteLine("CREATED NEW BMP");
                 bmp?.Dispose();
                 bmp = new WriteableBitmap(new PixelSize(_image.RenderedImage.Width, _image.RenderedImage.Height), new Vector(), Avalonia.Platform.PixelFormat.Rgba8888);
-                imgPlayground.Source = bmp;
+                Trace.WriteLine("CREATED NEW BMP");
             }
             using (var bmpBuffer = bmp.Lock())
             {
+                Trace.WriteLine("Wrting new image data");
                 var renderedImagePixels = System.Runtime.InteropServices.MemoryMarshal.AsBytes(_image.RenderedImage.GetPixelSpan());
                 Span<byte> bmpBufferSpan;
                 unsafe
@@ -167,9 +228,22 @@ namespace MainUI
                 }
 
                 renderedImagePixels.CopyTo(bmpBufferSpan);
+                Trace.WriteLine("Wrote new image data");
             }
-            imgPlayground.Source = null;
-            imgPlayground.Source = bmp;
+            if (Dispatcher.UIThread.CheckAccess())
+            {
+                imgPlayground.Source = null;
+                imgPlayground.Source = bmp;
+            }
+            else
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    imgPlayground.Source = null;
+                    imgPlayground.Source = bmp;
+                });
+            }
+            Trace.WriteLine("Updated image box");
         }
         private void Image_ImageUpdated(DesignCImage<TPixel> sender) => ReloadPlayground();
 
@@ -193,9 +267,6 @@ namespace MainUI
             }
         }
 
-        private void InitializeComponent()
-        {
-            AvaloniaXamlLoader.Load(this);
-        }
+        private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
     }
 }
