@@ -7,15 +7,26 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Controls\DesignCImagePanel.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Controls\DesignCImagePanel.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="0.9.10" />
     <PackageReference Include="Dapper" Version="2.0.35" />
     <PackageReference Include="Dapper.Contrib" Version="2.0.35" />
-    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.8">
+    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-beta0007" />
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0-beta0007" />
-    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.112.1" />
+    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.112.2" />
     <PackageReference Include="System.IO.Packaging" Version="4.7.0" />
     <PackageReference Include="System.Reactive" Version="4.4.1" />
   </ItemGroup>

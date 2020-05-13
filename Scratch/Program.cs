@@ -2,6 +2,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Logging.Serilog;
+using Avalonia.Media;
 
 namespace Scratch
 {
@@ -18,5 +19,6 @@ namespace Scratch
             => AppBuilder.Configure<App>()
                 .UsePlatformDetect()
                 .LogToDebug();
+
     }
 }

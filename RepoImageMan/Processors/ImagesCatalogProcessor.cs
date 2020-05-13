@@ -50,31 +50,31 @@ namespace RepoImageMan.Processors
 
         private void ProcessImage(CImage image)
         {
-            Image<TPixel> processingImage;
-            using (var imageStream = image.OpenStream())
-            {
-                processingImage = Image.Load<TPixel>(imageStream);
-            }
+            //Image<TPixel> processingImage;
+            //using (var imageStream = image.OpenStream())
+            //{
+            //    processingImage = Image.Load<TPixel>(imageStream);
+            //}
 
-            using var processedImageStream = new MemoryStream();
-            using (processingImage)
-            {
-                processingImage.Mutate(c =>
-                {
-                    c.Contrast(image.Contrast).Brightness(image.Brightness);
-                    foreach (var com in image.Commodities)
-                    {
-                        c.DrawText(_commoditiesLabels[com.Id], com.Font, com.LabelColor, com.Location);
-                    }
+            //using var processedImageStream = new MemoryStream();
+            //using (processingImage)
+            //{
+            //    processingImage.Mutate(c =>
+            //    {
+            //        c.Contrast(image.Contrast).Brightness(image.Brightness);
+            //        foreach (var com in image.Commodities)
+            //        {
+            //            c.DrawText(_commoditiesLabels[com.Id], com.Font, com.LabelColor, com.Location);
+            //        }
 
-                    c.Rotate(_rotationMode);
-                });
+            //        c.Rotate(_rotationMode);
+            //    });
 
-                processingImage.SaveAsJpeg(processedImageStream);
-            }
+            //    processingImage.SaveAsJpeg(processedImageStream);
+            //}
 
-            processedImageStream.Position = 0;
-            _imagesConsumer.OnNext(new ProcessedCImage(image, processedImageStream, _imagesPositions[image.Id]));
+            //processedImageStream.Position = 0;
+            //_imagesConsumer.OnNext(new ProcessedCImage(image, processedImageStream, _imagesPositions[image.Id]));
         }
 
         public void Process()

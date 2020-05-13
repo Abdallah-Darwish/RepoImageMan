@@ -3,12 +3,12 @@ using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
-using SixLabors.Primitives;
 using RepoImageMan;
-using SixLabors.Fonts;
 using SixLabors.ImageSharp.PixelFormats;
 using System.Text.Json;
 using System.Text.Unicode;
+using Avalonia;
+using Avalonia.Media;
 
 namespace Tester
 {
@@ -20,9 +20,9 @@ namespace Tester
             foreach (var c in coms)
             {
                 var ic = await img.AddCommodity();
-                ic.Location = new PointF(MathF.Min((float)c.IDX, img.Size.Width), MathF.Min((float)c.IDY, img.Size.Height));
-                ic.Font = SystemFonts.CreateFont("Arial", c.IDFontSize);
-                ic.LabelColor = new Argb32((uint)c.IDForeColorArgb);
+                ic.Location = new Point(Math.Min(c.IDX, img.Size.Width), Math.Min(c.IDY, img.Size.Height));
+                ic.Font = new Font("Arial", c.IDFontSize, RepoImageMan.FontStyle.Regular);
+                ic.LabelColor = Color.FromUInt32((uint)c.IDForeColorArgb);
                 ic.Cost = c.Cost ?? 0m;
                 ic.WholePrice = c.WholePrice;
                 ic.PartialPrice = c.PartialPrice;

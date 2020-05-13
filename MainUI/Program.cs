@@ -21,6 +21,6 @@ namespace MainUI
                 .UsePlatformDetect()
                 .UseManagedSystemDialogs()
                 .UseSkia()
-                .LogToDebug();
+                .LogToDebug(Avalonia.Logging.LogEventLevel.Verbose);
     }
 }

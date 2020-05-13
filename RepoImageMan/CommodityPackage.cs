@@ -31,8 +31,6 @@ namespace RepoImageMan
 
         private readonly ConcurrentDictionary<Type, object> _labelsCaches = new ConcurrentDictionary<Type, object>();
 
-        internal ImageCommodityLabelCache<TPixel> GetLabelsCache<TPixel>() where TPixel : unmanaged, IPixel<TPixel>
-            => (_labelsCaches.GetOrAdd(typeof(TPixel), tp => new ImageCommodityLabelCache<TPixel>()) as ImageCommodityLabelCache<TPixel>)!;
 
         private readonly string _dbPath;
         internal readonly string _packageDirectoryPath;

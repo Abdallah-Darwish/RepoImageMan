@@ -63,8 +63,7 @@ namespace MainUI
 
             var rand = new Random();
             var images = p.Images.Where(i => i.Commodities.Count == 1).ToArray();
-            images[rand.Next(images.Length)].TryDesign<SixLabors.ImageSharp.PixelFormats.Rgba32>(out var img);
-            img.BreakBetweenFrames = 1;
+            var img = images[rand.Next(images.Length)];
             var din = new DesigningWindow(img!);
             await din.ShowDialog(this);
             btnSettings.Content = "NOT IMPLEMENTED YET!";

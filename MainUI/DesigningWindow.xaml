@@ -2,20 +2,21 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:RIMCtrls="clr-namespace:RepoImageMan.Controls;assembly=RepoImageMan"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="MainUI.DesigningWindow"
         xmlns:ctrls="clr-namespace:MainUI.Controls"
         Title="DesigningWindow">
   <StackPanel Orientation="Vertical">
-    <Image Name="imgPlayground" Margin="10 10" HorizontalAlignment="Left" VerticalAlignment="Top" Stretch="Fill">
-      <Image.ContextMenu>
+    <RIMCtrls:DesignCImagePanel Name="playground" Margin="10 10">
+      <RIMCtrls:DesignCImagePanel.ContextMenu>
         <ContextMenu Name="imgPlaygroundCTXMenu">
           <MenuItem Header="Create(INS)" Name="miCreateCommodity"/>
           <MenuItem Name="miDeleteSelectedCommodity"/>
           <MenuItem Name="miReloadSelectedCommodity"/>
         </ContextMenu>
-      </Image.ContextMenu>
-    </Image>
+      </RIMCtrls:DesignCImagePanel.ContextMenu>
+    </RIMCtrls:DesignCImagePanel>
 
     <Grid Margin="0 0 0 10" HorizontalAlignment="Center" VerticalAlignment="Bottom">
       <Grid.ColumnDefinitions>

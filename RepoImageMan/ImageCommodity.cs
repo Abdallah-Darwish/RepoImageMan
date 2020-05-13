@@ -1,7 +1,6 @@
-﻿using Dapper;
-using SixLabors.Fonts;
-using SixLabors.ImageSharp;
-using SixLabors.Primitives;
+﻿using Avalonia;
+using Avalonia.Media;
+using Dapper;
 using System;
 using System.Threading.Tasks;
 
@@ -36,7 +35,7 @@ namespace RepoImageMan
             get => _labelColor;
             set
             {
-                if (value == _labelColor) { return; }
+                if (value.Equals(_labelColor)) { return; }
                 _labelColor = value;
                 OnPropertyChanged();
             }
@@ -57,11 +56,11 @@ namespace RepoImageMan
                 OnPropertyChanged();
             }
         }
-        private PointF _location;
+        private Point _location;
         /// <summary>
         /// The location of the TOP-LEFT corner where this <see cref="ImageCommodity"/> label will be drawn on <see cref="Image"/>.
         /// </summary>
-        public PointF Location
+        public Point Location
         {
             get => _location;
 
@@ -87,12 +86,12 @@ namespace RepoImageMan
             await con.ExecuteAsync("UPDATE ImageCommodity SET fontFamilyName = @fontFamilyName, fontStyle = @fontStyle, fontSize = @fontSize, locationX = @locationX, locationY = @locationY, labelColor = @labelColor WHERE id = @Id",
                   new
                   {
-                      fontFamilyName = Font.Family.Name,
-                      fontStyle = (int)Font.Instance.Description.Style,
+                      fontFamilyName = Font.FamilyName,
+                      fontStyle = (int)Font.Style,
                       fontSize = Font.Size,
                       locationX = Location.X,
                       locationY = Location.Y,
-                      labelColor = LabelColor.ToHex(),
+                      labelColor = LabelColor.ToString(),
                       Id
                   })
                 .ConfigureAwait(false);
@@ -106,9 +105,9 @@ namespace RepoImageMan
             await base.Reload().ConfigureAwait(false);
             await using var con = Package.GetConnection();
             var fields = await con.QueryFirstAsync("SELECT * FROM ImageCommodity WHERE id = @Id", new { Id }).ConfigureAwait(false);
-            Font = SystemFonts.CreateFont(fields.FontFamilyName, (float)fields.FontSize, (FontStyle)(int)fields.FontStyle);
-            Location = new PointF((float)fields.LocationX, (float)fields.LocationY);
-            LabelColor = Color.FromHex(fields.LabelColor);
+            Font = new Font(fields.FontFamilyName, (float)fields.FontSize, (FontStyle)(int)fields.FontStyle);
+            Location = new Point(fields.LocationX, fields.LocationY);
+            LabelColor = Color.Parse(fields.LabelColor);
         }
         /// <summary>
         /// <inheritdoc/>

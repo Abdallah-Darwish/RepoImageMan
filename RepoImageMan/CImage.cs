@@ -1,7 +1,4 @@
 ﻿using Dapper;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -12,10 +9,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
+using Avalonia;
+using RepoImageMan.Controls;
 
 namespace RepoImageMan
 {
-    //TODO: Add FPS limit
     public sealed class CImage : IDisposable, IObservable<string>
     {
         /// <summary>
@@ -28,11 +26,11 @@ namespace RepoImageMan
         /// </summary>
         public string PackageFileName => $"{Id}.jpg";
         public string PackageFilePath => Path.Combine(Package._packageDirectoryPath, PackageFileName);
-       
+
         /// <summary>
         /// Dimensions of the image.
         /// </summary>
-        public Size Size { get; private set; }
+        public PixelSize Size { get; private set; }
         private readonly ISubject<string> _notificationsSubject = new Subject<string>();
 
         public IDisposable Subscribe(IObserver<string> observer) => _notificationsSubject.Subscribe(observer);
@@ -244,11 +242,11 @@ namespace RepoImageMan
             using (var imgStream = new FileStream(PackageFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 //If the stream is empty(it will be when we create a new image) the returned 'IImageInfo' would be null
-                Size = Image.Identify(imgStream)?.Size() ?? new Size(0, 0);
+                var imageInfo = SixLabors.ImageSharp.Image.Identify(imgStream);
+                Size = imageInfo == null ? new PixelSize(0, 0) : new PixelSize(imageInfo.Width, imageInfo.Height);
                 foreach (var com in Commodities)
                 {
-                    com.Location = new PointF(MathF.Min(Size.Width, com.Location.X),
-                        MathF.Min(Size.Height, com.Location.Y));
+                    com.Location = new Point(Math.Min(Size.Width, com.Location.X), Math.Min(Size.Height, com.Location.Y));
                 }
             }
 
@@ -272,16 +270,21 @@ namespace RepoImageMan
             {
                 throw new InvalidOperationException("You can't modify the image file while it is open for design.");
             }
+            var originalStreamPos = newFile.Position;
+            var imageInfo = SixLabors.ImageSharp.Image.Identify(newFile);
+            if (imageInfo == null)
+            {
+                throw new ArgumentException("Invalid image stream.", nameof(newFile));
+            }
+            newFile.Position = originalStreamPos;
             using (var fs = new FileStream(PackageFilePath, FileMode.Open, FileAccess.Write, FileShare.Read))
             {
                 await newFile.CopyToAsync(fs).ConfigureAwait(false);
                 fs.SetLength(fs.Position);
             }
-            newFile.Position = 0;
-            var imageInfo = Image.Identify(newFile);
             foreach (var com in Commodities)
             {
-                com.Location = new PointF(MathF.Min(imageInfo.Width, com.Location.X), MathF.Min(imageInfo.Height, com.Location.Y));
+                com.Location = new Point(Math.Min(imageInfo.Width, com.Location.X), Math.Min(imageInfo.Height, com.Location.Y));
             }
             Refresh();
         }
@@ -322,25 +325,19 @@ namespace RepoImageMan
         /// </summary>
         private int _designInstancesCount = 0;
 
-        /// <summary>
-        /// Attempts to open this instance in a <see cref="DesignCImage{TPixel}"/> if its not already open.
-        /// </summary>
-        /// <param name="result">Result of the operation, will be <see cref="null"/> in case the operation wasn't successful.</param>
-        /// <typeparam name="TPixel">Type of pixel to use in storing of the resulting image.</typeparam>
-        /// <returns>
-        /// <see cref="true"/> if its open successfully and <paramref name="result"/> will contain an instance of <see cref="DesignCImage{TPixel}"/>,
-        /// otherwise <see cref="false"/> and <paramref name="result"/> will contain <see cref="null"/>.
-        /// </returns>
-        public bool TryDesign<TPixel>(out DesignCImage<TPixel>? result) where TPixel : unmanaged, IPixel<TPixel>
+        //TODO: document me and use me
+        internal bool TryDesign(out DesignCImage? result)
         {
-            if (Interlocked.CompareExchange(ref _designInstancesCount, 1, 0) == 0)
-            {
-                result = new DesignCImage<TPixel>(this);
-                result.DesignImageDisposed += s => Interlocked.Decrement(ref _designInstancesCount);
-                return true;
-            }
+            throw new NotImplementedException();
+            //result = null;
+            //if (Interlocked.CompareExchange(ref _designInstancesCount, 1, 0) == 0)
+            //{
+            //    //result = new DesignCImage(this);
+            //    result.DesignImageDisposed += s => Interlocked.Decrement(ref _designInstancesCount);
+            //    return true;
+            //}
 
-            result = null;
+            
             return false;
         }
 

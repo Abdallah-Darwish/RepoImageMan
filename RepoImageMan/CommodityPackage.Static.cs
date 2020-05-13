@@ -28,7 +28,7 @@ LEFT JOIN ImageCommodity ic
 ON c.id = ic.id
 WHERE ic.id IS NULL;").ConfigureAwait(false);
 			var readingTasks = new List<Task>();
-			//This could be improved further by using a real Parallel.AsyncForEach
+			//TODO: This could be improved further by using  Parallel.AsyncForEach
 			foreach (var comId in nonImageCommoditiesIds)
 			{
 				readingTasks.Add(Commodity.Load(comId, res).ContinueWith(ca =>
@@ -80,7 +80,7 @@ CREATE TABLE ImageCommodity (
 	FontSize REAL NOT NULL DEFAULT(100) CHECK(FontSize > 0.0),
 	LocationX REAL NOT NULL DEFAULT(0.0) CHECK(LocationX >= 0.0),
 	LocationY REAL NOT NULL DEFAULT(0.0) CHECK(LocationY >= 0.0),
-	LabelColor TEXT NOT NULL DEFAULT('FFFFFFFF'),
+	LabelColor TEXT NOT NULL DEFAULT('#FFFFFFFF'),
 	IsPositionHolder BOOLEAN NOT NULL DEFAULT(0)
 );
 CREATE INDEX IDX_ImageCommodity_ImageId ON ImageCommodity (ImageId);
