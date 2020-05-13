@@ -51,6 +51,7 @@ namespace RepoImageMan.Controls
                 }
             }));
         }
+       
         public void Init(CImage image)
         {
             Image = image!;

@@ -43,7 +43,7 @@ namespace RepoImageMan.Controls
         static DesignImageCommodity()
         {
             AffectsMeasure<DesignImageCommodity>(TextProperty);
-            AffectsRender<DesignImageCommodity>(TextProperty, RenderingPenProperty, RenderingPenProperty, IsSurrondedProperty);
+            AffectsRender<DesignImageCommodity>(TextProperty, RenderingBrushProperty, RenderingPenProperty, IsSurrondedProperty);
         }
         /// <summary>
         /// The original <see cref="ImageCommodity"/> that this instance acts upon.
@@ -94,12 +94,12 @@ namespace RepoImageMan.Controls
         {
             ZIndex = 1;
             Opacity = 1.0;
-            Commodity = com;
-            Panel = panel;
             ClipToBounds = true;
             Focusable = true;
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top;
+            Commodity = com;
+            Panel = panel;
             UpdateText();
             UpdateRenderingBrush();
             UpdateMargin();
@@ -123,14 +123,10 @@ namespace RepoImageMan.Controls
         {
             base.Render(ctx);
             if (DesiredSize == default) { return; }
-            using (var op = ctx.PushOpacity(0.0))
-            {
-                ctx.FillRectangle(Brushes.Black, new Rect(new Point(0, 0), DesiredSize));
-            }
             ctx.DrawText(RenderingBrush, new Point(0, 0), Text);
             if (IsSurronded)
             {
-                ctx.DrawRectangle(RenderingPen, new Rect(new Point(0, 0), DesiredSize));
+                ctx.DrawRectangle(RenderingPen, new Rect(new Point(3, 3), DesiredSize - new Size(3, 3)));
                 //TODO: draw handle
             }
         }
@@ -143,9 +139,6 @@ namespace RepoImageMan.Controls
 
         protected override Size MeasureOverride(Size availableSize)
         {
-            UpdateText();
-            UpdateMargin();
-            UpdateRenderingBrush();
             return Text?.Bounds.Inflate(SurroundingBoxOffset).Size ?? new Size();
         }
         protected override void OnPointerPressed(PointerPressedEventArgs e)

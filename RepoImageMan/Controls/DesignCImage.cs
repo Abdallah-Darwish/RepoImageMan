@@ -6,7 +6,6 @@ using Avalonia.Controls;
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using System.Runtime.CompilerServices;
 using Avalonia.Input;
 
 namespace RepoImageMan.Controls
