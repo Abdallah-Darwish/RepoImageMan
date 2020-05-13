@@ -16,6 +16,7 @@ using MainUI.Controls;
 using Avalonia.Threading;
 using RepoImageMan.Controls;
 using ReactiveUI;
+using Avalonia.LogicalTree;
 
 namespace MainUI
 {
@@ -64,8 +65,10 @@ namespace MainUI
 
         }
         public DesigningWindow() : this(null) { }
+        private readonly CImage _image;
         public DesigningWindow(CImage image)
         {
+            _image = image;
             InitializeComponent();
 #if DEBUG
             this.AttachDevTools();
@@ -79,8 +82,6 @@ namespace MainUI
             nudLabelSize = this.FindControl<NumericUpDown>(nameof(nudLabelSize));
             nudImageContrast = this.FindControl<NumericUpDown>(nameof(nudImageContrast));
             nudImageBrightness = this.FindControl<NumericUpDown>(nameof(nudImageBrightness));
-
-            playground.Init(image);
             _eventsSubscriptions.Add(this.GetObservable(Window.ClientSizeProperty).Subscribe(sz =>
             {
                 playground.Height = sz.Height - 100;
@@ -109,7 +110,11 @@ namespace MainUI
             miReloadSelectedCommodity.Click += MiReloadSelectedCommodity_Click;
 
         }
-
+        protected override void OnOpened(EventArgs e)
+        {
+            base.OnOpened(e);
+            playground.Init(_image);
+        }
         private void NudImageBrightness_ValueChanged(object? sender, NumericUpDownValueChangedEventArgs e) => playground.Image.Brightness = (float)e.NewValue;
 
         private void NudImageContrast_ValueChanged(object? sender, NumericUpDownValueChangedEventArgs e) => playground.Image.Contrast = (float)e.NewValue;

@@ -40,6 +40,11 @@ namespace RepoImageMan.Controls
             get => GetValue(IsSurrondedProperty);
             set => SetValue(IsSurrondedProperty, value);
         }
+        static DesignImageCommodity()
+        {
+            AffectsMeasure<DesignImageCommodity>(TextProperty);
+            AffectsRender<DesignImageCommodity>(TextProperty, RenderingPenProperty, RenderingPenProperty, IsSurrondedProperty);
+        }
         /// <summary>
         /// The original <see cref="ImageCommodity"/> that this instance acts upon.
         /// </summary>
@@ -74,16 +79,15 @@ namespace RepoImageMan.Controls
                 Text = LabelText,
                 TextAlignment = TextAlignment.Left,
                 Wrapping = TextWrapping.NoWrap,
-                Typeface = new Font(Commodity.Font.FamilyName, (float)(Commodity.Font.Size * Panel.ToDesignMappingScale.Average()), Commodity.Font.Style).ToTypeFace()
+                Typeface = new Font(Commodity.Font.FamilyName, (float)(Math.Max(1.0, Commodity.Font.Size * Panel.ToDesignMappingScale.Average())), Commodity.Font.Style).ToTypeFace()
             };
             RenderingPen = new Pen(Colors.Red.ToUint32(), SurroundingBoxThickness);
         }
         private void UpdateRenderingBrush() => RenderingBrush = new SolidColorBrush(Commodity.LabelColor);
-        private void UpdateLeftTop()
+        private void UpdateMargin()
         {
             var loc = Commodity.Location.Scale(Panel.ToDesignMappingScale);
-            Canvas.SetLeft(this, loc.X);
-            Canvas.SetTop(this, loc.Y);
+            Margin = new Thickness(loc.X, loc.Y, 0, 0);
         }
         private IDisposable[] _notificationsSubscriptions;
         public void Init(ImageCommodity com, DesignCImagePanel panel)
@@ -93,24 +97,24 @@ namespace RepoImageMan.Controls
             Commodity = com;
             Panel = panel;
             ClipToBounds = true;
+            Focusable = true;
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top;
-            UpdateLeftTop();
+            UpdateText();
+            UpdateRenderingBrush();
+            UpdateMargin();
             _notificationsSubscriptions = new IDisposable[]
             {
-                //order is impoertant here, so we would update the font before rendering
+                //order is important here, so we would update the font before rendering
                 Commodity
                 .Where(pn => pn == nameof(ImageCommodity.Font))
                 .Subscribe(_ => UpdateText()),
                 Commodity
                 .Where(pn => pn == nameof(ImageCommodity.Location))
-                .Subscribe(_ => UpdateLeftTop()),
+                .Subscribe(_ => UpdateMargin()),
                 Commodity
                 .Where(pn => pn == nameof(ImageCommodity.LabelColor))
                 .Subscribe(_ => UpdateRenderingBrush()),
-                Commodity
-                .Where(pn => pn == nameof(ImageCommodity.Location))
-                .Subscribe( _ => UpdateLeftTop())
             };
         }
 
@@ -118,6 +122,7 @@ namespace RepoImageMan.Controls
         public override void Render(DrawingContext ctx)
         {
             base.Render(ctx);
+            if (DesiredSize == default) { return; }
             using (var op = ctx.PushOpacity(0.0))
             {
                 ctx.FillRectangle(Brushes.Black, new Rect(new Point(0, 0), DesiredSize));
@@ -136,7 +141,13 @@ namespace RepoImageMan.Controls
             IsSurronded = true;
         }
 
-        protected override Size MeasureOverride(Size availableSize) => Text.Bounds.Inflate(-SurroundingBoxOffset).Size;
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            UpdateText();
+            UpdateMargin();
+            UpdateRenderingBrush();
+            return Text?.Bounds.Inflate(SurroundingBoxOffset).Size ?? new Size();
+        }
         protected override void OnPointerPressed(PointerPressedEventArgs e)
         {
             base.OnPointerPressed(e);

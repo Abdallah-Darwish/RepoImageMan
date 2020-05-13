@@ -5,7 +5,7 @@
              xmlns:ctrls="clr-namespace:RepoImageMan.Controls;assembly=RepoImageMan"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="RepoImageMan.Controls.DesignCImagePanel">
-  <Canvas Name="cvs" ClipToBounds="True" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+  <Panel Name="pnl" ClipToBounds="True" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
     <ctrls:DesignCImage Name="img"/>
-  </Canvas>
+  </Panel>
 </UserControl>

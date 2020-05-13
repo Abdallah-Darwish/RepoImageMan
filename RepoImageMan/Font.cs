@@ -18,7 +18,7 @@ namespace RepoImageMan
     {
         public Font(string familyName, float size, FontStyle style)
         {
-            if (!float.IsNormal(size) || size <= 0.0)
+            if (float.IsNaN(size) || size < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(size), "size must be > 0.");
             }

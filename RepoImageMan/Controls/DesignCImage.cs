@@ -28,9 +28,10 @@ namespace RepoImageMan.Controls
         private IBitmap _bmp;
         //TODO: fix me
         protected override Size MeasureOverride(Size availableSize) => availableSize;
-        
+
         public override void Render(DrawingContext ctx)
         {
+            if(_bmp == null) { return; }
             base.Render(ctx!);
             ctx!.DrawImage(_bmp, 1.0,
                 new Rect(0, 0, _bmp.PixelSize.Width, _bmp.PixelSize.Height),
@@ -52,6 +53,7 @@ namespace RepoImageMan.Controls
             _notificationsSubscription.Add(Panel.Image
                  .Where(pn => pn == nameof(CImage.Contrast) || pn == nameof(CImage.Brightness))
                  .Subscribe(pn => InvalidateVisual()));
+            InvalidateVisual();
         }
         private void Image_FileUpdated(CImage image)
         {

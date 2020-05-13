@@ -19,12 +19,12 @@ namespace RepoImageMan.Controls
         /// <summary>
         /// The scale that is used to map points from <see cref="CImage"/> to this resized <see cref="DesignCImage"/>.
         /// </summary>
-        public Size ToOriginalMappingScale => new Size(Image.Size.Width / DesiredSize.Width, Image.Size.Height / DesiredSize.Height);
+        public Size ToOriginalMappingScale => new Size(Image.Size.Width / img.DesiredSize.Width, Image.Size.Height / img.DesiredSize.Height);
 
         /// <summary>
         /// The scale that is used to map points from this instance to the original <see cref="CImage"/>.
         /// </summary>
-        public Size ToDesignMappingScale => new Size(DesiredSize.Width / Image.Size.Width, DesiredSize.Height / Image.Size.Height);
+        public Size ToDesignMappingScale => new Size(img.DesiredSize.Width / Image.Size.Width, img.DesiredSize.Height / Image.Size.Height);
         public CImage Image { get; private set; }
         private readonly List<DesignImageCommodity> _commodities = new List<DesignImageCommodity>();
 
@@ -35,13 +35,13 @@ namespace RepoImageMan.Controls
             get => GetValue(SelectedCommodityProperty);
             internal set => SetValue(SelectedCommodityProperty, value);
         }
-        private readonly Canvas cvs;
+        private readonly Panel pnl;
         private readonly DesignCImage img;
         private readonly List<IDisposable> _subs = new List<IDisposable>();
         public DesignCImagePanel()
         {
             this.InitializeComponent();
-            cvs = this.FindControl<Canvas>(nameof(cvs));
+            pnl = this.FindControl<Panel>(nameof(pnl));
             img = this.FindControl<DesignCImage>(nameof(img));
             _subs.Add(this.GetObservable(SelectedCommodityProperty).Subscribe(c =>
             {
@@ -66,7 +66,8 @@ namespace RepoImageMan.Controls
             var dCom = new DesignImageCommodity();
             dCom.Init(com, this);
             _commodities.Add(dCom);
-            cvs.Children.Add(dCom);
+            pnl.Children.Add(dCom);
+            
             dCom.Focus();
         }
         private void CommodityAdded(CImage _, ImageCommodity com) => AddCommodity(com);
