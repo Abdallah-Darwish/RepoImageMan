@@ -1,179 +1,109 @@
 ﻿using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Threading;
 using System;
-using System.ComponentModel;
+using System.Collections.Generic;
 using System.Reactive.Linq;
-using System.Reflection.Metadata;
+using System.Text;
 
 namespace RepoImageMan.Controls
 {
-    //Can be moved only using top left corner(easier Life mah nigga)
-    internal sealed class DesignImageCommodity : Control, IDisposable
+    class DesignImageCommodity : IDisposable
     {
-        public static readonly StyledProperty<FormattedText> TextProperty = AvaloniaProperty.Register<DesignImageCommodity, FormattedText>(nameof(Text));
-        public FormattedText Text
-        {
-            get => GetValue(TextProperty);
-            private set => SetValue(TextProperty, value);
-        }
-        public static readonly StyledProperty<IBrush> RenderingBrushProperty = AvaloniaProperty.Register<DesignImageCommodity, IBrush>(nameof(RenderingBrush));
-        public IBrush RenderingBrush
-        {
-            get => GetValue(RenderingBrushProperty);
-            private set => SetValue(RenderingBrushProperty, value);
-        }
-        public static readonly StyledProperty<IPen> RenderingPenProperty = AvaloniaProperty.Register<DesignImageCommodity, IPen>(nameof(RenderingPen));
-        public IPen RenderingPen
-        {
-            get => GetValue(RenderingPenProperty);
-            private set => SetValue(RenderingPenProperty, value);
-        }
-
-        private const string LabelText = "000";
-
-        public static readonly StyledProperty<bool> IsSurrondedProperty = AvaloniaProperty.Register<DesignImageCommodity, bool>(nameof(IsSurronded));
-        public bool IsSurronded
-        {
-            get => GetValue(IsSurrondedProperty);
-            set => SetValue(IsSurrondedProperty, value);
-        }
-        static DesignImageCommodity()
-        {
-            AffectsMeasure<DesignImageCommodity>(TextProperty);
-            AffectsRender<DesignImageCommodity>(TextProperty, RenderingBrushProperty, RenderingPenProperty, IsSurrondedProperty);
-        }
-        /// <summary>
-        /// The original <see cref="ImageCommodity"/> that this instance acts upon.
-        /// </summary>
-        public ImageCommodity Commodity { get; private set; }
-
-        public DesignCImagePanel Panel { get; private set; }
-
-        /// <summary>
-        /// The size of the "arrow" or whatever that is used as a handle to allow the user to move the label around.
-        /// </summary>
-        public PixelSize HandleSize => new PixelSize((int)SurroundingBoxThickness, (int)SurroundingBoxThickness);
-
-        /// <summary>
-        /// Checks whether <paramref name="p"/> is inside this commodity HANDLE box.
-        /// </summary>
-        /// <remarks>Used to know if the user is trying to move selected commodity.</remarks>
-        private bool IsInHandle(in Point p)
-        {
-            var handleBounds = new Rect(new Point(0, 0), HandleSize.ToSize(1.0));
-            return handleBounds.Contains(p);
-        }
-
-        public float SurroundingBoxThickness => (float)Math.Max(1.0, Text.Bounds.Size.Average() / 75.0);
-        /// <summary>
-        /// How much we should move the lines of the surrounding box to not overwrite the commodity text.
-        /// </summary>
-        private float SurroundingBoxOffset => SurroundingBoxThickness / 1.75f/*Magic number*/;
+        public FormattedText Text { get; private set; }
+        public IBrush RenderingBrush { get; private set; }
+        public IPen RenderingPen { get; private set; }
+        public float SurroundingBoxThickness => (float)Text.Bounds.Size.Average() / 15f;
+        private void UpdateGlyph() => _0glyph = Commodity.Font.ToSixLabors().GetGlyph('0').Instance;
         private void UpdateText()
         {
             Text = new FormattedText
             {
-                Text = LabelText,
+                Text = "000",
                 TextAlignment = TextAlignment.Left,
-                Wrapping = TextWrapping.NoWrap,
-                Typeface = new Font(Commodity.Font.FamilyName, (float)(Math.Max(1.0, Commodity.Font.Size * Panel.ToDesignMappingScale.Average())), Commodity.Font.Style).ToTypeFace()
+                Typeface = Commodity.Font.Scale((float)_img.ToDesignMappingScale.Average()).ToTypeFace(),
+                Wrapping = TextWrapping.NoWrap
             };
-            RenderingPen = new Pen(Colors.Red.ToUint32(), SurroundingBoxThickness);
         }
-        private void UpdateRenderingBrush() => RenderingBrush = new SolidColorBrush(Commodity.LabelColor);
-        private void UpdateMargin()
+        private void UpdateBrush() => RenderingBrush = new SolidColorBrush(Commodity.LabelColor);
+        private void UpdatePen() => RenderingPen = new Pen(Colors.Red.ToUint32(), SurroundingBoxThickness);
+
+        public Point Location
         {
-            var loc = Commodity.Location.Scale(Panel.ToDesignMappingScale);
-            Margin = new Thickness(loc.X, loc.Y, 0, 0);
+            get => Commodity.Location.Scale(_img.ToDesignMappingScale);
+            set => Commodity.Location = value.Scale(_img.ToOriginalMappingScale);
         }
-        private IDisposable[] _notificationsSubscriptions;
-        public void Init(ImageCommodity com, DesignCImagePanel panel)
+        private float InternalLeading => Commodity.Font.Size * (_0glyph. + IDFont.FontFamily.GetCellDescent(IDFont.Style) - IDFont.FontFamily.GetEmHeight(IDFont.Style)) / IDFont.FontFamily.GetEmHeight(IDFont.Style);
+
+        public Rect Box => new Rect(Location, _0glyph.em);
+        public bool IsIn(in Point p) => Box.Contains(p);
+        public Rect HandleBox => new Rect(
+            Location - new Point(SurroundingBoxThickness / 0.5, SurroundingBoxThickness / 0.5),
+            new Size(SurroundingBoxThickness, SurroundingBoxThickness));
+        public bool IsInHandle(in Point p) => HandleBox.Contains(p);
+        public ImageCommodity Commodity { get; private set; }
+        private DesignCImage _img;
+        private IDisposable[] _subs;
+        SixLabors.Fonts.GlyphInstance _0glyph;
+        public DesignImageCommodity(ImageCommodity com, DesignCImage img)
         {
-            ZIndex = 1;
-            Opacity = 1.0;
-            ClipToBounds = true;
-            Focusable = true;
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
-            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top;
+            _img = img;
             Commodity = com;
-            Panel = panel;
-            UpdateText();
-            UpdateRenderingBrush();
-            UpdateMargin();
-            _notificationsSubscriptions = new IDisposable[]
+            _subs = new IDisposable[]
             {
-                //order is important here, so we would update the font before rendering
-                Commodity
-                .Where(pn => pn == nameof(ImageCommodity.Font))
-                .Subscribe(_ => UpdateText()),
-                Commodity
-                .Where(pn => pn == nameof(ImageCommodity.Location))
-                .Subscribe(_ => UpdateMargin()),
-                Commodity
-                .Where(pn => pn == nameof(ImageCommodity.LabelColor))
-                .Subscribe(_ => UpdateRenderingBrush()),
+                    Commodity.AsObservable()
+                        .Where(pn => pn == nameof(ImageCommodity.Font))
+                        .Subscribe(_ =>
+                        {
+                            UpdateText();
+                            UpdatePen();
+                        }),
+                    Commodity.AsObservable()
+                        .Where(pn => pn == nameof(ImageCommodity.LabelColor))
+                        .Subscribe(_ => UpdateBrush()),
+                    Commodity.AsObservable()
+                        .Where(pn => pn == nameof(ImageCommodity.Location))
+                        .Subscribe(_ => _img.InvalidateVisual()),
+                    Commodity.Where(pn => pn == nameof(ImageCommodity.Font) || pn == nameof(ImageCommodity.LabelColor) || pn == nameof(ImageCommodity.Location))
+                        .Subscribe(_ => _img.InvalidateVisual()),
+                    _img.GetObservable(DesignCImage.DesiredSizeProperty)
+                        .Subscribe(_ =>
+                        {
+                            UpdateText();
+                            UpdatePen();
+                        })
             };
+            UpdateGlyph();
+            UpdateText();
+            UpdateBrush();
+            UpdatePen();
         }
 
-        internal void UpdateAfterImageResize() => UpdateText();
-        public override void Render(DrawingContext ctx)
-        {
-            base.Render(ctx);
-            if (DesiredSize == default) { return; }
-            ctx.DrawText(RenderingBrush, new Point(0, 0), Text);
-            if (IsSurronded)
-            {
-                ctx.DrawRectangle(RenderingPen, new Rect(new Point(3, 3), DesiredSize - new Size(3, 3)));
-                //TODO: draw handle
-            }
-        }
-        private bool _isHooked = false;
-        protected override void OnGotFocus(GotFocusEventArgs e)
-        {
-            base.OnGotFocus(e);
-            IsSurronded = true;
-        }
-
-        protected override Size MeasureOverride(Size availableSize)
-        {
-            return Text?.Bounds.Inflate(SurroundingBoxOffset).Size ?? new Size();
-        }
-        protected override void OnPointerPressed(PointerPressedEventArgs e)
-        {
-            base.OnPointerPressed(e);
-            var pointPos = e!.GetCurrentPoint(this).Position;
-            _isHooked = IsInHandle(pointPos);
-        }
-        protected override void OnPointerReleased(PointerReleasedEventArgs e)
-        {
-            base.OnPointerReleased(e);
-            _isHooked = false;
-        }
-        protected override void OnPointerMoved(PointerEventArgs e)
-        {
-            base.OnPointerMoved(e);
-            if (_isHooked == false) { return; }
-            var pointPos = e!.GetCurrentPoint(Panel).Position.Scale(Panel.ToOriginalMappingScale);
-            Commodity.Location = pointPos;
-        }
         #region IDisposable Support
-        private bool _disposedValue = false; // To detect redundant calls
+        private bool disposedValue = false; // To detect redundant calls
 
-        /// <summary>
-        /// You shouldn't call this explecitly, instead call <see cref="CommodityPackage.Dispose"/>.
-        /// </summary>
-        public void Dispose()
+        protected virtual void Dispose(bool disposing)
         {
-            if (!_disposedValue)
+            if (!disposedValue)
             {
-                _disposedValue = true;
-                foreach (var sub in _notificationsSubscriptions) { sub.Dispose(); }
-                _notificationsSubscriptions = null;
+                if (disposing)
+                {
+                    foreach (var sub in _subs)
+                    {
+                        sub.Dispose();
+                    }
+                    RenderingBrush = null;
+                    RenderingPen = null;
+                    Text = null;
+                    _img = null;
+                    _subs = null;
+                    Commodity = null;
+                }
+                disposedValue = true;
             }
         }
+
+        public void Dispose() => Dispose(true);
         #endregion
     }
 }

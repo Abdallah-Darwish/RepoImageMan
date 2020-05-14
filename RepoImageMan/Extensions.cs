@@ -43,5 +43,8 @@ namespace RepoImageMan
             renderedImagePixels.CopyTo(bmpBufferSpan);
             return bmp;
         }
+        public static Font WithSize(this Font f, float sz) => new Font(f!.FamilyName, sz, f.Style);
+
+        public static Font Scale(this Font f, float scale) => f.WithSize(f.Size * scale);
     }
 }

@@ -48,6 +48,13 @@ namespace RepoImageMan
 
         public static explicit operator FontFamily?(Font? f) => f?.ToFontFamily();
         public FontFamily ToFontFamily() => new FontFamily(FamilyName);
-
+        public SixLabors.Fonts.Font ToSixLabors() => SixLabors.Fonts.SystemFonts.CreateFont(FamilyName, Size,
+          Style switch
+          {
+              FontStyle.Bold | FontStyle.Italic => SixLabors.Fonts.FontStyle.BoldItalic,
+              FontStyle.Bold => SixLabors.Fonts.FontStyle.Bold,
+              FontStyle.Italic => SixLabors.Fonts.FontStyle.Italic,
+              _ => SixLabors.Fonts.FontStyle.Regular
+          });
     }
 }

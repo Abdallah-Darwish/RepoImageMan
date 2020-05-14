@@ -8,15 +8,15 @@
         xmlns:ctrls="clr-namespace:MainUI.Controls"
         Title="DesigningWindow">
   <StackPanel Orientation="Vertical">
-    <RIMCtrls:DesignCImagePanel Name="playground" Margin="10 10">
-      <RIMCtrls:DesignCImagePanel.ContextMenu>
+    <RIMCtrls:DesignCImage Name="playground" Margin="10 10">
+      <RIMCtrls:DesignCImage.ContextMenu>
         <ContextMenu Name="imgPlaygroundCTXMenu">
           <MenuItem Header="Create(INS)" Name="miCreateCommodity"/>
           <MenuItem Name="miDeleteSelectedCommodity"/>
           <MenuItem Name="miReloadSelectedCommodity"/>
         </ContextMenu>
-      </RIMCtrls:DesignCImagePanel.ContextMenu>
-    </RIMCtrls:DesignCImagePanel>
+      </RIMCtrls:DesignCImage.ContextMenu>
+    </RIMCtrls:DesignCImage>
 
     <Grid Margin="0 0 0 10" HorizontalAlignment="Center" VerticalAlignment="Bottom">
       <Grid.ColumnDefinitions>

@@ -23,7 +23,7 @@ namespace MainUI
     public class DesigningWindow : Window
     {
         private readonly List<IDisposable> _eventsSubscriptions = new List<IDisposable>();
-        private readonly DesignCImagePanel playground;
+        private readonly DesignCImage playground;
         private readonly MenuItem miDeleteSelectedCommodity, miReloadSelectedCommodity;
         private readonly ContextMenu imgPlaygroundCTXMenu;
         private readonly ColorBox cbLabelColor;
@@ -73,7 +73,7 @@ namespace MainUI
 #if DEBUG
             this.AttachDevTools();
 #endif
-            playground = this.FindControl<DesignCImagePanel>(nameof(playground));
+            playground = this.FindControl<DesignCImage>(nameof(playground));
             miDeleteSelectedCommodity = this.FindControl<MenuItem>(nameof(miDeleteSelectedCommodity));
             miReloadSelectedCommodity = this.FindControl<MenuItem>(nameof(miReloadSelectedCommodity));
             imgPlaygroundCTXMenu = this.FindControl<ContextMenu>(nameof(imgPlaygroundCTXMenu));
