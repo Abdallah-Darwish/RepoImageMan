@@ -14,7 +14,6 @@ namespace RepoImageMan.Controls
         public IBrush RenderingBrush { get; private set; }
         public IPen RenderingPen { get; private set; }
         public float SurroundingBoxThickness => (float)Text.Bounds.Size.Average() / 15f;
-        private void UpdateFont() => _font = Commodity.Font.Scale((float)_img.ToDesignMappingScale.Average()).ToSixLabors();
         private void UpdateText()
         {
             Text = new FormattedText
@@ -30,13 +29,11 @@ namespace RepoImageMan.Controls
 
         public Point Location
         {
-            get => Commodity.Location.Scale(_img.ToDesignMappingScale) - new Point(0, MN * 3);
-            set => Commodity.Location = (value + new Point(0, MN * 3)).Scale(_img.ToOriginalMappingScale);
+            get => Commodity.Location.Scale(_img.ToDesignMappingScale);
+            set => Commodity.Location = value.Scale(_img.ToOriginalMappingScale);
         }
-        //MAGIC NUMBER 
-        private float MN => _font.Size * (_font.EmSize - _font.Ascender + _font.Descender) / _font.EmSize;
 
-        public Rect Box => new Rect(Location, Text.Bounds.Size - new Size(0, MN * 2));
+        public Rect Box => new Rect(Location, Text.Bounds.Size);
         public bool IsIn(in Point p) => Box.Contains(p);
         public Rect HandleBox => new Rect(
             Location - new Point(SurroundingBoxThickness / 2, SurroundingBoxThickness / 2),
@@ -45,7 +42,6 @@ namespace RepoImageMan.Controls
         public ImageCommodity Commodity { get; private set; }
         private DesignCImage _img;
         private IDisposable[] _subs;
-        SixLabors.Fonts.Font _font;
         public DesignImageCommodity(ImageCommodity com, DesignCImage img)
         {
             _img = img;
@@ -56,7 +52,6 @@ namespace RepoImageMan.Controls
                         .Where(pn => pn == nameof(ImageCommodity.Font))
                         .Subscribe(_ =>
                         {
-                            UpdateFont();
                             UpdateText();
                             UpdatePen();
                         }),
@@ -71,12 +66,10 @@ namespace RepoImageMan.Controls
                     _img.GetObservable(DesignCImage.BoundsProperty)
                         .Subscribe(_ =>
                         {
-                            UpdateFont();
                             UpdateText();
                             UpdatePen();
                         })
             };
-            UpdateFont();
             UpdateText();
             UpdateBrush();
             UpdatePen();
