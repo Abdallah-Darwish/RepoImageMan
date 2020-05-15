@@ -36,8 +36,8 @@ namespace MainUI
             return name.Length <= 10 ? name : $"{name.Substring(0, 7)}...";
         }
 
-        private IDisposable[] _selectedCommodityNotificationSubs;
-        private void SelectedCommodityChanged(ImageCommodity? com)
+        private IDisposable[] _selectedCommodityNotificationSubs = new IDisposable[0];
+        private void HandleSelectedCommodityChanged(ImageCommodity? com)
         {
             foreach (var sub in _selectedCommodityNotificationSubs)
             {
@@ -47,16 +47,14 @@ namespace MainUI
 
             _selectedCommodityNotificationSubs = new IDisposable[]
             {
-                        com
-                        .Where(pn => pn == nameof(ImageCommodity.LabelColor))
-                        .Subscribe(_ => cbLabelColor.SelectedColor = com.LabelColor),
-                        com
-                        .Where(pn => pn == nameof(ImageCommodity.Font))
-                        .Subscribe(_ =>
-                        {
-                            fbLabelFont.SelectedFontFamily = com.Font.ToFontFamily();
-                            nudLabelSize.Value = com.Font.Size;
-                        })
+                com.Where(pn => pn == nameof(ImageCommodity.LabelColor))
+                   .Subscribe(_ => cbLabelColor.SelectedColor = com.LabelColor),
+                com.Where(pn => pn == nameof(ImageCommodity.Font))
+                   .Subscribe(_ =>
+                   {
+                       fbLabelFont.SelectedFontFamily = com.Font.ToFontFamily();
+                       nudLabelSize.Value = com.Font.Size;
+                   })
             };
             nudLabelSize.Value = com.Font.Size;
             cbLabelColor.SelectedColor = com.LabelColor;
@@ -87,7 +85,8 @@ namespace MainUI
                 playground.Height = sz.Height - 100;
                 playground.Width = sz.Width - 10;
             }));
-
+            _eventsSubscriptions.Add(playground.GetObservable(DesignCImage.SelectedCommodityProperty)
+                                               .Subscribe(HandleSelectedCommodityChanged));
 
 
             _eventsSubscriptions.Add(cbLabelColor.GetObservable(ColorBox.SelectedColorProperty).Subscribe(c =>
@@ -101,6 +100,8 @@ namespace MainUI
                 if (sc == null) { return; }
                 playground.SelectedCommodity.Font = new Font(f.Name, sc.Font.Size, sc.Font.Style);
             }));
+            nudImageContrast.Value = _image.Contrast;
+            nudImageBrightness.Value = _image.Brightness;
             nudLabelSize.ValueChanged += NudLabelSize_ValueChanged;
             nudImageContrast.ValueChanged += NudImageContrast_ValueChanged;
             nudImageBrightness.ValueChanged += NudImageBrightness_ValueChanged;
@@ -133,5 +134,10 @@ namespace MainUI
 
 
         private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
+        protected override void OnClosed(EventArgs e)
+        {
+            base.OnClosed(e);
+            playground.Dispose();
+        }
     }
 }

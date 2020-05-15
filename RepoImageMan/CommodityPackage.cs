@@ -44,7 +44,7 @@ namespace RepoImageMan
             return con;
         }
 
-        internal CommodityPackage(string packageDirectoryPath, Image handleImage)
+        internal CommodityPackage(string packageDirectoryPath)
         {
             _packageDirectoryPath = packageDirectoryPath;
             _dbPath = GetPackageDbPath(_packageDirectoryPath);
@@ -56,7 +56,6 @@ Expected Database path is {_dbPath}.");
             }
             ConnectionString = GetConnectionString(_dbPath);
             _packageDirectory = new DirectoryInfo(_packageDirectoryPath);
-            _handleImage = handleImage;
         }
 
         private readonly List<Commodity> _commodities = new List<Commodity>();
@@ -215,8 +214,6 @@ Expected Database path is {_dbPath}.");
                 _labelsCaches.Clear();
                 _commoditiesLock.Dispose();
                 _imagesLock.Dispose();
-                _handlesCache.Clear();
-                _handleImage.Dispose();
             }
         }
 

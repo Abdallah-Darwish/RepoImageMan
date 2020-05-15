@@ -55,19 +55,20 @@ namespace MainUI
         private async void BtnSettings_Click(object? sender, RoutedEventArgs e)
         {
 
-            var p = await CommodityPackage.Open($@"{RepoFiles}\NewRepo", SixLabors.ImageSharp.Image.Load($@"{RepoFiles}\Arrows1.png"));
+            var p = await CommodityPackage.Open($@"{RepoFiles}\NewRepo");
 
             //var ein = new CommodityImageWindow(p);
             //await ein.ShowDialog(this);
 
 
             var rand = new Random();
-            var images = p.Images.Where(i => true).ToArray();
+            var images = p.Images.Where(i => i.Commodities.Count >= 1).ToArray();
             var img = images[rand.Next(images.Length)];
             var din = new DesigningWindow(img!);
             await din.ShowDialog(this);
             btnSettings.Content = "NOT IMPLEMENTED YET!";
             p.Dispose();
+            GC.Collect();
         }
     }
 }

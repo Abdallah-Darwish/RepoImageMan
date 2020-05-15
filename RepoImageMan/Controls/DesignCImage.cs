@@ -120,6 +120,7 @@ namespace RepoImageMan.Controls
                     {
                         ApplyContrastBrightness();
                         ResizeBmp();
+                        InvalidateVisual();
                     }),
                 this.GetObservable(SelectedCommodityProperty)
                     .Subscribe(_ => InvalidateVisual())
@@ -137,10 +138,6 @@ namespace RepoImageMan.Controls
         {
             if (!disposedValue)
             {
-                if (disposing)
-                {
-                    Image = null;
-                }
                 foreach (var sub in _subs)
                 {
                     sub.Dispose();
@@ -153,12 +150,13 @@ namespace RepoImageMan.Controls
                 Image.CommodityAdded -= AddCommodity;
                 Image.CommodityRemoved -= RemoveCommodity;
                 Image.FileUpdated -= UpdateBmp;
-                _coms.Clear();
-                _coms = null;
-                _subs = null;
                 _bmp.Dispose();
                 _resizedBmp.Dispose();
                 _modedBmp.Dispose();
+                _coms.Clear();
+                Image = null;
+                _coms = null;
+                _subs = null;
                 _bmp = null;
                 _resizedBmp = null;
                 _modedBmp = null;

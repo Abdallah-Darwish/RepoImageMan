@@ -17,10 +17,9 @@ namespace RepoImageMan
 		private static string GetConnectionString(string dbPath) => $"Data Source={dbPath};Version=3;";
 
 		internal static string GetPackageDbPath(string packageDirectoryPath) => Path.Combine(packageDirectoryPath, DbName);
-		public static async Task<CommodityPackage> Open(string packageDirectoryPath, Image? handleImage = null)
+		public static async Task<CommodityPackage> Open(string packageDirectoryPath)
 		{
-			handleImage ??= new Image<Rgba32>(1, 1);
-			var res = new CommodityPackage(packageDirectoryPath, handleImage);
+			var res = new CommodityPackage(packageDirectoryPath);
 			await using var con = res.GetConnection();
 			var nonImageCommoditiesIds = await con.QueryAsync<int>(
 @"SELECT c.id FROM Commodity c

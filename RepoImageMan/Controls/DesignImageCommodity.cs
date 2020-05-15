@@ -30,12 +30,13 @@ namespace RepoImageMan.Controls
 
         public Point Location
         {
-            get => Commodity.Location.Scale(_img.ToDesignMappingScale) - new Point(0, X * 3);
-            set => Commodity.Location = (value + new Point(0, X * 3)).Scale(_img.ToOriginalMappingScale);
+            get => Commodity.Location.Scale(_img.ToDesignMappingScale) - new Point(0, MN * 3);
+            set => Commodity.Location = (value + new Point(0, MN * 3)).Scale(_img.ToOriginalMappingScale);
         }
-        private float MagicNumber => _font.Size * (_font.EmSize - _font.Ascender + _font.Descender) / _font.EmSize;
+        //MAGIC NUMBER 
+        private float MN => _font.Size * (_font.EmSize - _font.Ascender + _font.Descender) / _font.EmSize;
 
-        public Rect Box => new Rect(Location, Text.Bounds.Size - new Size(0, X * 2));
+        public Rect Box => new Rect(Location, Text.Bounds.Size - new Size(0, MN * 2));
         public bool IsIn(in Point p) => Box.Contains(p);
         public Rect HandleBox => new Rect(
             Location - new Point(SurroundingBoxThickness / 2, SurroundingBoxThickness / 2),
@@ -100,6 +101,7 @@ namespace RepoImageMan.Controls
                     _img = null;
                     _subs = null;
                     Commodity = null;
+                    _font = null;
                 }
                 disposedValue = true;
             }
