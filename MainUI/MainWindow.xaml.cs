@@ -41,7 +41,25 @@ namespace MainUI
             var folderPath = await folderOfd.ShowAsync(this);
             if (string.IsNullOrWhiteSpace(folderPath)) { return; }
 
-            //Open Pack
+            var p = await CommodityPackage.TryOpen(folderPath);
+            if(p == null)
+            {
+                await MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams
+                {
+                    ButtonDefinitions = ButtonEnum.Ok,
+                    CanResize = false,
+                    ContentHeader = "Package Already Open",
+                    ContentTitle = "Error",
+                    Icon = MBIcon.Error,
+                    ContentMessage = $"Can't open {folderPath} because this package is already open in another application.{Environment.NewLine}If you are sure its not then manually delete file {CommodityPackage.GetPackageLockPath(folderPath)} and re-try.",
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    ShowInCenter = true
+                }).ShowDialog(this);
+                return;
+            }
+            var win = new CommodityImageWindow(p);
+            win.Closed += (_, __) => p.Dispose();
+            win.Show();
         }
 
         private async void BtnCreatePack_Click(object? sender, RoutedEventArgs e)
@@ -55,20 +73,13 @@ namespace MainUI
         private async void BtnSettings_Click(object? sender, RoutedEventArgs e)
         {
 
-            var p = await CommodityPackage.Open($@"{RepoFiles}\NewRepo");
+            //var p = await CommodityPackage.Open($@"{RepoFiles}\NewRepo");
 
-            //var ein = new CommodityImageWindow(p);
-            //await ein.ShowDialog(this);
-
-
-            var rand = new Random();
-            var images = p.Images.Where(i => i.Commodities.Count >= 1).ToArray();
-            var img = images[rand.Next(images.Length)];
-            var din = new DesigningWindow(img!);
-            await din.ShowDialog(this);
+            //var din = new CommodityImageWindow(p);
+            //await din.ShowDialog(this);
             btnSettings.Content = "NOT IMPLEMENTED YET!";
-            p.Dispose();
-            GC.Collect();
+            //p.Dispose();
+            //GC.Collect();
         }
     }
 }

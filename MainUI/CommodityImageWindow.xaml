@@ -120,14 +120,14 @@
             </MenuItem>
             <MenuItem Header="Save And Reload">
               <MenuItem Header="Save All To Db" Name="miSaveAllImagesAndCommoditiesToDb" />
-              <MenuItem Header="Save Selected To Db" Name="miSaveSelectedImagesAndCommoditiesToDb"
+              <MenuItem Header="Save Selected To Db(CTRL+S)" Name="miSaveSelectedImagesAndCommoditiesToDb"
                         ToolTip.Tip="Saves the changes done to ALL OF SELECTED commodities and images(mainly &lt;Export&gt;) to DB so they are permanent." />
               <MenuItem Header="Reload All From Db" Name="miReloadAllImagesAndCommoditiesFromDb" />
-              <MenuItem Header="Reload Selected From Db" Name="miReloadSelectedImagesAndCommoditiesToDb"
+              <MenuItem Header="Reload Selected From Db(CTRL+R)" Name="miReloadSelectedImagesAndCommoditiesToDb"
                         ToolTip.Tip="Reloads ALL OF SELECTED images and commodities from DB discarding all changes in memory(except position)." />
             </MenuItem>
             <MenuItem Header="Create" >
-              <MenuItem Header="Image" Name="miCreateImage"/>
+              <MenuItem Header="Image(INS)" Name="miCreateImage"/>
               <MenuItem Header="Commodity" Name="miCreateImageCommodity"/>
             </MenuItem>
             <MenuItem Header="Delete(DEL)" Name="miDeleteSelectedImagesAndCommdoities" />

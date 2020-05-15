@@ -325,20 +325,15 @@ namespace RepoImageMan
         /// </summary>
         private int _designInstancesCount = 0;
 
-        //TODO: document me and use me
-        internal bool TryDesign(out DesignCImage? result)
-        {
-            throw new NotImplementedException();
-            //result = null;
-            //if (Interlocked.CompareExchange(ref _designInstancesCount, 1, 0) == 0)
-            //{
-            //    //result = new DesignCImage(this);
-            //    result.DesignImageDisposed += s => Interlocked.Decrement(ref _designInstancesCount);
-            //    return true;
-            //}
+        internal bool TryEnterDesign() => Interlocked.CompareExchange(ref _designInstancesCount, 1, 0) == 0;
 
-            
-            return false;
+        
+        internal void ExitDesign()
+        {
+            if (Interlocked.CompareExchange(ref _designInstancesCount, 0, 1) != 1)
+            {
+                throw new InvalidOperationException("This image is not in design state originally to exit it.");
+            }
         }
 
         #region IDisposable Support

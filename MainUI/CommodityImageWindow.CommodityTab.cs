@@ -93,10 +93,10 @@ namespace MainUI
                 private IDisposable _commodityNotificationsSubscription;
                 public DgCommoditiesModel(Commodity com, CommodityTab hostingTab)
                 {
+                    Commodity = com;
                     _hostingTab = hostingTab;
                     _hostingTab._dgCommoditiesItems.Add(this);
                     _hostingTab._dgCommoditiesModels.Add(this);
-                    Commodity = com;
                     _commodityNotificationsSubscription = Commodity.Subscribe(CommodityOnPropertyChanged);
                     Commodity.Deleting += CommodityOnDeleting;
                     RePositionInDgItems();
@@ -248,7 +248,7 @@ namespace MainUI
             {
                 var comModel = _dgCommoditiesItems.FirstOrDefault<DgCommoditiesModel?>(c => c.Commodity.Id == com.Id);
                 if (comModel == null) { return; }
-
+                _hostingWindow.Activate();
                 tabCommodities.IsSelected = true;
                 dgCommodities.SelectedItems.Clear();
                 dgCommodities.SelectedItems.Add(comModel);

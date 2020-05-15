@@ -95,10 +95,10 @@ namespace MainUI
             miSaveSelectedCommodity = this.FindControl<MenuItem>(nameof(miSaveSelectedCommodity));
             miSaveAllCommodities = this.FindControl<MenuItem>(nameof(miSaveAllCommodities));
             miReloadAllCommodities = this.FindControl<MenuItem>(nameof(miReloadAllCommodities));
-
+            miGoToSelectedCommodity = this.FindControl<MenuItem>(nameof(miGoToSelectedCommodity));
             _eventsSubscriptions.Add(this.GetObservable(Window.ClientSizeProperty).Subscribe(sz =>
             {
-                //I Have to do it manually because StackPanel will call NeasureOvveride in "DesignCImage" with {INF, INF}.
+                //I Have to do it manually because StackPanel will call NeasureOverride in "DesignCImage" with {INF, INF}.
                 playground.Height = sz.Height - 130;
             }));
             _eventsSubscriptions.Add(playground.GetObservable(DesignCImage.SelectedCommodityProperty)
@@ -136,7 +136,7 @@ namespace MainUI
 
         private void MiGoToSelectedCommodity_Click(object? sender, RoutedEventArgs e) => _commodityTab.GoToCommodity(playground.SelectedCommodity!);
 
-        private void MiGoToImage_Click(object? sender, RoutedEventArgs e) => _imageTab.GoToCommodity(playground.SelectedCommodity!);
+        private void MiGoToImage_Click(object? sender, RoutedEventArgs e) => _imageTab.GoToImage(playground.Image);
 
         private async void MiReloadImage_Click(object? sender, RoutedEventArgs e) => await playground.Image.Reload();
 
@@ -197,5 +197,6 @@ namespace MainUI
             base.OnClosed(e);
             playground.Dispose();
         }
+        
     }
 }

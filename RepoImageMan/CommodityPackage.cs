@@ -43,9 +43,10 @@ namespace RepoImageMan
             con.Execute(@"PRAGMA foreign_keys = ON");
             return con;
         }
-
-        internal CommodityPackage(string packageDirectoryPath)
+        private readonly Stream _lck;
+        internal CommodityPackage(string packageDirectoryPath, Stream pkgLock)
         {
+            _lck = pkgLock;
             _packageDirectoryPath = packageDirectoryPath;
             _dbPath = GetPackageDbPath(_packageDirectoryPath);
             if (File.Exists(_dbPath) == false)
@@ -190,7 +191,7 @@ Expected Database path is {_dbPath}.");
 
         private bool _disposedValue = false; // To detect redundant calls
 
-        public void Dispose()
+        private void DisposeImpl()
         {
             if (!_disposedValue)
             {
@@ -214,9 +215,18 @@ Expected Database path is {_dbPath}.");
                 _labelsCaches.Clear();
                 _commoditiesLock.Dispose();
                 _imagesLock.Dispose();
+                _lck.Dispose();
+                File.Delete(Path.Combine(_packageDirectoryPath, LockName));
             }
         }
 
+        ~CommodityPackage() => DisposeImpl();
+
+        public void Dispose()
+        {
+            DisposeImpl();
+            GC.SuppressFinalize(this);
+        }
         #endregion
     }
 }

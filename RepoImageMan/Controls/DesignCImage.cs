@@ -8,12 +8,12 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Input;
 using Avalonia.Themes.Default;
+using System.Threading.Tasks;
 
 namespace RepoImageMan.Controls
 {
     /// <summary>
     /// A specialization of <see cref="CImage"/> that is used for editing the image using UI and still provide fast operations.
-    /// YOU CAN'T MODIFY IMAGE STREAM WHILE DESIGNING.
     /// </summary>
     public sealed partial class DesignCImage : Control, IDisposable
     {
@@ -88,7 +88,14 @@ namespace RepoImageMan.Controls
             base.OnPointerMoved(e);
             if (_isSelectedCommodityHooked == false) { return; }
             var p = e.GetCurrentPoint(this).Position;
-            GetDesignImageCommodity(SelectedCommodity)!.Location = p;
+            try
+            {
+                GetDesignImageCommodity(SelectedCommodity)!.Location = p;
+            }
+            catch (ArgumentOutOfRangeException ex) when (ex.TargetSite?.Name == $"set_{nameof(ImageCommodity.Location)}")
+            {
+                _isSelectedCommodityHooked = false;
+            }
         }
         protected override void OnPointerReleased(PointerReleasedEventArgs e)
         {
@@ -101,6 +108,11 @@ namespace RepoImageMan.Controls
         private IDisposable[] _subs;
         public void Init(CImage img)
         {
+            Focusable = true;
+            if (img.TryEnterDesign() == false)
+            {
+                throw new InvalidOperationException("Image is currently opened for design in another window.");
+            }
             ClipToBounds = true;
 
             Image = img;
@@ -130,38 +142,62 @@ namespace RepoImageMan.Controls
         }
 
         private void HandleImageDeleteing(CImage sender) => throw new InvalidOperationException("YOU CAN'T DELETE AN IMAGE WHILE ITS BEING DESIGNED");
-
+        protected async override void OnKeyDown(KeyEventArgs e)
+        {
+            base.OnKeyDown(e);
+            switch (e.Key)
+            {
+                case Key.Delete:
+                    await (SelectedCommodity?.Delete() ?? Task.CompletedTask);
+                    break;
+                case Key.R:
+                    if (e.KeyModifiers == KeyModifiers.Control)
+                    {
+                        await (SelectedCommodity?.Reload() ?? Task.CompletedTask);
+                    }
+                    break;
+                case Key.S:
+                    if (e.KeyModifiers == KeyModifiers.Control)
+                    {
+                        await (SelectedCommodity?.Save() ?? Task.CompletedTask);
+                    }
+                    break;
+            }
+        }
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
 
         void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (Image == null) { disposedValue = true; }
+
+            if (disposedValue) { return; }
+
+            Image.ExitDesign();
+            foreach (var sub in _subs)
             {
-                foreach (var sub in _subs)
-                {
-                    sub.Dispose();
-                }
-                foreach (var com in _coms)
-                {
-                    com.Dispose();
-                }
-                Image.Deleting -= HandleImageDeleteing;
-                Image.CommodityAdded -= AddCommodity;
-                Image.CommodityRemoved -= RemoveCommodity;
-                Image.FileUpdated -= UpdateBmp;
-                _bmp.Dispose();
-                _resizedBmp.Dispose();
-                _modedBmp.Dispose();
-                _coms.Clear();
-                Image = null;
-                _coms = null;
-                _subs = null;
-                _bmp = null;
-                _resizedBmp = null;
-                _modedBmp = null;
-                disposedValue = true;
+                sub.Dispose();
             }
+            foreach (var com in _coms)
+            {
+                com.Dispose();
+            }
+            Image.Deleting -= HandleImageDeleteing;
+            Image.CommodityAdded -= AddCommodity;
+            Image.CommodityRemoved -= RemoveCommodity;
+            Image.FileUpdated -= UpdateBmp;
+            _bmp.Dispose();
+            _resizedBmp.Dispose();
+            _modedBmp.Dispose();
+            _coms.Clear();
+            Image = null;
+            _coms = null;
+            _subs = null;
+            _bmp = null;
+            _resizedBmp = null;
+            _modedBmp = null;
+            disposedValue = true;
+
         }
 
         ~DesignCImage()

@@ -1,50 +1,48 @@
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using MainUI.ImageTabModels;
-using RepoImageMan;
 using MessageBox.Avalonia;
 using MessageBox.Avalonia.DTO;
 using MessageBox.Avalonia.Enums;
+using RepoImageMan;
+using RepoImageMan.Controls;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
-using Avalonia.Threading;
-using SixLabors.ImageSharp.Processing;
+using System.Linq;
 using System.Reactive.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 namespace MainUI
 {
     namespace ImageTabModels
     {
         public sealed class TvImagesImageModel : INotifyPropertyChanged, IDisposable
         {
-            private static readonly Size ThumbnailSize = new Size(400, 400);
+            private static readonly PixelSize ThumbnailSize = new PixelSize(400, 400);
             private static readonly IBitmap DefaultThumbnail;
             static TvImagesImageModel()
             {
-                var boxCorners = new[] { (0, 0), (ThumbnailSize.Width, 0), (ThumbnailSize.Width, ThumbnailSize.Height), (0, ThumbnailSize.Height) }.Select(p => new SixLabors.Primitives.PointF((float)p.Width, (float)p.Height)).ToArray();
-                var boxColor = SixLabors.ImageSharp.Color.Red;
-                var boxThickness = 4.0f;
-                using var defaultImage = new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>((int)ThumbnailSize.Width, (int)ThumbnailSize.Height);
+                var p = new Pen(Colors.Red.ToUint32(), 4.0f);
+                using var defaultThumb = new RenderTargetBitmap(ThumbnailSize);
 
-                using var defaultImageStream = new MemoryStream();
+                using (var ctx = defaultThumb.CreateDrawingContext(null))
+                {
+                    ctx.DrawRectangle(p, new Rect(default, ThumbnailSize.ToSize(1.0)));
+                    ctx.DrawLine(p, new Point(0, ThumbnailSize.Height), new Point(0, ThumbnailSize.Width));
+                }
+                using var ms = new MemoryStream();
+                defaultThumb.Save(ms);
+                ms.Position = 0;
 
-                defaultImage.Mutate(c =>
-                c.Fill(SixLabors.ImageSharp.Color.Black)
-                .DrawPolygon(boxColor, boxThickness * 2, boxCorners)
-                .DrawLines(boxColor, boxThickness, new[] { boxCorners[0], boxCorners[2] })
-                .DrawLines(boxColor, boxThickness, new[] { boxCorners[1], boxCorners[3] })
-                );
-                defaultImage.Save(defaultImageStream, new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder());
-                defaultImageStream.Position = 0;
-                DefaultThumbnail = defaultImageStream.LoadResizedBitmap(ThumbnailSize);
+                DefaultThumbnail = new Bitmap(ms);
             }
 
             private readonly CommodityImageWindow.ImageTab _hostingTab;
@@ -72,7 +70,7 @@ namespace MainUI
             {
                 get
                 {
-                    var name = Commodities.FirstOrDefault()?.Name ?? "---";
+                    var name = Commodities.FirstOrDefault()?.Name ?? $"Image{Image.Id}";
                     return name.Length <= 10 ? name : $"{name.Substring(0, 7)}...";
                 }
             }
@@ -226,7 +224,6 @@ namespace MainUI
                 _hostingTab._tvImagesItems.Remove(this);
                 _hostingTab._tvImagesModels.Remove(this);
                 if (ImageSource != DefaultThumbnail) { ImageSource.Dispose(); }
-                //ImageSource = null;
                 Image.FileUpdated -= ImageOnFileUpdated;
                 Image.CommodityAdded -= ImageOnCommodityAdded;
                 Image.CommodityRemoved -= ImageOnCommodityRemoved;
@@ -589,11 +586,18 @@ namespace MainUI
 
             public void GoToCommodity(ImageCommodity com)
             {
+                _hostingWindow.Activate();
                 tabImages.IsSelected = true;
                 tvImages.SelectedItems.Clear();
                 tvImages.SelectedItems.Add(_tvImagesModels.First(c => c.Image.Id == com.Image.Id) /*.GetCommodityModel(com)*/);
             }
-
+            public void GoToImage(CImage img)
+            {
+                _hostingWindow.Activate();
+                tabImages.IsSelected = true;
+                tvImages.SelectedItems.Clear();
+                tvImages.SelectedItems.Add(_tvImagesModels.First(c => c.Image == img));
+            }
             private void MiUnExportSelected_Click(object? sender, RoutedEventArgs e)
             {
                 foreach (var img in tvImages.SelectedItems.OfType<TvImagesImageModel>()) { img.IsExported = false; }
@@ -651,11 +655,32 @@ namespace MainUI
 
                 if (miMoveImage.IsVisible) { miMoveSelectedImage.Header = $"Move {selectedImage!.ShortName}"; }
             }
+            private async void DesignImage(TvImagesImageModel img)
+            {
+                if (img == null) { return; }
+                var dWin = new DesigningWindow(img.Image, this, _hostingWindow._commodityTab);
+                try
+                {
+                    dWin.Show();
+                }
+                catch (InvalidOperationException ex) when (ex.TargetSite?.Name == nameof(DesignCImage.Init))
+                {
+                    dWin.Close();
+                    await MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams
+                    {
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                        CanResize = false,
+                        ContentTitle = "Error",
+                        ContentHeader = "Invalid Operation",
+                        ContentMessage = $"{img.ShortName} is currently being designed in another window.",
+                        ButtonDefinitions = ButtonEnum.Ok,
+                        Icon = MessageBox.Avalonia.Enums.Icon.Error
 
+                    }).ShowDialog(_hostingWindow);
+                }
+            }
             private async void TvImages_KeyDown(object? sender, KeyEventArgs e)
             {
-                if (e.KeyModifiers != KeyModifiers.None) { return; }
-
                 switch (e.Key)
                 {
                     case Key.Insert:
@@ -664,6 +689,27 @@ namespace MainUI
                     case Key.Delete:
                         await DeleteSelectedImagesAndCommodities();
                         break;
+                    case Key.Enter:
+                        if (tvImages.SelectedItems.Count == 1)
+                        {
+                            DesignImage(GetSelectedImage());
+                        }
+                        break;
+                    case Key.S:
+                        if (e.KeyModifiers == KeyModifiers.Control)
+                        {
+                            await tvImages.SelectedItems.OfType<TvImagesImageModel>().ForEachAsync(img => img.Image.Save());
+                            await tvImages.SelectedItems.OfType<TvImagesCommodityModel>().ForEachAsync(com => com.Commodity.Save());
+                        }
+                        break;
+                    case Key.R:
+                        if (e.KeyModifiers == KeyModifiers.Control)
+                        {
+                            await tvImages.SelectedItems.OfType<TvImagesImageModel>().ForEachAsync(img => img.Image.Reload());
+                            await tvImages.SelectedItems.OfType<TvImagesCommodityModel>().ForEachAsync(com => com.Commodity.Reload());
+                        }
+                        break;
+
                 }
             }
 
@@ -677,6 +723,11 @@ namespace MainUI
                 {
                     tvImages.SelectedItems.Add(clickedImage);
                 }
+            }
+            public void TvImages_ImageDoubleClicked(object? sender, PointerPressedEventArgs e)
+            {
+                if (!((sender as IDataContextProvider)?.DataContext is TvImagesImageModel clickedImage)) return;
+                DesignImage(clickedImage);
             }
         }
     }

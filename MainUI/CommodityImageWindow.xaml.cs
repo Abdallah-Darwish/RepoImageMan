@@ -38,13 +38,27 @@ namespace MainUI
         {
             AvaloniaXamlLoader.Load(this);
         }
-
+        ulong _lastImageLeftClickStamp = 0;
         public void TvImages_ImageClicked(object? sender, PointerPressedEventArgs e)
         {
-            if (e.GetCurrentPoint(null).Properties.IsRightButtonPressed != true) { return; }
+            var p = e.GetCurrentPoint(null);
+            if (p.Properties.IsRightButtonPressed)
+            {
+                _imageTab.TvImages_ImageRightClicked(sender, e);
+                e.Handled = true;
+            }
+            else if (p.Properties.IsLeftButtonPressed)
+            {
+                if (e.Timestamp - _lastImageLeftClickStamp <= 300)
+                {
+                    _lastImageLeftClickStamp = 0;
+                    _imageTab.TvImages_ImageDoubleClicked(sender, e);
+                    e.Handled = true;
+                }
+                _lastImageLeftClickStamp = e.Timestamp;
+            }
 
-            _imageTab.TvImages_ImageRightClicked(sender, e);
-            e.Handled = true;
+
         }
     }
 }

@@ -6,6 +6,8 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using System.Threading;
 using IBitmap = Avalonia.Media.Imaging.IBitmap;
+using Avalonia.Media.Imaging;
+using System.Reflection.Metadata;
 
 namespace MainUI
 {
@@ -50,14 +52,13 @@ namespace MainUI
         public static SixLabors.Primitives.PointF ToSixLabors(this in Avalonia.Point p) => new SixLabors.Primitives.PointF((float)p.X, (float)p.Y);
         public static SixLabors.Primitives.SizeF ToSixLabors(this in Avalonia.Size sz) => new SixLabors.Primitives.SizeF((float)sz.Width, (float)sz.Height);
         //TODO: reimplimint me without sixlabors or with WriteableBmp
-        public static IBitmap LoadResizedBitmap(this Stream originalImageStream, Avalonia.Size sz)
+        public static IBitmap LoadResizedBitmap(this Stream originalImageStream, Avalonia.PixelSize sz)
         {
-            using var img = Image.Load(originalImageStream);
-            img.Mutate(c => c.Resize(new SixLabors.Primitives.Size((int)sz.Width, (int)sz.Height)));
-            using var resizedImageStream = new MemoryStream(img.Height * img.Width * (img.PixelType.BitsPerPixel / 8) + 20);
-            img.SaveAsBmp(resizedImageStream);
-            resizedImageStream.Position = 0;
-            return new Avalonia.Media.Imaging.Bitmap(resizedImageStream);
+            using var img = new Bitmap(originalImageStream);
+            var res = new RenderTargetBitmap(sz);
+            using var ctx = res.CreateDrawingContext(null);
+            ctx.DrawImage(img.PlatformImpl, 1.0, new Avalonia.Rect(default, img.PixelSize.ToSize(1.0)), new Avalonia.Rect(default, sz.ToSize(1.0)));
+            return res;
         }
 
         public static SixLabors.ImageSharp.Color ToSixLabors(this in Avalonia.Media.Color c) => SixLabors.ImageSharp.Color.FromRgba(c.R, c.G, c.B, c.A);
