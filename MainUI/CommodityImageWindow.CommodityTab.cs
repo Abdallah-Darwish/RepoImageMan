@@ -18,7 +18,7 @@ namespace MainUI
 {
     public partial class CommodityImageWindow
     {
-        private class CommodityTab : IDisposable
+        public class CommodityTab : IDisposable
         {
             public sealed class DgCommoditiesModel : INotifyPropertyChanged, IDisposable
             {

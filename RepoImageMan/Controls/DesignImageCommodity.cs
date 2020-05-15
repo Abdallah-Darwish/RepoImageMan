@@ -94,7 +94,6 @@ namespace RepoImageMan.Controls
                     _img = null;
                     _subs = null;
                     Commodity = null;
-                    _font = null;
                 }
                 disposedValue = true;
             }

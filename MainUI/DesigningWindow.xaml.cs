@@ -17,14 +17,18 @@ using Avalonia.Threading;
 using RepoImageMan.Controls;
 using ReactiveUI;
 using Avalonia.LogicalTree;
-
+/*TODO
+ 1- Use dispatcher in this class and in DesignCImage
+ 2- Impliment Keys.
+     
+     */
 namespace MainUI
 {
     public class DesigningWindow : Window
     {
         private readonly List<IDisposable> _eventsSubscriptions = new List<IDisposable>();
         private readonly DesignCImage playground;
-        private readonly MenuItem miDeleteSelectedCommodity, miReloadSelectedCommodity;
+        private readonly MenuItem miDeleteSelectedCommodity, miGoToSelectedCommodity, miGoToImage, miReloadSelectedCommodity, miSaveImage, miReloadImage, miSaveAllCommodities, miReloadAllCommodities, miSaveSelectedCommodity;
         private readonly ContextMenu imgPlaygroundCTXMenu;
         private readonly ColorBox cbLabelColor;
         private readonly FontBox fbLabelFont;
@@ -62,28 +66,40 @@ namespace MainUI
 
 
         }
-        public DesigningWindow() : this(null) { }
-        private readonly CImage _image;
-        public DesigningWindow(CImage image)
+        public DesigningWindow() : this(null, null, null) { }
+        private CImage _image;
+        private CommodityImageWindow.ImageTab _imageTab;
+        private CommodityImageWindow.CommodityTab _commodityTab;
+        public DesigningWindow(CImage image, CommodityImageWindow.ImageTab imageTab, CommodityImageWindow.CommodityTab commodityTab)
         {
             _image = image;
+            _imageTab = imageTab;
+            _commodityTab = commodityTab;
             InitializeComponent();
 #if DEBUG
             this.AttachDevTools();
 #endif
             playground = this.FindControl<DesignCImage>(nameof(playground));
-            miDeleteSelectedCommodity = this.FindControl<MenuItem>(nameof(miDeleteSelectedCommodity));
-            miReloadSelectedCommodity = this.FindControl<MenuItem>(nameof(miReloadSelectedCommodity));
+
             imgPlaygroundCTXMenu = this.FindControl<ContextMenu>(nameof(imgPlaygroundCTXMenu));
             cbLabelColor = this.FindControl<ColorBox>(nameof(cbLabelColor));
             fbLabelFont = this.FindControl<FontBox>(nameof(fbLabelFont));
             nudLabelSize = this.FindControl<NumericUpDown>(nameof(nudLabelSize));
             nudImageContrast = this.FindControl<NumericUpDown>(nameof(nudImageContrast));
             nudImageBrightness = this.FindControl<NumericUpDown>(nameof(nudImageBrightness));
+            miGoToImage = this.FindControl<MenuItem>(nameof(miGoToImage));
+            miSaveImage = this.FindControl<MenuItem>(nameof(miSaveImage));
+            miReloadImage = this.FindControl<MenuItem>(nameof(miReloadImage));
+            miDeleteSelectedCommodity = this.FindControl<MenuItem>(nameof(miDeleteSelectedCommodity));
+            miReloadSelectedCommodity = this.FindControl<MenuItem>(nameof(miReloadSelectedCommodity));
+            miSaveSelectedCommodity = this.FindControl<MenuItem>(nameof(miSaveSelectedCommodity));
+            miSaveAllCommodities = this.FindControl<MenuItem>(nameof(miSaveAllCommodities));
+            miReloadAllCommodities = this.FindControl<MenuItem>(nameof(miReloadAllCommodities));
+
             _eventsSubscriptions.Add(this.GetObservable(Window.ClientSizeProperty).Subscribe(sz =>
             {
-                playground.Height = sz.Height - 100;
-                playground.Width = sz.Width - 10;
+                //I Have to do it manually because StackPanel will call NeasureOvveride in "DesignCImage" with {INF, INF}.
+                playground.Height = sz.Height - 130;
             }));
             _eventsSubscriptions.Add(playground.GetObservable(DesignCImage.SelectedCommodityProperty)
                                                .Subscribe(HandleSelectedCommodityChanged));
@@ -106,11 +122,54 @@ namespace MainUI
             nudImageContrast.ValueChanged += NudImageContrast_ValueChanged;
             nudImageBrightness.ValueChanged += NudImageBrightness_ValueChanged;
 
-            //imgPlaygroundCTXMenu.ContextMenuOpening += ImgPlaygroundCTXMenu_ContextMenuOpening;
+            imgPlaygroundCTXMenu.ContextMenuOpening += ImgPlaygroundCTXMenu_ContextMenuOpening;
             miDeleteSelectedCommodity.Click += MiDeleteSelectedCommodity_Click;
             miReloadSelectedCommodity.Click += MiReloadSelectedCommodity_Click;
-
+            miSaveSelectedCommodity.Click += MiSaveSelectedCommodity_Click;
+            miReloadAllCommodities.Click += MiReloadAllCommodities_Click;
+            miSaveAllCommodities.Click += MiSaveAllCommodities_Click;
+            miSaveImage.Click += MiSaveImage_Click;
+            miReloadImage.Click += MiReloadImage_Click;
+            miGoToImage.Click += MiGoToImage_Click;
+            miGoToSelectedCommodity.Click += MiGoToSelectedCommodity_Click;
         }
+
+        private void MiGoToSelectedCommodity_Click(object? sender, RoutedEventArgs e) => _commodityTab.GoToCommodity(playground.SelectedCommodity!);
+
+        private void MiGoToImage_Click(object? sender, RoutedEventArgs e) => _imageTab.GoToCommodity(playground.SelectedCommodity!);
+
+        private async void MiReloadImage_Click(object? sender, RoutedEventArgs e) => await playground.Image.Reload();
+
+        private async void MiSaveImage_Click(object? sender, RoutedEventArgs e) => await playground.Image.Save();
+
+        private async void MiSaveAllCommodities_Click(object? sender, RoutedEventArgs e) => await playground.Image.Commodities.ForEachAsync(com => com.Save());
+        private async void MiReloadAllCommodities_Click(object? sender, RoutedEventArgs e) => await playground.Image.Commodities.ForEachAsync(com => com.Reload());
+
+        private async void MiSaveSelectedCommodity_Click(object? sender, RoutedEventArgs e) => await playground.SelectedCommodity!.Save();
+
+        private void ImgPlaygroundCTXMenu_ContextMenuOpening(object sender, CancelEventArgs e)
+        {
+            var sc = playground.SelectedCommodity;
+            miDeleteSelectedCommodity.IsVisible = miReloadSelectedCommodity.IsVisible = miGoToSelectedCommodity.IsVisible = miSaveSelectedCommodity.IsVisible = sc != null;
+            miReloadAllCommodities.IsVisible = miSaveAllCommodities.IsVisible = playground.Image.Commodities.Count > 0;
+            if (miDeleteSelectedCommodity.IsVisible)
+            {
+                miDeleteSelectedCommodity.Header = $"Delete(DEL) {GetCommdoityShortName(sc!)}";
+            }
+            if (miSaveSelectedCommodity.IsVisible)
+            {
+                miSaveSelectedCommodity.Header = $"Save(CTRL+S) {GetCommdoityShortName(sc!)}";
+            }
+            if (miReloadSelectedCommodity.IsVisible)
+            {
+                miReloadSelectedCommodity.Header = $"Reload(CTRL+R) {GetCommdoityShortName(sc!)}";
+            }
+            if (miGoToSelectedCommodity.IsVisible)
+            {
+                miGoToSelectedCommodity.Header = $"Go to {GetCommdoityShortName(sc!)}";
+            }
+        }
+
         protected override void OnOpened(EventArgs e)
         {
             base.OnOpened(e);
@@ -129,8 +188,7 @@ namespace MainUI
 
         private async void MiReloadSelectedCommodity_Click(object? sender, RoutedEventArgs e) => await playground.SelectedCommodity.Reload();
 
-        private async void MiDeleteSelectedCommodity_Click(object? sender, RoutedEventArgs e) =>
-            await playground.SelectedCommodity.Delete();
+        private async void MiDeleteSelectedCommodity_Click(object? sender, RoutedEventArgs e) => await playground.SelectedCommodity.Delete();
 
 
         private void InitializeComponent() => AvaloniaXamlLoader.Load(this);

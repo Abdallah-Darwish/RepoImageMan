@@ -23,7 +23,7 @@ namespace MainUI
 {
     namespace ImageTabModels
     {
-        sealed class TvImagesImageModel : INotifyPropertyChanged, IDisposable
+        public sealed class TvImagesImageModel : INotifyPropertyChanged, IDisposable
         {
             private static readonly Size ThumbnailSize = new Size(400, 400);
             private static readonly IBitmap DefaultThumbnail;
@@ -239,7 +239,7 @@ namespace MainUI
             }
         }
 
-        sealed class TvImagesCommodityModel : INotifyPropertyChanged, IDisposable
+        public sealed class TvImagesCommodityModel : INotifyPropertyChanged, IDisposable
         {
             public TvImagesImageModel Image { get; }
             public Commodity Commodity { get; }
@@ -281,7 +281,7 @@ namespace MainUI
 
     public partial class CommodityImageWindow
     {
-        internal class ImageTab
+        public class ImageTab
         {
             private readonly CommodityImageWindow _hostingWindow;
             private readonly TreeView tvImages;

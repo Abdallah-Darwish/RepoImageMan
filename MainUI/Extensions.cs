@@ -49,6 +49,7 @@ namespace MainUI
         }
         public static SixLabors.Primitives.PointF ToSixLabors(this in Avalonia.Point p) => new SixLabors.Primitives.PointF((float)p.X, (float)p.Y);
         public static SixLabors.Primitives.SizeF ToSixLabors(this in Avalonia.Size sz) => new SixLabors.Primitives.SizeF((float)sz.Width, (float)sz.Height);
+        //TODO: reimplimint me without sixlabors or with WriteableBmp
         public static IBitmap LoadResizedBitmap(this Stream originalImageStream, Avalonia.Size sz)
         {
             using var img = Image.Load(originalImageStream);
