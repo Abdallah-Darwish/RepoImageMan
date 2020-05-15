@@ -14,7 +14,7 @@ namespace RepoImageMan.Controls
         public IBrush RenderingBrush { get; private set; }
         public IPen RenderingPen { get; private set; }
         public float SurroundingBoxThickness => (float)Text.Bounds.Size.Average() / 15f;
-        private void UpdateGlyph() => _0glyph = Commodity.Font.ToSixLabors().GetGlyph('0').Instance;
+        private void UpdateFont() => _font = Commodity.Font.Scale((float)_img.ToDesignMappingScale.Average()).ToSixLabors();
         private void UpdateText()
         {
             Text = new FormattedText
@@ -30,21 +30,21 @@ namespace RepoImageMan.Controls
 
         public Point Location
         {
-            get => Commodity.Location.Scale(_img.ToDesignMappingScale);
-            set => Commodity.Location = value.Scale(_img.ToOriginalMappingScale);
+            get => Commodity.Location.Scale(_img.ToDesignMappingScale) - new Point(0, X * 3);
+            set => Commodity.Location = (value + new Point(0, X * 3)).Scale(_img.ToOriginalMappingScale);
         }
-        private float InternalLeading => Commodity.Font.Size * (_0glyph. + IDFont.FontFamily.GetCellDescent(IDFont.Style) - IDFont.FontFamily.GetEmHeight(IDFont.Style)) / IDFont.FontFamily.GetEmHeight(IDFont.Style);
+        private float MagicNumber => _font.Size * (_font.EmSize - _font.Ascender + _font.Descender) / _font.EmSize;
 
-        public Rect Box => new Rect(Location, _0glyph.em);
+        public Rect Box => new Rect(Location, Text.Bounds.Size - new Size(0, X * 2));
         public bool IsIn(in Point p) => Box.Contains(p);
         public Rect HandleBox => new Rect(
-            Location - new Point(SurroundingBoxThickness / 0.5, SurroundingBoxThickness / 0.5),
+            Location - new Point(SurroundingBoxThickness / 2, SurroundingBoxThickness / 2),
             new Size(SurroundingBoxThickness, SurroundingBoxThickness));
         public bool IsInHandle(in Point p) => HandleBox.Contains(p);
         public ImageCommodity Commodity { get; private set; }
         private DesignCImage _img;
         private IDisposable[] _subs;
-        SixLabors.Fonts.GlyphInstance _0glyph;
+        SixLabors.Fonts.Font _font;
         public DesignImageCommodity(ImageCommodity com, DesignCImage img)
         {
             _img = img;
@@ -55,6 +55,7 @@ namespace RepoImageMan.Controls
                         .Where(pn => pn == nameof(ImageCommodity.Font))
                         .Subscribe(_ =>
                         {
+                            UpdateFont();
                             UpdateText();
                             UpdatePen();
                         }),
@@ -66,14 +67,15 @@ namespace RepoImageMan.Controls
                         .Subscribe(_ => _img.InvalidateVisual()),
                     Commodity.Where(pn => pn == nameof(ImageCommodity.Font) || pn == nameof(ImageCommodity.LabelColor) || pn == nameof(ImageCommodity.Location))
                         .Subscribe(_ => _img.InvalidateVisual()),
-                    _img.GetObservable(DesignCImage.DesiredSizeProperty)
+                    _img.GetObservable(DesignCImage.BoundsProperty)
                         .Subscribe(_ =>
                         {
+                            UpdateFont();
                             UpdateText();
                             UpdatePen();
                         })
             };
-            UpdateGlyph();
+            UpdateFont();
             UpdateText();
             UpdateBrush();
             UpdatePen();

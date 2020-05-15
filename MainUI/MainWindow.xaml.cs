@@ -62,7 +62,7 @@ namespace MainUI
 
 
             var rand = new Random();
-            var images = p.Images.Where(i => i.Commodities.Count == 1).ToArray();
+            var images = p.Images.Where(i => true).ToArray();
             var img = images[rand.Next(images.Length)];
             var din = new DesigningWindow(img!);
             await din.ShowDialog(this);

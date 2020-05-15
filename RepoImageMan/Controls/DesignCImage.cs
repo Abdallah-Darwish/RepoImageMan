@@ -17,8 +17,9 @@ namespace RepoImageMan.Controls
     /// </summary>
     public sealed partial class DesignCImage : Control, IDisposable
     {
-        public Size ToDesignMappingScale => new Size(DesiredSize.Width / Image.Size.Width, DesiredSize.Height / Image.Size.Height);
-        public Size ToOriginalMappingScale => new Size(Image.Size.Width / DesiredSize.Width, Image.Size.Height / DesiredSize.Height);
+        private Size InstanceSize => Bounds.Size;
+        public Size ToDesignMappingScale => new Size(InstanceSize.Width / Image.Size.Width, InstanceSize.Height / Image.Size.Height);
+        public Size ToOriginalMappingScale => new Size(Image.Size.Width / InstanceSize.Width, Image.Size.Height / InstanceSize.Height);
 
 
         protected override Size MeasureOverride(Size availableSize) => availableSize;
@@ -28,13 +29,13 @@ namespace RepoImageMan.Controls
             if (_bmp == null) { return; }
             if (_resizedBmp == null) { return; }
             base.Render(ctx!);
-            if (_resizedBmp.PixelSize.ToSize(1.0) != DesiredSize)
+            if (_resizedBmp.PixelSize.ToSize(1.0) != InstanceSize)
             {
                 ResizeBmp();
             }
             ctx!.DrawImage(_resizedBmp, 1.0,
                 new Rect(0, 0, _resizedBmp.PixelSize.Width, _resizedBmp.PixelSize.Height),
-                new Rect(new Point(0, 0), DesiredSize), Avalonia.Visuals.Media.Imaging.BitmapInterpolationMode.LowQuality);
+                new Rect(new Point(0, 0), _resizedBmp.PixelSize.ToSize(1.0)), Avalonia.Visuals.Media.Imaging.BitmapInterpolationMode.LowQuality);
             foreach (var com in _coms)
             {
                 ctx.DrawText(com.RenderingBrush, com.Location, com.Text);
@@ -43,7 +44,7 @@ namespace RepoImageMan.Controls
             if (sc != null)
             {
                 ctx.DrawRectangle(sc.RenderingPen, sc.Box);
-                //TODO draw handle
+                ctx.FillRectangle(Brushes.Blue, sc.HandleBox);
             }
         }
 
@@ -70,7 +71,7 @@ namespace RepoImageMan.Controls
         }
         private DesignImageCommodity? GetDesignImageCommodity(ImageCommodity? c) => _coms.FirstOrDefault(dc => dc.Commodity == c);
         private bool _isSelectedCommodityHooked = false;
-      
+
         protected override void OnPointerPressed(PointerPressedEventArgs e)
         {
             base.OnPointerPressed(e);
@@ -148,6 +149,10 @@ namespace RepoImageMan.Controls
                 {
                     com.Dispose();
                 }
+                Image.Deleting -= HandleImageDeleteing;
+                Image.CommodityAdded -= AddCommodity;
+                Image.CommodityRemoved -= RemoveCommodity;
+                Image.FileUpdated -= UpdateBmp;
                 _coms.Clear();
                 _coms = null;
                 _subs = null;

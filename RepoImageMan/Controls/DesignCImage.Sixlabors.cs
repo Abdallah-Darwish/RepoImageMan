@@ -26,7 +26,7 @@ namespace RepoImageMan.Controls
             _modedBmp?.Dispose();
             using var modBmp = _bmp.Clone(c => c.Contrast(Image.Contrast)
                                                  .Brightness(Image.Brightness)
-                                                 .Resize((int)DesiredSize.Width, (int)DesiredSize.Height));
+                                                 .Resize((int)InstanceSize.Width, (int)InstanceSize.Height));
             var modBmpSpan = modBmp.GetPixelSpan();
             var newBmp = new WriteableBitmap(new Avalonia.PixelSize(modBmp.Width, modBmp.Height), default, Avalonia.Platform.PixelFormat.Rgba8888);
             using (var newBmpBuffer = newBmp.Lock())
@@ -43,7 +43,7 @@ namespace RepoImageMan.Controls
         private void ResizeBmp()
         {
             _resizedBmp?.Dispose();
-            var newBmp = new RenderTargetBitmap(new Avalonia.PixelSize((int)DesiredSize.Width, (int)DesiredSize.Height));
+            var newBmp = new RenderTargetBitmap(new Avalonia.PixelSize((int)InstanceSize.Width, (int)InstanceSize.Height));
             using var ctx = newBmp.CreateDrawingContext(null);
             ctx.DrawImage(_modedBmp.PlatformImpl, 1.0,
                 new Avalonia.Rect(new Avalonia.Point(), _modedBmp.PixelSize.ToSize(1.0)),
