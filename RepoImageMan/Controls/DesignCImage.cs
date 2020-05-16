@@ -9,6 +9,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Input;
 using Avalonia.Themes.Default;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 
 namespace RepoImageMan.Controls
 {
@@ -17,6 +18,7 @@ namespace RepoImageMan.Controls
     /// </summary>
     public sealed partial class DesignCImage : Control, IDisposable
     {
+        internal void SafeInvalidate() => Dispatcher.UIThread.Invoke(InvalidateVisual);
         private Size InstanceSize => Bounds.Size;
         public Size ToDesignMappingScale => new Size(InstanceSize.Width / Image.Size.Width, InstanceSize.Height / Image.Size.Height);
         public Size ToOriginalMappingScale => new Size(Image.Size.Width / InstanceSize.Width, Image.Size.Height / InstanceSize.Height);
@@ -63,11 +65,14 @@ namespace RepoImageMan.Controls
         }
         private void RemoveCommodity(CImage _, ImageCommodity com)
         {
-            if (com == SelectedCommodity) { SelectedCommodity = null; }
+            Dispatcher.UIThread.Invoke(() =>
+            {
+                if (com == SelectedCommodity) { SelectedCommodity = null; }
+            });
             var dcom = GetDesignImageCommodity(com);
             _coms.Remove(dcom);
             dcom.Dispose();
-            InvalidateVisual();
+            SafeInvalidate();
         }
         private DesignImageCommodity? GetDesignImageCommodity(ImageCommodity? c) => _coms.FirstOrDefault(dc => dc.Commodity == c);
         private bool _isSelectedCommodityHooked = false;
@@ -132,10 +137,10 @@ namespace RepoImageMan.Controls
                     {
                         ApplyContrastBrightness();
                         ResizeBmp();
-                        InvalidateVisual();
+                        SafeInvalidate();
                     }),
                 this.GetObservable(SelectedCommodityProperty)
-                    .Subscribe(_ => InvalidateVisual())
+                    .Subscribe(_ => SafeInvalidate())
             };
 
             UpdateBmp(null);

@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Buffers;
 using SixLabors.ImageSharp.Advanced;
+using Avalonia.Threading;
 
 namespace RepoImageMan.Controls
 {
@@ -58,6 +59,7 @@ namespace RepoImageMan.Controls
             }
             ApplyContrastBrightness();
             ResizeBmp();
+            SafeInvalidate();
         }
     }
 }

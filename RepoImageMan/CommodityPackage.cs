@@ -49,12 +49,6 @@ namespace RepoImageMan
             _lck = pkgLock;
             _packageDirectoryPath = packageDirectoryPath;
             _dbPath = GetPackageDbPath(_packageDirectoryPath);
-            if (File.Exists(_dbPath) == false)
-            {
-                throw new FileNotFoundException(
-$@"Can't find package Database.
-Expected Database path is {_dbPath}.");
-            }
             ConnectionString = GetConnectionString(_dbPath);
             _packageDirectory = new DirectoryInfo(_packageDirectoryPath);
         }

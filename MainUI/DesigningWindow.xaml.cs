@@ -1,27 +1,16 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using Avalonia.Media.Imaging;
+using Avalonia.Threading;
+using MainUI.Controls;
 using RepoImageMan;
+using RepoImageMan.Controls;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Reactive.Linq;
-using System.Diagnostics;
-using System.Linq;
-using Avalonia.Interactivity;
 using System.ComponentModel;
-using MainUI.Controls;
-using Avalonia.Threading;
-using RepoImageMan.Controls;
-using ReactiveUI;
-using Avalonia.LogicalTree;
-/*TODO
- 1- Use dispatcher in this class and in DesignCImage
- 2- Impliment Keys.
-     
-     */
+using System.Linq;
+using System.Reactive.Linq;
 namespace MainUI
 {
     public class DesigningWindow : Window
@@ -52,13 +41,13 @@ namespace MainUI
             _selectedCommodityNotificationSubs = new IDisposable[]
             {
                 com.Where(pn => pn == nameof(ImageCommodity.LabelColor))
-                   .Subscribe(_ => cbLabelColor.SelectedColor = com.LabelColor),
+                   .Subscribe(_ => Dispatcher.UIThread.Invoke(() => cbLabelColor.SelectedColor = com.LabelColor)),
                 com.Where(pn => pn == nameof(ImageCommodity.Font))
-                   .Subscribe(_ =>
+                   .Subscribe(_ => Dispatcher.UIThread.Invoke(() =>
                    {
                        fbLabelFont.SelectedFontFamily = com.Font.ToFontFamily();
                        nudLabelSize.Value = com.Font.Size;
-                   })
+                   }))
             };
             nudLabelSize.Value = com.Font.Size;
             cbLabelColor.SelectedColor = com.LabelColor;
@@ -197,6 +186,6 @@ namespace MainUI
             base.OnClosed(e);
             playground.Dispose();
         }
-        
+
     }
 }

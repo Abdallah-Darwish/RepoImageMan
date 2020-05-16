@@ -60,9 +60,9 @@ namespace RepoImageMan.Controls
                         .Subscribe(_ => UpdateBrush()),
                     Commodity.AsObservable()
                         .Where(pn => pn == nameof(ImageCommodity.Location))
-                        .Subscribe(_ => _img.InvalidateVisual()),
+                        .Subscribe(_ => _img.SafeInvalidate()),
                     Commodity.Where(pn => pn == nameof(ImageCommodity.Font) || pn == nameof(ImageCommodity.LabelColor) || pn == nameof(ImageCommodity.Location))
-                        .Subscribe(_ => _img.InvalidateVisual()),
+                        .Subscribe(_ => _img.SafeInvalidate()),
                     _img.GetObservable(DesignCImage.BoundsProperty)
                         .Subscribe(_ =>
                         {

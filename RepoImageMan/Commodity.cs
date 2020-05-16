@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 
 namespace RepoImageMan
 {
-    //TODO: implement IEquatable
     public class Commodity : IDisposable, IObservable<string>
     {
         public delegate void CommodityDeletedEventHandler(Commodity sender);

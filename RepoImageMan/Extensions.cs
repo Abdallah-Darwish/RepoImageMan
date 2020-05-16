@@ -2,11 +2,38 @@
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Advanced;
 using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace RepoImageMan
 {
     public static class Extensions
     {
+        public static Task ForEachAsync<T>(this IEnumerable<T> source, Func<T, Task> body, int degreeOfParallelism = 0)
+        {
+            if (degreeOfParallelism <= 0) { degreeOfParallelism = Environment.ProcessorCount; }
+            var sourceEnum = source.GetEnumerator();
+            var tasks = new Task[degreeOfParallelism];
+            SpinLock sourceLock = new SpinLock(false);
+            for (int i = 0; i < degreeOfParallelism; i++)
+            {
+                tasks[i] = Task.Run(async () =>
+                {
+                    bool _ = false;
+                    sourceLock.Enter(ref _);
+                    T sourceItem;
+                    try
+                    {
+                        if (sourceEnum.MoveNext() == false) { return; }
+                        sourceItem = sourceEnum.Current;
+                    }
+                    finally { sourceLock.Exit(); }
+                    await body(sourceItem).ConfigureAwait(false);
+                });
+            }
+            return Task.WhenAll(tasks).ContinueWith(_ => sourceEnum.Dispose());
+        }
         public static Avalonia.PixelSize ToAvalonia(this SixLabors.Primitives.Size sz) => new Avalonia.PixelSize(sz.Width, sz.Height);
         public static SixLabors.Primitives.PointF ToSixLaborsPointF(this System.Drawing.Point p) => new SixLabors.Primitives.PointF(p.X, p.Y);
 
@@ -46,5 +73,11 @@ namespace RepoImageMan
         public static Font WithSize(this Font f, float sz) => new Font(f!.FamilyName, sz, f.Style);
 
         public static Font Scale(this Font f, float scale) => f.WithSize(f.Size * scale);
+
+        public static void Invoke(this Avalonia.Threading.Dispatcher d,Action a)
+        {
+            if (d.CheckAccess()) { a(); }
+            else { d.Post(a); }
+        }
     }
 }

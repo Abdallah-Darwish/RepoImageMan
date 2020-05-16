@@ -16,11 +16,18 @@ namespace RepoImageMan
 {
     public sealed class CImage : IDisposable, IObservable<string>
     {
+
         /// <summary>
         /// Returns the expected file name that will be generated for an image.
         /// used mainly to create an empty file before loading an image.
         /// </summary>
-        internal static string GetCImagePackageFilePath(CommodityPackage package, int imageId) => Path.Combine(package._packageDirectoryPath, $"{imageId}.jpg");
+        internal static string GetCImagePackageFilePath(string packageDirectory, int imageId) => Path.Combine(packageDirectory, $"{imageId}.jpg");
+
+        /// <summary>
+        /// Returns the expected file name that will be generated for an image.
+        /// used mainly to create an empty file before loading an image.
+        /// </summary>
+        internal static string GetCImagePackageFilePath(CommodityPackage package, int imageId) => GetCImagePackageFilePath(package._packageDirectoryPath, imageId);
         /// <summary>
         /// Name of the image entry(or file) inside <see cref="Package"/> directory.
         /// </summary>

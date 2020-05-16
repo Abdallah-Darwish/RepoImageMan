@@ -1,20 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using MessageBox.Avalonia.DTO;
-using RepoImageMan;
 using MessageBox.Avalonia;
+using MessageBox.Avalonia.DTO;
 using MessageBox.Avalonia.Enums;
+using RepoImageMan;
+using System;
+using System.IO;
+using System.Linq;
 using MBIcon = MessageBox.Avalonia.Enums.Icon;
-using System.Threading.Tasks;
-using System.Diagnostics;
-using MainUI.Controls;
-using Avalonia.Media;
 
 namespace MainUI
 {
@@ -40,18 +35,37 @@ namespace MainUI
             var folderOfd = new OpenFolderDialog { Title = "Package Folder" };
             var folderPath = await folderOfd.ShowAsync(this);
             if (string.IsNullOrWhiteSpace(folderPath)) { return; }
-
-            var p = await CommodityPackage.TryOpen(folderPath);
-            if(p == null)
+            CommodityPackage p = null;
+            try
             {
+                p = await CommodityPackage.TryOpen(folderPath);
+                if (p == null)
+                {
+                    await MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams
+                    {
+                        ButtonDefinitions = ButtonEnum.Ok,
+                        CanResize = false,
+                        ContentHeader = "Package Already Open",
+                        ContentTitle = "Error",
+                        Icon = MBIcon.Error,
+                        ContentMessage = $"Can't open {folderPath} because this package is already open in another application.{Environment.NewLine}If you are sure its not then manually delete file {CommodityPackage.GetPackageLockPath(folderPath)} and re-try.",
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                        ShowInCenter = true
+                    }).ShowDialog(this);
+                    return;
+                }
+            }
+            catch (PackageCorruptException ex)
+            {
+                p?.Dispose();
                 await MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams
                 {
                     ButtonDefinitions = ButtonEnum.Ok,
                     CanResize = false,
-                    ContentHeader = "Package Already Open",
+                    ContentHeader = "Package is corrupt",
                     ContentTitle = "Error",
                     Icon = MBIcon.Error,
-                    ContentMessage = $"Can't open {folderPath} because this package is already open in another application.{Environment.NewLine}If you are sure its not then manually delete file {CommodityPackage.GetPackageLockPath(folderPath)} and re-try.",
+                    ContentMessage = $"Can't open {folderPath} because its corrupt.{Environment.NewLine}Additional information: {ex.Message}",
                     WindowStartupLocation = WindowStartupLocation.CenterOwner,
                     ShowInCenter = true
                 }).ShowDialog(this);
@@ -67,7 +81,22 @@ namespace MainUI
             var folderOfd = new OpenFolderDialog { Title = "Package Folder" };
             var folderPath = await folderOfd.ShowAsync(this);
             if (string.IsNullOrWhiteSpace(folderPath)) { return; }
-            //Create Pack
+            if (Directory.EnumerateFileSystemEntries(folderPath).Any())
+            {
+                await MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams
+                {
+                    ButtonDefinitions = ButtonEnum.Ok,
+                    CanResize = false,
+                    ContentHeader = "Non Empty Package Folder",
+                    ContentTitle = "Error",
+                    Icon = MBIcon.Error,
+                    ContentMessage = $"Can't create package in folder {folderPath} because its not empty.{Environment.NewLine}Please clear it then try again.",
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    ShowInCenter = true
+                }).ShowDialog(this);
+                return;
+            }
+            using var p = CommodityPackage.Create(folderPath);
         }
 
         private async void BtnSettings_Click(object? sender, RoutedEventArgs e)
