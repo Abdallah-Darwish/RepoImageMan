@@ -48,7 +48,7 @@ namespace Tester
         {
             var ops = new JsonSerializerOptions { Encoder = JavaScriptEncoder.Create(UnicodeRanges.All) };
             await CommodityPackage.Create(newPkgPath);
-            using var res = await CommodityPackage.Open(newPkgPath);
+            using var res = await CommodityPackage.TryOpen(newPkgPath);
             var imgs = (await JsonSerializer.DeserializeAsync<OCImage[]>(File.OpenRead(imgsJson), ops))
                 .OrderBy(a => a.Position)
                 .Take(imgCount)

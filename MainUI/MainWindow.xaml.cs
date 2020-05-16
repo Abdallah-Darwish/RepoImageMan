@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using MainUI.Processors;
 using MessageBox.Avalonia;
 using MessageBox.Avalonia.DTO;
 using MessageBox.Avalonia.Enums;
@@ -9,6 +10,7 @@ using RepoImageMan;
 using System;
 using System.IO;
 using System.Linq;
+using System.Reactive.Linq;
 using MBIcon = MessageBox.Avalonia.Enums.Icon;
 
 namespace MainUI
@@ -101,13 +103,31 @@ namespace MainUI
 
         private async void BtnSettings_Click(object? sender, RoutedEventArgs e)
         {
-
-            //var p = await CommodityPackage.Open($@"{RepoFiles}\NewRepo");
-
-            //var din = new CommodityImageWindow(p);
-            //await din.ShowDialog(this);
             btnSettings.Content = "NOT IMPLEMENTED YET!";
-            //p.Dispose();
+            if (File.Exists($@"{RepoFiles}\NewRepo\pkg000.lck"))
+            {
+                File.Delete($@"{RepoFiles}\NewRepo\pkg000.lck");
+            }
+            var p = await CommodityPackage.TryOpen($@"{RepoFiles}\NewRepo")!;
+
+            var proc = new DirectoryImagesCatalogProcessor(p.Images.ToArray(), $@"{RepoFiles}\ProcessedRepo",null);
+            proc.Finally(async () =>
+            {
+                p.Dispose();
+                await MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams
+                {
+                    ButtonDefinitions = ButtonEnum.Ok,
+                    CanResize = false,
+                    ContentHeader = "DONE",
+                    ContentTitle = "DONE",
+                    Icon = MBIcon.Error,
+                    ContentMessage = $"DDDDOONNNEE.",
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    ShowInCenter = true
+                }).ShowDialog(this);
+            }).Subscribe();
+            await proc.Start();
+            GC.Collect();
             //GC.Collect();
         }
     }

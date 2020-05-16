@@ -62,7 +62,7 @@ namespace Tester
 
         private async void OpenPackage(object? sender, RoutedEventArgs e)
         {
-            _package = await CommodityPackage.Open($@"{RepoFiles}\NewRepo", _handleImage);
+            _package = await CommodityPackage.TryOpen($@"{RepoFiles}\NewRepo");
         }
 
         private void BindImage(object? sender, RoutedEventArgs e)
