@@ -17,7 +17,7 @@ namespace MainUI
     {
         private readonly List<IDisposable> _eventsSubscriptions = new List<IDisposable>();
         private readonly DesignCImage playground;
-        private readonly MenuItem miDeleteSelectedCommodity, miGoToSelectedCommodity, miGoToImage, miReloadSelectedCommodity, miSaveImage, miReloadImage, miSaveAllCommodities, miReloadAllCommodities, miSaveSelectedCommodity;
+        private readonly MenuItem miDeleteSelectedCommodity, miGoToSelectedCommodity, miGoToImage, miReloadSelectedCommodity, miSaveImage, miReloadImage, miSaveAllCommodities, miReloadAllCommodities, miSaveSelectedCommodity, miCreateCommodity;
         private readonly ContextMenu imgPlaygroundCTXMenu;
         private readonly ColorBox cbLabelColor;
         private readonly FontBox fbLabelFont;
@@ -85,6 +85,7 @@ namespace MainUI
             miSaveAllCommodities = this.FindControl<MenuItem>(nameof(miSaveAllCommodities));
             miReloadAllCommodities = this.FindControl<MenuItem>(nameof(miReloadAllCommodities));
             miGoToSelectedCommodity = this.FindControl<MenuItem>(nameof(miGoToSelectedCommodity));
+            miCreateCommodity = this.FindControl<MenuItem>(nameof(miCreateCommodity));
             _eventsSubscriptions.Add(this.GetObservable(Window.ClientSizeProperty).Subscribe(sz =>
             {
                 //I Have to do it manually because StackPanel will call NeasureOverride in "DesignCImage" with {INF, INF}.
@@ -120,8 +121,11 @@ namespace MainUI
             miSaveImage.Click += MiSaveImage_Click;
             miReloadImage.Click += MiReloadImage_Click;
             miGoToImage.Click += MiGoToImage_Click;
+            miCreateCommodity.Click += MiCreateCommodity_Click;
             miGoToSelectedCommodity.Click += MiGoToSelectedCommodity_Click;
         }
+
+        private async void MiCreateCommodity_Click(object? sender, RoutedEventArgs e) => await playground.Image.AddCommodity();
 
         private void MiGoToSelectedCommodity_Click(object? sender, RoutedEventArgs e) => _commodityTab.GoToCommodity(playground.SelectedCommodity!);
 

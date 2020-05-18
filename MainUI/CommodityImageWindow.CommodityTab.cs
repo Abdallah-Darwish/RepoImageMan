@@ -38,7 +38,6 @@ namespace MainUI
                         return name.Length <= 10 ? name : $"{name.Substring(0, 7)}...";
                     }
                 }
-
                 public decimal Cost => Commodity.Cost;
 
                 public decimal PartialPrice => Commodity.PartialPrice;
@@ -232,6 +231,8 @@ namespace MainUI
                 miMoveAfterSelectedCommodity.Click += MiMoveAfterSelectedCommodity_Click;
                 miGoToImage.Click += MiGoToImage_Click;
                 btnSaveCommodityToMemory.Click += BtnSaveCommodityToMemory_Click;
+
+               
 
                 dgCommodities.Items = _dgCommoditiesItems;
 

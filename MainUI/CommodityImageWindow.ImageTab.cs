@@ -509,10 +509,9 @@ namespace MainUI
 
                 if (_imageToMove == null || _imageToMove == selectedImage) { return; }
 
-                int selectedImageMaxComPos = selectedImage.Commodities.Max(c => c.Commodity.Position);
                 int newPos = _imageToMove.Position < selectedImage.Position
-                                 ? selectedImageMaxComPos
-                                 : selectedImageMaxComPos + 1;
+                                 ? selectedImage.Position
+                                 : selectedImage.Position + 1;
 
                 await _imageToMove.SetPosition(newPos);
                 ResetImageToMove();

@@ -20,16 +20,19 @@ namespace RepoImageMan
             {
                 tasks[i] = Task.Run(async () =>
                 {
-                    bool _ = false;
-                    sourceLock.Enter(ref _);
-                    T sourceItem;
-                    try
+                    while (true)
                     {
-                        if (sourceEnum.MoveNext() == false) { return; }
-                        sourceItem = sourceEnum.Current;
+                        bool _ = false;
+                        sourceLock.Enter(ref _);
+                        T sourceItem;
+                        try
+                        {
+                            if (sourceEnum.MoveNext() == false) { return; }
+                            sourceItem = sourceEnum.Current;
+                        }
+                        finally { sourceLock.Exit(); }
+                        await body(sourceItem).ConfigureAwait(false);
                     }
-                    finally { sourceLock.Exit(); }
-                    await body(sourceItem).ConfigureAwait(false);
                 });
             }
             return Task.WhenAll(tasks).ContinueWith(_ => sourceEnum.Dispose());

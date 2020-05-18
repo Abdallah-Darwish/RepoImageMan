@@ -19,6 +19,7 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
+            <DataGridTextColumn Header="Pos" Binding="{Binding Position, Mode=OneWay}" />
             <DataGridTextColumn Header="Name" Binding="{Binding Name, Mode=OneWay}" />
             <DataGridTextColumn Header="Cost" Binding="{Binding Cost, Mode=OneWay}" />
             <DataGridTextColumn Header="Whole Price" Binding="{Binding WholePrice, Mode=OneWay}" />
@@ -74,7 +75,7 @@
             </Grid.RowDefinitions>
             <TextBlock Text="Name" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" />
             <TextBox Name="txtCommodityName" Grid.Row="0" Grid.Column="2" HorizontalAlignment="Stretch"
-                     VerticalAlignment="Stretch" IsEnabled="False" />
+                     VerticalAlignment="Stretch" IsEnabled="False"/>
             <TextBlock Text="Cost" Grid.Row="2" Grid.Column="0" HorizontalAlignment="Left" />
             <NumericUpDown Name="nudCommodityCost" IsEnabled="False" Grid.Row="2" Grid.Column="2"
                            Minimum="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using RepoImageMan;
-using SixLabors.ImageSharp.PixelFormats;
 using System.Text.Json;
 using System.Text.Unicode;
 using Avalonia;
@@ -21,12 +20,13 @@ namespace Tester
             {
                 var ic = await img.AddCommodity();
                 ic.Location = new Point(Math.Min(c.IDX, img.Size.Width), Math.Min(c.IDY, img.Size.Height));
-                ic.Font = new Font("Arial", c.IDFontSize, RepoImageMan.FontStyle.Regular);
+                ic.Font = new Font("Arial", (int)(c.IDFontSize - c.IDFontSize * 0.07f), RepoImageMan.FontStyle.Regular);
                 ic.LabelColor = Color.FromUInt32((uint)c.IDForeColorArgb);
                 ic.Cost = c.Cost ?? 0m;
                 ic.WholePrice = c.WholePrice;
                 ic.PartialPrice = c.PartialPrice;
                 ic.Name = c.Name;
+                ic.Location = new Point(ic.Location.X + ic.Font.Size / 30, ic.Location.Y - ic.Font.Size / 30);
                 await ic.Save();
             }
         }

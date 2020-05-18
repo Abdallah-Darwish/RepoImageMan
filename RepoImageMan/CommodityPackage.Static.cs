@@ -3,6 +3,7 @@ using SixLabors.ImageSharp;
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -11,7 +12,7 @@ namespace RepoImageMan
 {
     public sealed partial class CommodityPackage
     {
-        public const string DbExtension = "sqlite", DbName = "db000.sqlite", LockName = "pkg000.lck";
+        public const string DbExtension = "sqlite", DbName = "db000.sqlite", LockName = "pkg000.lckxy";
         private static string GetConnectionString(string dbPath) => $"Data Source={dbPath};Version=3;";
         public static string GetPackageLockPath(string packageDirectoryPath) => Path.Combine(packageDirectoryPath, LockName);
         internal static string GetPackageDbPath(string packageDirectoryPath) => Path.Combine(packageDirectoryPath, DbName);

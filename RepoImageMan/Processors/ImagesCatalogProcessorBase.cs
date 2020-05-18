@@ -23,10 +23,12 @@ namespace RepoImageMan.Processors
         protected virtual int? GetImageQuality(CImage image) => null;
         protected virtual Avalonia.PixelSize GetImageSize(CImage image) => image.Size;
         protected virtual Stream GetImageStream(CImage image, int pos) => new MemoryStream();
-        protected virtual CImage[] Sort(ReadOnlyMemory<CImage> images) => images.ToArray()
-                .OrderBy(i => i.Commodities.Count > 0 ? i.Commodities.Min(c => c.Position) : int.MaxValue)
-                .ThenBy(i => i.Id)
-                .ToArray();
+        protected virtual CImage[] SortAndFilter(ReadOnlyMemory<CImage> images) => images
+            .ToArray()
+            .Where(i => i.IsExported == true)
+            .OrderBy(i => i.Commodities.Count > 0 ? i.Commodities.Min(c => c.Position) : int.MaxValue)
+            .ThenBy(i => i.Id)
+            .ToArray();
         protected virtual string GetCommodityLabel(Commodity com) => _commoditiesLabels[com.Id];
         //must support concurrent calls
         protected abstract void OnImageProcessed(CImage image, int pos, Stream imageStream);
@@ -68,6 +70,7 @@ namespace RepoImageMan.Processors
                     }
                     foreach (var com in image.Commodities)
                     {
+                        if(com.IsExported == false) { continue; }
                         var txt = new FormattedText
                         {
                             Text = GetCommodityLabel(com),
@@ -130,11 +133,12 @@ namespace RepoImageMan.Processors
             try
             {
                 _started = true;
-                var sortedImages = Sort(_images);
+                var sortedImages = SortAndFilter(_images);
                 _commoditiesLabels = ImmutableDictionary<int, string>.Empty.AddRange(
                     sortedImages.SelectMany(i => i.Commodities)
+                    .Where(c => c.IsExported == true)
                         .OrderBy(c => c.Position)
-                        .Select((com, pos) => new KeyValuePair<int, string>(com.Id, pos.ToString())));
+                        .Select((com, pos) => new KeyValuePair<int, string>(com.Id, (pos + 1).ToString())));
                 _convertingBuffers = ArrayPool<byte>.Create(_bufferSize, Environment.ProcessorCount * 2);
                 _imagesPool = ArrayPoolMemoryAllocator.CreateWithAggressivePooling();
                 _imagesConfig = new Configuration { MemoryAllocator = _imagesPool, MaxDegreeOfParallelism = Environment.ProcessorCount };

@@ -57,7 +57,7 @@ namespace Tester
                 $@"{RepoFiles}\OldRepo\Repository\Images.json",
                 $@"{RepoFiles}\OldRepo\Repository\cat",
                 $@"{RepoFiles}\NewRepo",
-                10);
+                10000);
         }
 
         private async void OpenPackage(object? sender, RoutedEventArgs e)

@@ -5,9 +5,7 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Scratch.MainWindow"
         Title="Scratch">
-  <Border BorderBrush="Black" BorderThickness="2" Padding="0" Margin="0, 0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-    <Canvas Name="grd" HorizontalAlignment="Stretch" Background="Green" VerticalAlignment="Stretch" Margin="30, 0">
-      <Button Canvas.Left="20" Canvas.Top="1" Name="btn" Content="GO" Click="GO" Width="100" Height="50" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-    </Canvas>
-  </Border>
+
+  <Button Canvas.Left="20" Canvas.Top="1" Name="btn" Content="GO" Click="GO" Width="100" Height="50" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+
 </Window>

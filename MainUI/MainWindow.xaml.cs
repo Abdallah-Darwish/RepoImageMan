@@ -104,9 +104,9 @@ namespace MainUI
         private async void BtnSettings_Click(object? sender, RoutedEventArgs e)
         {
             btnSettings.Content = "NOT IMPLEMENTED YET!";
-            if (File.Exists($@"{RepoFiles}\NewRepo\pkg000.lck"))
+            if (File.Exists($@"{RepoFiles}\NewRepo\pkg000.lckxy"))
             {
-                File.Delete($@"{RepoFiles}\NewRepo\pkg000.lck");
+                File.Delete($@"{RepoFiles}\NewRepo\pkg000.lckxy");
             }
             var p = await CommodityPackage.TryOpen($@"{RepoFiles}\NewRepo")!;
 

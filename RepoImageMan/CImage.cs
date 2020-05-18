@@ -291,7 +291,7 @@ namespace RepoImageMan
             }
             foreach (var com in Commodities)
             {
-                com.Location = new Point(Math.Min(imageInfo.Width, com.Location.X), Math.Min(imageInfo.Height, com.Location.Y));
+                com.Location = new Point(Math.Min(imageInfo.Width, com.Location.X), imageInfo.Height / 2);
             }
             Refresh();
         }
