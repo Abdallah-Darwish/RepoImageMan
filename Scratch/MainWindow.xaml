@@ -6,6 +6,6 @@
         x:Class="Scratch.MainWindow"
         Title="Scratch">
 
-  <Button Canvas.Left="20" Canvas.Top="1" Name="btn" Content="GO" Click="GO" Width="100" Height="50" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+  <Button Name="btn" Content="GO" Click="GO" Height="50" HorizontalAlignment="Left" VerticalAlignment="Top"/>
 
 </Window>

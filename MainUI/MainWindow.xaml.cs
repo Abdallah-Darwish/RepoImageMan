@@ -109,8 +109,17 @@ namespace MainUI
                 File.Delete($@"{RepoFiles}\NewRepo\pkg000.lckxy");
             }
             var p = await CommodityPackage.TryOpen($@"{RepoFiles}\NewRepo")!;
-
-            var proc = new DirectoryImagesCatalogProcessor(p.Images.ToArray(), $@"{RepoFiles}\ProcessedRepo",null);
+            //int pos = 0;
+            //foreach (var img in p.Images.OrderBy(i => i.Commodities.Min(c => c.Position)).ToArray())
+            //{
+            //    foreach (var c in img.Commodities)
+            //    {
+            //        await c.SetPosition(pos);
+            //        await c.Save();
+            //        pos++;
+            //    }
+            //}
+            var proc = new DirectoryImagesCatalogProcessor(p.Images.ToArray(), $@"{RepoFiles}\ProcessedRepo", null);
             proc.Finally(async () =>
             {
                 p.Dispose();
@@ -126,9 +135,8 @@ namespace MainUI
                     ShowInCenter = true
                 }).ShowDialog(this);
             }).Subscribe();
-            await proc.Start();
+            proc.Start();
             GC.Collect();
-            //GC.Collect();
         }
     }
 }

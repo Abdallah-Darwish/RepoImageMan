@@ -1,6 +1,7 @@
 ﻿using Avalonia.Media.Imaging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Advanced;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -77,10 +78,19 @@ namespace RepoImageMan
 
         public static Font Scale(this Font f, float scale) => f.WithSize(f.Size * scale);
 
-        public static void Invoke(this Avalonia.Threading.Dispatcher d,Action a)
+        public static void Invoke(this Avalonia.Threading.Dispatcher d, Action a)
         {
             if (d.CheckAccess()) { a(); }
             else { d.Post(a); }
         }
+
+        internal static SKFontStyle ToSK(this FontStyle s) => (s) switch
+        {
+            FontStyle.Regular => SKFontStyle.Normal,
+            FontStyle.Bold => SKFontStyle.Bold,
+            FontStyle.Italic => SKFontStyle.Italic,
+            FontStyle.Bold | FontStyle.Italic => SKFontStyle.BoldItalic,
+            _ => throw new ArgumentOutOfRangeException(nameof(s))
+        };
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Avalonia.Media;
 using Microsoft.VisualBasic.CompilerServices;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -7,6 +8,9 @@ using System.Text;
 
 namespace RepoImageMan
 {
+    /// <remarks>
+    /// Binary values shouldn't be changed because the match with skia
+    /// </remarks>
     [Flags]
     public enum FontStyle
     {
@@ -56,5 +60,18 @@ namespace RepoImageMan
               FontStyle.Italic => SixLabors.Fonts.FontStyle.Italic,
               _ => SixLabors.Fonts.FontStyle.Regular
           });
+        public SKPaint ToSKPaint() => new SKPaint
+        {
+            Typeface = SKTypeface.FromFamilyName(FamilyName, Style.ToSK()),
+            TextSize = Size,
+            TextAlign = SKTextAlign.Left,
+            IsAntialias = true,
+            IsLinearText = true,
+            IsStroke = false,
+            SubpixelText= true,
+            FilterQuality = SKFilterQuality.High,
+            TextEncoding = SKTextEncoding.Utf16,
+            LcdRenderText = true,
+        };
     }
 }

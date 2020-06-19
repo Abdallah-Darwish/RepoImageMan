@@ -11,6 +11,7 @@ using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
 using Avalonia;
 using RepoImageMan.Controls;
+using SkiaSharp;
 
 namespace RepoImageMan
 {
@@ -21,7 +22,7 @@ namespace RepoImageMan
         /// Returns the expected file name that will be generated for an image.
         /// used mainly to create an empty file before loading an image.
         /// </summary>
-        internal static string GetCImagePackageFilePath(string packageDirectory, int imageId) => Path.Combine(packageDirectory, $"{imageId}.jpg");
+        internal static string GetCImagePackageFilePath(string packageDirectory, int imageId) => Path.Combine(packageDirectory, $"{imageId}.bmp");
 
         /// <summary>
         /// Returns the expected file name that will be generated for an image.
@@ -31,7 +32,7 @@ namespace RepoImageMan
         /// <summary>
         /// Name of the image entry(or file) inside <see cref="Package"/> directory.
         /// </summary>
-        public string PackageFileName => $"{Id}.jpg";
+        public string PackageFileName => $"{Id}.bmp";
         public string PackageFilePath => Path.Combine(Package._packageDirectoryPath, PackageFileName);
 
         /// <summary>
@@ -262,7 +263,6 @@ namespace RepoImageMan
 
         /// <summary>
         /// RETURNS A READONLY STREAM.
-        /// Doesn't support concurrent access.
         /// </summary>
         public Stream OpenStream() => new FileStream(PackageFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
@@ -284,10 +284,13 @@ namespace RepoImageMan
                 throw new ArgumentException("Invalid image stream.", nameof(newFile));
             }
             newFile.Position = originalStreamPos;
-            using (var fs = new FileStream(PackageFilePath, FileMode.Open, FileAccess.Write, FileShare.Read))
+
+            using (var myStream = new SKFileWStream(PackageFilePath))
+            using (var skNewFile = new SKManagedStream(newFile, false))
+            using (var bmp = SKBitmap.Decode(skNewFile))
+            using (var xbmp = new SKPixmap(bmp.Info, bmp.GetPixels()))
             {
-                await newFile.CopyToAsync(fs).ConfigureAwait(false);
-                fs.SetLength(fs.Position);
+                xbmp.Encode(myStream, SKEncodedImageFormat.Bmp, 100);
             }
             foreach (var com in Commodities)
             {
@@ -334,7 +337,7 @@ namespace RepoImageMan
 
         internal bool TryEnterDesign() => Interlocked.CompareExchange(ref _designInstancesCount, 1, 0) == 0;
 
-        
+
         internal void ExitDesign()
         {
             if (Interlocked.CompareExchange(ref _designInstancesCount, 0, 1) != 1)

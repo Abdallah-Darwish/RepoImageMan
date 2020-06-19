@@ -19,7 +19,6 @@ namespace MainUI
         public static AppBuilder BuildAvaloniaApp()
             => AppBuilder.Configure<App>()
                 .UsePlatformDetect()
-                .UseSkia()
                 .LogToDebug();
     }
 }

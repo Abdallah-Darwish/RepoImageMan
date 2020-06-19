@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="0.9.10" />
+    <PackageReference Include="Avalonia.Skia" Version="0.9.10" />
     <PackageReference Include="Dapper" Version="2.0.35" />
     <PackageReference Include="Dapper.Contrib" Version="2.0.35" />
     <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.0.0">
@@ -19,6 +20,7 @@
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.112.2" />
     <PackageReference Include="System.IO.Packaging" Version="4.7.0" />
     <PackageReference Include="System.Reactive" Version="4.4.1" />
+    <PackageReference Include="System.Threading.Channels" Version="4.7.1" />
   </ItemGroup>
 
 </Project>
