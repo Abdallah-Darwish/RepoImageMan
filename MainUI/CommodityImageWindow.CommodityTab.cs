@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -79,17 +80,16 @@ namespace MainUI
 
                 public event PropertyChangedEventHandler PropertyChanged;
 
-                private void CommodityOnPropertyChanged([CallerMemberName]string propName = null)
+                private void CommodityOnPropertyChanged([CallerMemberName] string propName = null)
                 {
                     void Work()
                     {
                         if (propName == nameof(Commodity.Position)) { RePositionInDgItems(); }
                         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
                     }
-                    if (Dispatcher.UIThread.CheckAccess()) { Work(); }
-                    else { Work(); }
+                    Dispatcher.UIThread.Invoke(Work);
                 }
-                private IDisposable _commodityNotificationsSubscription;
+                private readonly IDisposable _commodityNotificationsSubscription;
                 public DgCommoditiesModel(Commodity com, CommodityTab hostingTab)
                 {
                     Commodity = com;
@@ -125,7 +125,7 @@ namespace MainUI
             private readonly List<DgCommoditiesModel> _dgCommoditiesModels = new List<DgCommoditiesModel>();
             private readonly CommodityImageWindow _hostingWindow;
 
-            private readonly ObservableCollection<DgCommoditiesModel> _dgCommoditiesItems = new ObservableCollection<DgCommoditiesModel>();
+            private readonly AvaloniaList<DgCommoditiesModel> _dgCommoditiesItems = new AvaloniaList<DgCommoditiesModel>();
 
             private readonly DataGrid dgCommodities;
             private readonly TextBox txtSearch, txtCommodityName;
@@ -170,6 +170,7 @@ namespace MainUI
 
             public CommodityTab(CommodityImageWindow hostingWindow)
             {
+
                 _hostingWindow = hostingWindow;
 
                 tabCommodities = _hostingWindow.Get<TabItem>(nameof(tabCommodities));
@@ -216,7 +217,7 @@ namespace MainUI
                 _hostingWindow._package.CommodityAdded += Package_CommodityAdded;
 
                 dgCommoditiesCTXMenu.ContextMenuOpening += DgCommoditiesCTXMenuOnContextMenuOpening;
-                miCreateCommodity.Click += async (sender, args) => await CreateNewCommodity();
+                miCreateCommodity.Click += async (sender, args) => await _hostingWindow._package.AddCommodity();
                 miExportAllCommodities.Click += MiExportAllCommodities_Click;
                 miUnExportAllCommodities.Click += MiUnExportAllCommodities_Click;
                 miExportSelectedCommodities.Click += MiExportSelectedCommodities_Click;
@@ -232,7 +233,7 @@ namespace MainUI
                 miGoToImage.Click += MiGoToImage_Click;
                 btnSaveCommodityToMemory.Click += BtnSaveCommodityToMemory_Click;
 
-               
+
 
                 dgCommodities.Items = _dgCommoditiesItems;
 
@@ -404,7 +405,7 @@ namespace MainUI
                 switch (e.Key)
                 {
                     case Key.Insert:
-                        await CreateNewCommodity();
+                        await _hostingWindow._package.AddCommodity();
                         break;
                     case Key.Delete:
                         await DeleteSelectedCommodities();
@@ -443,8 +444,6 @@ namespace MainUI
             {
                 foreach (var com in _dgCommoditiesModels) { com.RePositionInDgItems(); }
             }
-
-            private async Task CreateNewCommodity() => await _hostingWindow._package.AddCommodity();
 
             private async Task DeleteSelectedCommodities()
             {

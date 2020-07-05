@@ -29,6 +29,8 @@ namespace RepoImageMan
         /// </summary>
         private readonly SemaphoreSlim _imagesLock = new SemaphoreSlim(1);
 
+        internal readonly SemaphoreSlim _imageRepositinningLock = new SemaphoreSlim(1);
+
         private readonly ConcurrentDictionary<Type, object> _labelsCaches = new ConcurrentDictionary<Type, object>();
 
 
@@ -209,6 +211,7 @@ namespace RepoImageMan
                 _labelsCaches.Clear();
                 _commoditiesLock.Dispose();
                 _imagesLock.Dispose();
+                _imageRepositinningLock.Dispose();
                 _lck.Dispose();
                 File.Delete(Path.Combine(_packageDirectoryPath, LockName));
             }

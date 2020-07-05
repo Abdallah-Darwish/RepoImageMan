@@ -35,7 +35,7 @@ namespace RepoImageMan
 
         //Kept as a seperate method in case I want to support INotifyPropertyChanged in the future.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void OnPropertyChanged([CallerMemberName]string propName = null) => _notificationsSubject.OnNext(propName);
+        protected void OnPropertyChanged([CallerMemberName] string propName = null) => _notificationsSubject.OnNext(propName);
 
 
         ///<summary>
@@ -66,43 +66,50 @@ namespace RepoImageMan
         /// </remarks>
         public async ValueTask SetPosition(int newPosition)
         {
-            await using var con = Package.GetConnection();
-            con.Open();
-
-            if (newPosition < 1) { newPosition = 0; }
-
-            int maxPosition = Package.Commodities.Any() == false ? 0 : Package.Commodities.Max(c => c.Position);
-            if (newPosition > maxPosition) { newPosition = maxPosition; }
-
-            if (newPosition == Position) { return; }
-
-
-            await con.ExecuteAsync("UPDATE Commodity SET position = NULL WHERE id = @Id", new { Id })
-                     .ConfigureAwait(false);
-            if (newPosition < Position)
+            await Package._imageRepositinningLock.WaitAsync().ConfigureAwait(false);
+            try
             {
-                var comsToMove = Package.Commodities
-                                        .Where(c => c.Position >= newPosition && c.Position <= Position && c.Id != Id)
-                                        .OrderByDescending(c => c.Position)
-                                        .ToArray();
-                foreach (var com in comsToMove)
-                {
-                    await com.ChangePosition(com.Position + 1, con).ConfigureAwait(false);
-                }
-            }
-            else
-            {
-                var comsToMove = Package.Commodities
-                                        .Where(c => c.Position >= Position && c.Position <= newPosition && c.Id != Id)
-                                        .OrderBy(c => c.Position)
-                                        .ToArray();
-                foreach (var com in comsToMove)
-                {
-                    await com.ChangePosition(com.Position - 1, con).ConfigureAwait(false);
-                }
-            }
+                await using var con = Package.GetConnection();
+                con.Open();
 
-            await ChangePosition(newPosition, con).ConfigureAwait(false);
+                if (newPosition < 1) { newPosition = 0; }
+
+                int maxPosition = Package.Commodities.Any() ? Package.Commodities.Max(c => c.Position) : 0;
+                if (newPosition > maxPosition) { newPosition = maxPosition; }
+
+                if (newPosition == Position) { return; }
+
+
+                await con.ExecuteAsync("UPDATE Commodity SET position = NULL WHERE id = @Id", new { Id }).ConfigureAwait(false);
+                if (newPosition < Position)
+                {
+                    var comsToMove = Package.Commodities
+                                            .Where(c => c.Position >= newPosition && c.Position <= Position && c.Id != Id)
+                                            .OrderByDescending(c => c.Position)
+                                            .ToArray();
+                    foreach (var com in comsToMove)
+                    {
+                        await com.ChangePosition(com.Position + 1, con).ConfigureAwait(false);
+                    }
+                }
+                else
+                {
+                    var comsToMove = Package.Commodities
+                                            .Where(c => c.Position >= Position && c.Position <= newPosition && c.Id != Id)
+                                            .OrderBy(c => c.Position)
+                                            .ToArray();
+                    foreach (var com in comsToMove)
+                    {
+                        await com.ChangePosition(com.Position - 1, con).ConfigureAwait(false);
+                    }
+                }
+
+                await ChangePosition(newPosition, con).ConfigureAwait(false);
+            }
+            finally
+            {
+                Package._imageRepositinningLock.Release();
+            }
         }
 
         /// <summary>
@@ -112,7 +119,7 @@ namespace RepoImageMan
         {
             await con.ExecuteAsync("UPDATE Commodity SET position = @newPosition WHERE id = @Id", new { Id, newPosition }).ConfigureAwait(false);
             Position = newPosition;
-            OnPropertyChanged();
+            OnPropertyChanged(nameof(Position));
         }
 
         protected Commodity(int id, CommodityPackage package)

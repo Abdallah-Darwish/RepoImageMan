@@ -12,6 +12,8 @@ using System.Runtime.CompilerServices;
 using Avalonia;
 using RepoImageMan.Controls;
 using SkiaSharp;
+using System.Diagnostics;
+using System.Reactive.Linq;
 
 namespace RepoImageMan
 {
@@ -177,6 +179,10 @@ namespace RepoImageMan
             try
             {
                 _commodities.Add(newCom);
+                if (_commodities.Count > 0)
+                {
+                    await newCom.SetPosition(_commodities.Max(c => c.Position) + 1).ConfigureAwait(false);
+                }
             }
             finally
             {
@@ -271,7 +277,7 @@ namespace RepoImageMan
         /// Erases the old file and writes this one instead.
         /// </summary>
         /// <param name="newFile">Will be read from its current position to end.</param>
-        public async Task ReplaceFile(Stream newFile)
+        public void ReplaceFile(Stream newFile)
         {
             if (_designInstancesCount != 0)
             {
@@ -285,12 +291,11 @@ namespace RepoImageMan
             }
             newFile.Position = originalStreamPos;
 
-            using (var myStream = new SKFileWStream(PackageFilePath))
-            using (var skNewFile = new SKManagedStream(newFile, false))
-            using (var bmp = SKBitmap.Decode(skNewFile))
-            using (var xbmp = new SKPixmap(bmp.Info, bmp.GetPixels()))
+            using (var fs = new FileStream(PackageFilePath, FileMode.Create, FileAccess.ReadWrite))
+            using (var img = SixLabors.ImageSharp.Image.Load(newFile))
             {
-                xbmp.Encode(myStream, SKEncodedImageFormat.Bmp, 100);
+                SixLabors.ImageSharp.ImageExtensions.SaveAsBmp(img, fs);
+                fs.SetLength(fs.Position);
             }
             foreach (var com in Commodities)
             {

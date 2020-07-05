@@ -17,7 +17,7 @@ namespace MainUI.Processors
         private readonly int _imageQuality;
         private readonly string _savingDir;
 
-        public DirectoryImagesCatalogProcessor(ReadOnlyMemory<CImage> images, string savingDir, PixelSize? maxImageSize = default, int imageQuality = 75) : base(images)
+        public DirectoryImagesCatalogProcessor(ReadOnlyMemory<CImage> images, string savingDir, PixelSize? maxImageSize = default, int imageQuality = 75) : base(images, true)
         {
             if (maxImageSize.HasValue && maxImageSize?.Width <= 0 || maxImageSize?.Height <= 0)
             {
@@ -54,6 +54,7 @@ namespace MainUI.Processors
         private volatile int _processedImagesCount = 0;
         protected override void OnImageProcessed(CImage image, int pos, Stream imageStream)
         {
+            imageStream.SetLength(imageStream.Position);
             imageStream.Flush();
             imageStream.Dispose();
             var cnt = Interlocked.Increment(ref _processedImagesCount);

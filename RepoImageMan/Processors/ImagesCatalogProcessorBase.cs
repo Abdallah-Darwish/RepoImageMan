@@ -28,14 +28,14 @@ namespace RepoImageMan.Processors
         //must support concurrent calls
         protected abstract void OnImageProcessed(CImage image, int pos, Stream imageStream);
         protected virtual void OnCompleted() { }
-
-        protected ImagesCatalogProcessorBase(ReadOnlyMemory<CImage> images)
+        private readonly bool _rotate = false;
+        protected ImagesCatalogProcessorBase(ReadOnlyMemory<CImage> images, bool rotate)
         {
             if (images.Length == 0)
             {
                 throw new ArgumentException($"{nameof(images)} can't be empty.", nameof(images));
             }
-            //_rotationMode = rotationMode;
+            _rotate = rotate;
             _images = images;
         }
         private IImmutableDictionary<int, string> _commoditiesLabels;
@@ -45,8 +45,34 @@ namespace RepoImageMan.Processors
             var sz = GetImageSize(image);
             using var imgStream = image.OpenStream();
             using var orgImg = SKBitmap.Decode(imgStream);
-            using var sur = SKSurface.Create(new SKImageInfo(sz.Width, sz.Height));
-            sur.Canvas.DrawBitmap(orgImg, new SKPoint(0, 0));
+            using var sur = SKSurface.Create(new SKImageInfo(_rotate ? sz.Height : sz.Width, _rotate ? sz.Width : sz.Height));
+            if (_rotate)
+            {
+                sur.Canvas.Translate(sz.Height, 0);
+                sur.Canvas.RotateDegrees(90);
+            }
+            using (var orgImgPaint = new SKPaint())
+            {
+
+
+                float scale = image.Contrast + 1f;
+                float contrast = (-0.5f * scale + 0.5f) * 255f;
+                using var contrastFilter = SKColorFilter.CreateColorMatrix(new float[] {
+                scale, 0, 0, 0, contrast,
+                0, scale, 0, 0, contrast,
+                0, 0, scale, 0, contrast,
+                0, 0, 0, 1, 0 });
+
+                using var brightnessFilter = SKColorFilter.CreateColorMatrix(new float[] {
+                1, 0, 0, 0, image.Brightness,
+                0, 1, 0, 0, image.Brightness,
+                0, 0, 1, 0, image.Brightness,
+                0, 0, 0, 1, 0 });
+
+                orgImgPaint.FilterQuality = SKFilterQuality.High;
+                orgImgPaint.ColorFilter = SKColorFilter.CreateCompose(brightnessFilter, contrastFilter);
+                sur.Canvas.DrawBitmap(orgImg, new SKPoint(0, 0), orgImgPaint);
+            }
             foreach (var com in image.Commodities)
             {
                 if (com.IsExported == false) { continue; }
@@ -73,8 +99,8 @@ namespace RepoImageMan.Processors
                 _commoditiesLabels = ImmutableDictionary<int, string>.Empty.AddRange(
                     sortedImages.SelectMany(i => i.Commodities)
                     .Where(c => c.IsExported == true)
-                        .OrderBy(c => c.Position)
-                        .Select((com, pos) => new KeyValuePair<int, string>(com.Id, (pos + 1).ToString())));
+                    .OrderBy(c => c.Position)
+                    .Select((com, pos) => new KeyValuePair<int, string>(com.Id, (pos + 1).ToString())));
                 Parallel.ForEach(sortedImages.Select((img, idx) => (Image: img, Index: idx + 1)), x => ProcessImage1(x.Image, x.Index));
 
             }

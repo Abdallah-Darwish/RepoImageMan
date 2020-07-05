@@ -57,23 +57,7 @@ namespace RepoImageMan
         public static SixLabors.Primitives.Size ToSixLabors(this in Avalonia.PixelSize sz) => new SixLabors.Primitives.Size(sz.Width, sz.Height);
         public static SixLabors.Primitives.SizeF ToSixLabors(this in Avalonia.Size sz) => new SixLabors.Primitives.SizeF((float)sz.Width, (float)sz.Height);
 
-        public static WriteableBitmap ToAvalonia(this Image img)
-        {
-            using var rgbaImg = img.CloneAs<SixLabors.ImageSharp.PixelFormats.Rgba32>();
-            var renderedImagePixels = System.Runtime.InteropServices.MemoryMarshal.AsBytes(rgbaImg.GetPixelSpan());
-
-            var bmp = new WriteableBitmap(img.Size().ToAvalonia(), default, Avalonia.Platform.PixelFormat.Rgba8888);
-            using var bmpBuffer = bmp.Lock();
-
-            Span<byte> bmpBufferSpan;
-            unsafe
-            {
-                bmpBufferSpan = new Span<byte>(bmpBuffer.Address.ToPointer(), bmpBuffer.Size.Height * bmpBuffer.RowBytes);
-            }
-
-            renderedImagePixels.CopyTo(bmpBufferSpan);
-            return bmp;
-        }
+       
         public static Font WithSize(this Font f, float sz) => new Font(f!.FamilyName, sz, f.Style);
 
         public static Font Scale(this Font f, float scale) => f.WithSize(f.Size * scale);

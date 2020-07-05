@@ -40,7 +40,7 @@ namespace Tester
                 FileMode.Open,
                 FileAccess.Read);
 
-            await nimg.ReplaceFile(os).ConfigureAwait(false);
+            nimg.ReplaceFile(os);
             await Fix(nimg, coms);
         }
 

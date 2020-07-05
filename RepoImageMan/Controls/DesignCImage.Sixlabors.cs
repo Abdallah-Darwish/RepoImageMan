@@ -28,16 +28,21 @@ namespace RepoImageMan.Controls
             using var modBmp = _bmp.Clone(c => c.Contrast(Image.Contrast)
                                                  .Brightness(Image.Brightness)
                                                  .Resize((int)InstanceSize.Width, (int)InstanceSize.Height));
-            var modBmpSpan = modBmp.GetPixelSpan();
+            var modBmpMem = modBmp.GetPixelRowMemory(0);
             var newBmp = new WriteableBitmap(new Avalonia.PixelSize(modBmp.Width, modBmp.Height), default, Avalonia.Platform.PixelFormat.Rgba8888);
             using (var newBmpBuffer = newBmp.Lock())
             {
-                Span<TPixel> newBmpSpan;
+                Span<TPixel> newBmpSpan, modBmpSpan;
                 unsafe
                 {
-                    newBmpSpan = new Span<TPixel>(newBmpBuffer.Address.ToPointer(), newBmpBuffer.RowBytes * newBmp.PixelSize.Height);
+                    fixed (TPixel* modBmpBuf = modBmpMem.Span)
+                    {
+                        modBmpSpan = new Span<TPixel>(modBmpBuf, modBmp.Height * modBmp.Width);
+                        newBmpSpan = new Span<TPixel>(newBmpBuffer.Address.ToPointer(), newBmpBuffer.RowBytes * newBmp.PixelSize.Height);
+
+                        modBmpSpan.CopyTo(newBmpSpan);
+                    }
                 }
-                modBmpSpan.CopyTo(newBmpSpan);
             }
             _modedBmp = newBmp;
         }

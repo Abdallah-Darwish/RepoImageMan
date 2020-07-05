@@ -16,7 +16,6 @@ namespace RepoImageMan.Processors
     /// </summary>
     internal class FormattedTextImpl : IFormattedTextImpl
     {
-        SKColor _color;
         public FormattedTextImpl(string text, Font font, Color color)
         {
             Text = text ?? string.Empty;

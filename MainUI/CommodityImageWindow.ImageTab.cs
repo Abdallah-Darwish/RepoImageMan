@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -48,7 +49,7 @@ namespace MainUI
             private readonly CommodityImageWindow.ImageTab _hostingTab;
 
             //Wont create a dictionary for commodities models and instead I will use Commodities collection cause it will be pretty small
-            public ObservableCollection<TvImagesCommodityModel> Commodities { get; }
+            public AvaloniaList<TvImagesCommodityModel> Commodities { get; }
 
             public TvImagesCommodityModel GetCommodityModel(ImageCommodity com) => Commodities.First(c => c.Commodity.Id == com.Id);
 
@@ -101,17 +102,18 @@ namespace MainUI
             }
 
             public CImage Image { get; }
+           
+            private List<IDisposable> _eventsSubscriptions;
             /// <summary>
             /// <see cref="ImageSource"/> won't be initiazlized and you must do it seperatly, its safe to call it from different threads ON DIFFERENT INSTANCES.
             /// </summary>
-            private List<IDisposable> _eventsSubscriptions;
             public TvImagesImageModel(CImage image, CommodityImageWindow.ImageTab hostingTab)
             {
                 _hostingTab = hostingTab;
                 _hostingTab._tvImagesModels.Add(this);
                 Image = image;
                 UpdatePosition();
-                Commodities = new ObservableCollection<TvImagesCommodityModel>(Image.Commodities.Select(c => new TvImagesCommodityModel(c, this)));
+                Commodities = new AvaloniaList<TvImagesCommodityModel>(Image.Commodities.Select(c => new TvImagesCommodityModel(c, this)));
                 Image.FileUpdated += ImageOnFileUpdated;
                 Image.CommodityAdded += ImageOnCommodityAdded;
                 Image.CommodityRemoved += ImageOnCommodityRemoved;
@@ -153,8 +155,7 @@ namespace MainUI
 
                     UpdatePosition();
                 }
-                if (Dispatcher.UIThread.CheckAccess() == false) { Dispatcher.UIThread.Post(Work); }
-                else { Work(); }
+                Dispatcher.UIThread.Invoke(Work);
             }
 
             private void AddToCommodities(IEnumerable<TvImagesCommodityModel> coms)
@@ -438,7 +439,7 @@ namespace MainUI
                 }
                 imgStream.Position = 0;
                 var newImage = await _hostingWindow._package.AddImage();
-                await newImage.ReplaceFile(imgStream);
+                newImage.ReplaceFile(imgStream);
             }
             private async void MiCreateImage_Click(object? sender, RoutedEventArgs e) => await CreateNewImage();
 
@@ -486,7 +487,7 @@ namespace MainUI
                     return;
                 }
                 imgStream.Position = 0;
-                await selectedImage.Image.ReplaceFile(imgStream);
+                selectedImage.Image.ReplaceFile(imgStream);
             }
 
             private async void MiMoveAfterSelectedImage_Click(object? sender, RoutedEventArgs e)
@@ -691,7 +692,7 @@ namespace MainUI
                     case Key.Enter:
                         if (tvImages.SelectedItems.Count == 1)
                         {
-                            DesignImage(GetSelectedImage());
+                            DesignImage(GetSelectedImage()!);
                         }
                         break;
                     case Key.S:
