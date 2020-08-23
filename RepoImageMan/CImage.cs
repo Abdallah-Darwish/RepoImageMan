@@ -178,11 +178,11 @@ namespace RepoImageMan
             await _commoditiesLock.WaitAsync().ConfigureAwait(false);
             try
             {
-                _commodities.Add(newCom);
                 if (_commodities.Count > 0)
                 {
                     await newCom.SetPosition(_commodities.Max(c => c.Position) + 1).ConfigureAwait(false);
                 }
+                _commodities.Add(newCom);
             }
             finally
             {
@@ -277,7 +277,7 @@ namespace RepoImageMan
         /// Erases the old file and writes this one instead.
         /// </summary>
         /// <param name="newFile">Will be read from its current position to end.</param>
-        public void ReplaceFile(Stream newFile)
+        public async Task ReplaceFile(Stream newFile)
         {
             if (_designInstancesCount != 0)
             {
@@ -297,11 +297,17 @@ namespace RepoImageMan
                 SixLabors.ImageSharp.ImageExtensions.SaveAsBmp(img, fs);
                 fs.SetLength(fs.Position);
             }
+            var oldSize = Size;
+            Refresh();
+            float fontResizeFactor = (float)Size.Width / oldSize.Width + (float)Size.Height / oldSize.Height;
+            fontResizeFactor /= 2f;
             foreach (var com in Commodities)
             {
-                com.Location = new Point(Math.Min(imageInfo.Width, com.Location.X), imageInfo.Height / 2);
+                com.Location = new Point(Math.Floor(com.Location.X / oldSize.Width * Size.Width), Math.Floor(com.Location.Y / oldSize.Height * Size.Height));
+                com.Font = com.Font.WithSize(com.Font.Size * fontResizeFactor);
+                await com.Save().ConfigureAwait(false);
             }
-            Refresh();
+
         }
 
         public delegate void DeletingEventHandler(CImage sender);

@@ -102,7 +102,7 @@ namespace MainUI
             }
 
             public CImage Image { get; }
-           
+
             private List<IDisposable> _eventsSubscriptions;
             /// <summary>
             /// <see cref="ImageSource"/> won't be initiazlized and you must do it seperatly, its safe to call it from different threads ON DIFFERENT INSTANCES.
@@ -439,18 +439,37 @@ namespace MainUI
                 }
                 imgStream.Position = 0;
                 var newImage = await _hostingWindow._package.AddImage();
-                newImage.ReplaceFile(imgStream);
+                await newImage.ReplaceFile(imgStream);
             }
             private async void MiCreateImage_Click(object? sender, RoutedEventArgs e) => await CreateNewImage();
 
             private async Task DeleteSelectedImagesAndCommodities()
             {
-
-                foreach (var selectedCommodity in tvImages.SelectedItems.OfType<TvImagesCommodityModel>().ToArray())
+                var selectedComs = tvImages.SelectedItems.OfType<TvImagesCommodityModel>().ToArray();
+                var selectedImages = tvImages.SelectedItems.OfType<TvImagesImageModel>().ToArray();
+                if (selectedImages.Length == 0 && selectedComs.Length == 0) { return; }
+                string confMessage = "Are you sure you want to delete ";
+                if (selectedComs.Length > 0)
                 {
-                    await selectedCommodity.Commodity.Delete();
+                    confMessage += $"commodities:\n{string.Join("\n", selectedComs.Select((c, i) => $"    {i + 1}- {c.Name}."))}";
                 }
-                foreach (var selectedImage in tvImages.SelectedItems.OfType<TvImagesImageModel>().ToArray())
+                if (selectedImages.Length > 0)
+                {
+                    confMessage += selectedComs.Length > 0 ? "\n\nAnd images:\n" : "images:\n";
+                    confMessage += $"{string.Join("\n", selectedImages.Select((img, i) => $"    {i + 1}- {img.ShortName}."))}";
+                }
+                var confRes = await MessageBoxManager.GetMessageBoxStandardWindow("Confirmation",
+                    confMessage,
+                    ButtonEnum.YesNo,
+                    MessageBox.Avalonia.Enums.Icon.Warning)
+                    .ShowDialog(_hostingWindow);
+                if (confRes != ButtonResult.Yes) { return; }
+                foreach (var com in selectedComs)
+                {
+
+                    await com.Commodity.Delete();
+                }
+                foreach (var selectedImage in selectedImages)
                 {
                     await selectedImage.Image.Delete();
                 }
@@ -487,7 +506,7 @@ namespace MainUI
                     return;
                 }
                 imgStream.Position = 0;
-                selectedImage.Image.ReplaceFile(imgStream);
+                await selectedImage.Image.ReplaceFile(imgStream);
             }
 
             private async void MiMoveAfterSelectedImage_Click(object? sender, RoutedEventArgs e)

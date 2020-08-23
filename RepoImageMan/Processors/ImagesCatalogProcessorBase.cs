@@ -51,10 +51,10 @@ namespace RepoImageMan.Processors
                 sur.Canvas.Translate(sz.Height, 0);
                 sur.Canvas.RotateDegrees(90);
             }
+            //This code works fine, just want to skip it until I find good values for contrast and brightness
+            /*
             using (var orgImgPaint = new SKPaint())
             {
-
-
                 float scale = image.Contrast + 1f;
                 float contrast = (-0.5f * scale + 0.5f) * 255f;
                 using var contrastFilter = SKColorFilter.CreateColorMatrix(new float[] {
@@ -73,6 +73,9 @@ namespace RepoImageMan.Processors
                 orgImgPaint.ColorFilter = SKColorFilter.CreateCompose(brightnessFilter, contrastFilter);
                 sur.Canvas.DrawBitmap(orgImg, new SKPoint(0, 0), orgImgPaint);
             }
+            */
+            //Comment next line if brightness and contrast is uncommented
+            sur.Canvas.DrawBitmap(orgImg, new SKPoint(0, 0));
             foreach (var com in image.Commodities)
             {
                 if (com.IsExported == false) { continue; }
@@ -85,6 +88,7 @@ namespace RepoImageMan.Processors
             using var surSnapDataStrem = surSnapData.AsStream();
             var processedImageStream = GetImageStream(image, pos);
             surSnapDataStrem.CopyTo(processedImageStream);
+            OnImageProcessed(image, pos, processedImageStream);
         }
 
         private volatile bool _started = false;

@@ -4,6 +4,8 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using MessageBox.Avalonia;
+using MessageBox.Avalonia.DTO;
 using RepoImageMan;
 using System;
 using System.Collections.Generic;
@@ -447,8 +449,15 @@ namespace MainUI
 
             private async Task DeleteSelectedCommodities()
             {
-                foreach (var com in dgCommodities.SelectedItems.Cast<DgCommoditiesModel>().ToArray())
+                var selectedComs = dgCommodities.SelectedItems.Cast<DgCommoditiesModel>().ToArray();
+                var confRes = await MessageBoxManager.GetMessageBoxStandardWindow("Confirmation",
+                    $@"Are you sure you want to delete commodities:\n{string.Join("\n", selectedComs.Select((c, i) => $"    {i + 1}- {c.Name}."))}",
+                    MessageBox.Avalonia.Enums.ButtonEnum.YesNo, MessageBox.Avalonia.Enums.Icon.Warning)
+                    .ShowDialog(_hostingWindow);
+                if (confRes != MessageBox.Avalonia.Enums.ButtonResult.Yes) { return; }
+                foreach (var com in selectedComs)
                 {
+
                     await com.Commodity.Delete();
                 }
             }

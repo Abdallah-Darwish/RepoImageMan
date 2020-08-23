@@ -120,7 +120,8 @@ namespace MainUI
             //    }
             //}
             var proc = new DirectoryImagesCatalogProcessor(p.Images.ToArray(), $@"{RepoFiles}\ProcessedRepo", null);
-            proc.Finally(async () =>
+            proc.Do(x => System.Diagnostics.Debug.WriteLine($"Processed Image {x.Image.Id}\t{x.Count} Images Processed."))
+                .Finally(async () =>
             {
                 p.Dispose();
                 await MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams
