@@ -44,6 +44,7 @@ namespace MainUI
                 public decimal Cost => Commodity.Cost;
 
                 public decimal PartialPrice => Commodity.PartialPrice;
+                public decimal CashPrice => Commodity.CashPrice;
 
                 public decimal WholePrice => Commodity.WholePrice;
 
@@ -108,6 +109,7 @@ namespace MainUI
                     Commodity.Name = _hostingTab.txtCommodityName.Text;
                     Commodity.Cost = (decimal)_hostingTab.nudCommodityCost.Value;
                     Commodity.WholePrice = (decimal)_hostingTab.nudCommodityWholePrice.Value;
+                    Commodity.CashPrice = (decimal)_hostingTab.nudCommodityCashPrice.Value;
                     Commodity.PartialPrice = (decimal)_hostingTab.nudCommodityPartialPrice.Value;
                 }
 
@@ -134,7 +136,8 @@ namespace MainUI
 
             private readonly NumericUpDown nudCommodityCost,
                                            nudCommodityWholePrice,
-                                           nudCommodityPartialPrice;
+                                           nudCommodityPartialPrice,
+                                           nudCommodityCashPrice;
 
             private readonly MenuItem miMoveCommodity,
                 miMoveSelectedCommodity,
@@ -181,6 +184,7 @@ namespace MainUI
                 txtCommodityName = _hostingWindow.Get<TextBox>(nameof(txtCommodityName));
                 nudCommodityCost = _hostingWindow.Get<NumericUpDown>(nameof(nudCommodityCost));
                 nudCommodityWholePrice = _hostingWindow.Get<NumericUpDown>(nameof(nudCommodityWholePrice));
+                nudCommodityCashPrice = _hostingWindow.Get<NumericUpDown>(nameof(nudCommodityCashPrice));
                 nudCommodityPartialPrice = _hostingWindow.Get<NumericUpDown>(nameof(nudCommodityPartialPrice));
                 btnSaveCommodityToMemory = _hostingWindow.Get<Button>(nameof(btnSaveCommodityToMemory));
                 miDeleteCommodity = _hostingWindow.Get<MenuItem>(nameof(miDeleteCommodity));
@@ -204,7 +208,7 @@ namespace MainUI
 
                 _selectedCommodityDependants = new InputElement[]
                 {
-                    txtCommodityName, nudCommodityCost, nudCommodityPartialPrice, nudCommodityWholePrice,btnSaveCommodityToMemory
+                    txtCommodityName, nudCommodityCost, nudCommodityPartialPrice, nudCommodityCashPrice, nudCommodityWholePrice,btnSaveCommodityToMemory
                 };
                 foreach (var com in _hostingWindow._package.Commodities)
                 {
@@ -212,7 +216,7 @@ namespace MainUI
                 }
 
 
-                nudCommodityCost.FormatString = nudCommodityWholePrice.FormatString = nudCommodityPartialPrice.FormatString = "0.00";
+                nudCommodityCost.FormatString = nudCommodityWholePrice.FormatString = nudCommodityPartialPrice.FormatString = nudCommodityCashPrice.FormatString = "0.00";
                 dgCommodities.SelectionChanged += DgCommoditiesOnSelectionChanged;
                 dgCommodities.KeyDown += DgCommoditiesOnKeyDown;
                 dgCommodities.CellPointerPressed += DgCommodities_CellPointerPressed;
@@ -239,7 +243,7 @@ namespace MainUI
 
                 dgCommodities.Items = _dgCommoditiesItems;
 
-                _eventsSubscriptions.Add(_hostingWindow.GetObservable(Window.ClientSizeProperty).Subscribe(sz => dgCommodities.Height = sz.Height - 230));
+                _eventsSubscriptions.Add(_hostingWindow.GetObservable(Window.ClientSizeProperty).Subscribe(sz => dgCommodities.Height = sz.Height - 270));
                 _eventsSubscriptions.Add(txtSearch.GetObservable(TextBox.TextProperty).Subscribe(TxtSearchOnTextChanged));
             }
 
@@ -426,7 +430,7 @@ namespace MainUI
                 if (selectedCommodity == null)
                 {
                     txtCommodityName.Text = "";
-                    nudCommodityCost.Value = nudCommodityWholePrice.Value = nudCommodityPartialPrice.Value = 0;
+                    nudCommodityCost.Value = nudCommodityWholePrice.Value = nudCommodityPartialPrice.Value = nudCommodityCashPrice.Value = 0;
                     foreach (var i in _selectedCommodityDependants) { i.IsEnabled = false; }
                 }
                 else
@@ -436,6 +440,7 @@ namespace MainUI
                     txtCommodityName.Text = selectedCommodity.Name;
                     nudCommodityCost.Value = (double)selectedCommodity.Cost;
                     nudCommodityWholePrice.Value = (double)selectedCommodity.WholePrice;
+                    nudCommodityCashPrice.Value = (double)selectedCommodity.CashPrice;
                     nudCommodityPartialPrice.Value = (double)selectedCommodity.PartialPrice;
                 }
             }

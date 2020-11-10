@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp;
 using SixLabors.Primitives;
+using System.Linq;
 
 namespace RepoImageMan
 {
@@ -31,24 +32,23 @@ namespace RepoImageMan
 
         internal readonly SemaphoreSlim _imageRepositinningLock = new SemaphoreSlim(1);
         private readonly string _dbPath;
-        internal readonly string _packageDirectoryPath;
-        private readonly DirectoryInfo _packageDirectory;
         private readonly string ConnectionString;
+
+        public string PackageDirectoryPath { get; }
 
         internal SQLiteConnection GetConnection()
         {
             var con = new SQLiteConnection(ConnectionString);
-            con.Execute(@"PRAGMA foreign_keys = ON");
+            con.Execute("PRAGMA foreign_keys = ON;");
             return con;
         }
         private readonly Stream _lck;
         internal CommodityPackage(string packageDirectoryPath, Stream pkgLock)
         {
             _lck = pkgLock;
-            _packageDirectoryPath = packageDirectoryPath;
-            _dbPath = GetPackageDbPath(_packageDirectoryPath);
+            PackageDirectoryPath = packageDirectoryPath;
+            _dbPath = GetPackageDbPath(PackageDirectoryPath);
             ConnectionString = GetConnectionString(_dbPath);
-            _packageDirectory = new DirectoryInfo(_packageDirectoryPath);
         }
 
         private readonly List<Commodity> _commodities = new List<Commodity>();
@@ -179,6 +179,83 @@ namespace RepoImageMan
 
             CommodityAdded?.Invoke(this, com);
         }
+
+        public async Task Tidy()
+        {
+            using var con = GetConnection();
+            await _imagesLock.WaitAsync().ConfigureAwait(false);
+            await _commoditiesLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                var orderedImages = Images.OrderBy(i => i.Commodities.Count > 0 ? i.Commodities.Max(c => c.Position) : int.MaxValue).ToArray();
+                if (Images.Count > 0)
+                {
+                    var maxImgId = await con.ExecuteScalarAsync<int>("SELECT MAX(Id) FROM CImage;").ConfigureAwait(false) + 1;
+                    foreach (var img in orderedImages)
+                    {
+                        await img.Tidy(maxImgId++, con).ConfigureAwait(false);
+                    }
+                    var pkgFiles = Images.Select(i => i.PackageFileName).ToHashSet();
+                    pkgFiles.Add(CommodityPackage.DbName);
+                    pkgFiles.Add(CommodityPackage.LockName);
+                    pkgFiles.Add(Path.ChangeExtension(CommodityPackage.DbName, ".sqlite-journal"));
+                    foreach (var fileName in Directory.GetFiles(PackageDirectoryPath))
+                    {
+                        if (!pkgFiles.Contains(Path.GetFileName(fileName)))
+                        {
+                            File.Delete(fileName);
+                        }
+                    }
+                    var pos = 0;
+                    foreach (var img in orderedImages)
+                    {
+                        await img.Tidy(pos++, con).ConfigureAwait(false);
+                    }
+                }
+                if (Commodities.Count > 0)
+                {
+                    var orderedCommodites = Commodities.OrderBy(c => c.Position).ToArray();
+
+                    ///Shift all of the commodities to end to skip additional work inside <see cref="Commodity.SetPosition(int)"/> when setting final position.
+                    int pos = await con.ExecuteScalarAsync<int>("SELECT MAX(Position) FROM Commodity;").ConfigureAwait(false) + 1;
+                    foreach (var com in orderedCommodites)
+                    {
+                        await com.ChangePosition(pos++, con).ConfigureAwait(false);
+                    }
+
+
+                    //contains ids of images that we already processed there commodities
+                    var processedImages = new HashSet<int>();
+                    pos = 0;
+                    foreach (var com in orderedCommodites)
+                    {
+                        if (com is ImageCommodity imgCom)
+                        {
+                            //sort this image commodities only if this is the first commodity
+                            var img = imgCom.Image;
+                            if (!processedImages.Add(img.Id)) { continue; }
+                            foreach (var c in img.Commodities.OrderBy(c => c.Position))
+                            {
+                                await c.ChangePosition(pos++, con).ConfigureAwait(false);
+                            }
+                        }
+                        else
+                        {
+                            await com.ChangePosition(pos++, con).ConfigureAwait(false);
+                        }
+                    }
+                    foreach (var com in Commodities)
+                    {
+                        await com.Tidy(com.Position, con).ConfigureAwait(false);
+                    }
+                }
+            }
+            finally
+            {
+                _imagesLock.Release();
+                _commoditiesLock.Release();
+            }
+        }
         #region IDisposable Support
 
         private bool _disposedValue = false; // To detect redundant calls
@@ -208,7 +285,7 @@ namespace RepoImageMan
                 _imagesLock.Dispose();
                 _imageRepositinningLock.Dispose();
                 _lck.Dispose();
-                File.Delete(Path.Combine(_packageDirectoryPath, LockName));
+                File.Delete(Path.Combine(PackageDirectoryPath, LockName));
             }
         }
 

@@ -23,15 +23,18 @@ namespace MainUI
         private readonly CommodityPackage _package;
         private readonly CommodityTab _commodityTab;
         private readonly ImageTab _imageTab;
-
+        private readonly OtherTab _otherTab;
+        private readonly TabControl tabs;
         public CommodityImageWindow() { }
 
         public CommodityImageWindow(CommodityPackage package)
         {
             InitializeComponent();
+            tabs = this.FindControl<TabControl>(nameof(tabs));
             _package = package;
             _commodityTab = new CommodityTab(this);
             _imageTab = new ImageTab(this);
+            _otherTab = new OtherTab(this);
         }
 
         private void InitializeComponent()

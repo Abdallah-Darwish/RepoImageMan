@@ -6,12 +6,12 @@
         mc:Ignorable="d"
         x:Class="MainUI.CommodityImageWindow"
         Title="Commodities And Images Manager" MinWidth="750" MinHeight="560" WindowStartupLocation="CenterScreen">
-  <TabControl>
+  <TabControl Name="tabs">
     <TabItem Name="tabCommodities" Header="Commodities">
       <StackPanel>
         <DataGrid Name="dgCommodities" CanUserResizeColumns="True" CanUserSortColumns="True" SelectionMode="Extended">
           <DataGrid.Columns>
-            <!--Didn't use DataGridCheckBoxColumn because it intriduces some weird behaviour-->
+            <!--Didn't use DataGridCheckBoxColumn because it introduces some weird behaviour-->
             <DataGridTemplateColumn Header="Export">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
@@ -72,19 +72,23 @@
               <!--Margin Row-->
               <RowDefinition Height="5" />
               <RowDefinition Height="30" />
+              <!--Margin Row-->
+              <RowDefinition Height="5" />
+              <RowDefinition Height="30" />
             </Grid.RowDefinitions>
-            <TextBlock Text="Name" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" />
-            <TextBox Name="txtCommodityName" Grid.Row="0" Grid.Column="2" HorizontalAlignment="Stretch"
-                     VerticalAlignment="Stretch" IsEnabled="False"/>
+            <TextBox Watermark="Name" Name="txtCommodityName" Grid.Row="0" Grid.ColumnSpan="7" HorizontalAlignment="Stretch"
+                     VerticalAlignment="Stretch" IsEnabled="False" Width="300"/>
             <TextBlock Text="Cost" Grid.Row="2" Grid.Column="0" HorizontalAlignment="Left" />
             <NumericUpDown Name="nudCommodityCost" IsEnabled="False" Grid.Row="2" Grid.Column="2"
                            Minimum="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
-
-            <TextBlock Text="Whole Price" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Left" />
-            <NumericUpDown Name="nudCommodityWholePrice" IsEnabled="False" Grid.Row="0" Grid.Column="6"
+            <TextBlock Text="Whole Price" Grid.Row="2" Grid.Column="4" HorizontalAlignment="Left" />
+            <NumericUpDown Name="nudCommodityWholePrice" IsEnabled="False" Grid.Row="2" Grid.Column="6"
                            Minimum="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
-            <TextBlock Text="Partial Price" Grid.Row="2" Grid.Column="4" HorizontalAlignment="Left" />
-            <NumericUpDown Name="nudCommodityPartialPrice" IsEnabled="False" Grid.Row="2" Grid.Column="6"
+            <TextBlock Text="Cash Price" Grid.Row="4" Grid.Column="0" HorizontalAlignment="Left" />
+            <NumericUpDown Name="nudCommodityCashPrice" IsEnabled="False" Grid.Row="4" Grid.Column="2"
+                           Minimum="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+            <TextBlock Text="Partial Price" Grid.Row="4" Grid.Column="4" HorizontalAlignment="Left" />
+            <NumericUpDown Name="nudCommodityPartialPrice" IsEnabled="False" Grid.Row="4" Grid.Column="6"
                            Minimum="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
           </Grid>
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0 10 0 0">
@@ -142,6 +146,46 @@
           </ContextMenu>
         </TreeView.ContextMenu>
       </TreeView>
+    </TabItem>
+    <TabItem Name="tabOther" Header="Other">
+      <StackPanel Spacing="5" Margin="4">
+        <Border BorderThickness="1" BorderBrush="Black" Padding="4">
+          <StackPanel HorizontalAlignment="Center" Spacing="8">
+            <TextBlock>Export Images</TextBlock>
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <TextBox Name="txtExportCatalogPath" Width="500" Watermark="Catalog Directory"/>
+              <Button Name="btnBrowseExportCatalog" Content="Browse" Width="70" Height="23"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="Max Width"/>
+              <NumericUpDown Name="nudMaxImageWidth" Value="10000" Minimum="1" Increment="1" Margin="3,0,20,0" Height="35"/>
+              <TextBlock Text="Max Height"/>
+              <NumericUpDown Name="nudMaxImageHeight" Value="10000" Minimum="1" Increment="1" Margin="3,0,20,0" Height="35"/>
+              <TextBlock Text="Quality"/>
+              <NumericUpDown Name="nudImageQuality" Value="75" Minimum="1" Maximum="100" Increment="1" Margin="3,0,20,0" Height="35"/>
+              <CheckBox Name="chkRotateCatalog" IsChecked="True" Content="Rotate" HorizontalAlignment="Center"/>
+            </StackPanel>
+            <Button Name="btnExportCatalog" Content="Export" Width="100"/>
+          </StackPanel>
+        </Border>
+        <Border BorderThickness="1" BorderBrush="Black" Padding="4">
+          <StackPanel HorizontalAlignment="Center" Spacing="8">
+            <TextBlock>Export Excel</TextBlock>
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <TextBox Name="txtExportExcelPath" Width="500" Watermark="Catalog Directory"/>
+              <Button Name="btnBrowseExportExcel" Content="Browse" Width="70" Height="23"/>
+            </StackPanel>
+            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Spacing="20">
+              <CheckBox Name="chkExportCost" IsChecked="True" Content="Cost"/>
+              <CheckBox Name="chkExportCashPrice" IsChecked="True" Content="Cash Price"/>
+              <CheckBox Name="chkExportWholePrice" IsChecked="True" Content="Whole Price"/>
+              <CheckBox Name="chkExportPartialPrice" IsChecked="True" Content="Partial Price"/>
+            </StackPanel>
+            <Button Name="btnExportExcel" Content="Export" Width="100"/>
+          </StackPanel>
+        </Border>
+        <ProgressBar Maximum="1" Value="0" Name="pbOtherProgress"/>
+      </StackPanel>
     </TabItem>
   </TabControl>
 </Window>

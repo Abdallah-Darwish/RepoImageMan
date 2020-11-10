@@ -52,8 +52,10 @@ namespace MainUI
             public AvaloniaList<TvImagesCommodityModel> Commodities { get; }
 
             public TvImagesCommodityModel GetCommodityModel(ImageCommodity com) => Commodities.First(c => c.Commodity.Id == com.Id);
-
-            private int _position;
+            /// <summary>
+            /// Set to -1 to force even the first commodity to place it self and invoke <see cref="RePositionInTvItems"/>
+            /// </summary>
+            private int _position = -1;
 
             public int Position
             {

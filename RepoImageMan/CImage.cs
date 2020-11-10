@@ -14,6 +14,7 @@ using RepoImageMan.Controls;
 using SkiaSharp;
 using System.Diagnostics;
 using System.Reactive.Linq;
+using System.Data.SQLite;
 
 namespace RepoImageMan
 {
@@ -30,12 +31,12 @@ namespace RepoImageMan
         /// Returns the expected file name that will be generated for an image.
         /// used mainly to create an empty file before loading an image.
         /// </summary>
-        internal static string GetCImagePackageFilePath(CommodityPackage package, int imageId) => GetCImagePackageFilePath(package._packageDirectoryPath, imageId);
+        internal static string GetCImagePackageFilePath(CommodityPackage package, int imageId) => GetCImagePackageFilePath(package.PackageDirectoryPath, imageId);
         /// <summary>
         /// Name of the image entry(or file) inside <see cref="Package"/> directory.
         /// </summary>
         public string PackageFileName => $"{Id}.bmp";
-        public string PackageFilePath => Path.Combine(Package._packageDirectoryPath, PackageFileName);
+        public string PackageFilePath => Path.Combine(Package.PackageDirectoryPath, PackageFileName);
 
         /// <summary>
         /// Dimensions of the image.
@@ -89,7 +90,7 @@ namespace RepoImageMan
         /// Id of the image inside the package.
         /// Unique per <see cref="CommodityPackage"/> but might be repeated across packages.
         /// </summary>
-        public int Id { get; }
+        public int Id { get; private set; }
 
         private float _contrast;
 
@@ -188,6 +189,8 @@ namespace RepoImageMan
             {
                 _commoditiesLock.Release();
             }
+            newCom.Font = newCom.Font.WithSize((float)(Size.ToSize(1.0).Average() * 0.2));
+            await newCom.Save().ConfigureAwait(false);
             await Package.AddImageCommodity(newCom).ConfigureAwait(false);
             CommodityAdded?.Invoke(this, newCom);
             return newCom;
@@ -357,6 +360,21 @@ namespace RepoImageMan
             }
         }
 
+        internal async Task Tidy(int newId, SQLiteConnection con)
+        {
+            var newImagePath = GetCImagePackageFilePath(Package, newId);
+            if (File.Exists(newImagePath))
+            {
+                throw new InvalidOperationException($"Can't change image id because there exists another file with same expected path for this image when the change is done.\n{newImagePath}");
+            }
+            if ((await con.ExecuteScalarAsync<int?>("SELECT id FROM CImage WHERE id = @newId", new { newId }).ConfigureAwait(false)) != null)
+            {
+                throw new InvalidOperationException("Can't change image id because there exists another image with same id.");
+            }
+            await con.ExecuteAsync("UPDATE CImage SET id = @newId WHERE id = @Id", new { Id, newId }).ConfigureAwait(false);
+            File.Move(PackageFilePath, GetCImagePackageFilePath(Package, newId));
+            Id = newId;
+        }
         #region IDisposable Support
 
         private bool _disposedValue = false; // To detect redundant calls

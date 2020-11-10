@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using MainUI.Processors;
@@ -19,8 +20,8 @@ namespace MainUI
     {
         private readonly static string RepoFiles = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "RepoFiles");
         private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
-        private readonly Button btnOpenPack, btnCreatePack, btnSettings;
-
+        private readonly Button btnOpenPack, btnCreatePack, btnSettings, btnTidyPack;
+        private readonly InputElement[] _inputs;
         public MainWindow()
         {
             InitializeComponent();
@@ -30,14 +31,92 @@ namespace MainUI
             btnOpenPack = this.Get<Button>(nameof(btnOpenPack));
             btnCreatePack = this.Get<Button>(nameof(btnCreatePack));
             btnSettings = this.Get<Button>(nameof(btnSettings));
+            btnTidyPack = this.Get<Button>(nameof(btnTidyPack));
+            _inputs = new InputElement[] { btnOpenPack, btnCreatePack, btnTidyPack, btnSettings };
         }
-
+        private void DisableInputs()
+        {
+            foreach (var ipt in _inputs)
+            {
+                ipt.IsEnabled = false;
+            }
+        }
+        private void EnableInputs()
+        {
+            foreach (var ipt in _inputs)
+            {
+                ipt.IsEnabled = true;
+            }
+        }
+        private async void BtnTidyPack_Click(object? sender, RoutedEventArgs e)
+        {
+            DisableInputs();
+            CommodityPackage? p = null;
+            try
+            {
+                var folderOfd = new OpenFolderDialog { Title = "Package Folder" };
+                var folderPath = await folderOfd.ShowAsync(this);
+                if (string.IsNullOrWhiteSpace(folderPath)) { return; }
+                
+                try
+                {
+                    p = await CommodityPackage.TryOpen(folderPath);
+                    if (p == null)
+                    {
+                        await MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams
+                        {
+                            ButtonDefinitions = ButtonEnum.Ok,
+                            CanResize = false,
+                            ContentHeader = "Package Already Open",
+                            ContentTitle = "Error",
+                            Icon = MBIcon.Error,
+                            ContentMessage = $"Can't open {folderPath} because this package is already open in another application.{Environment.NewLine}If you are sure its not then manually delete file {CommodityPackage.GetPackageLockPath(folderPath)} and re-try.",
+                            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                            ShowInCenter = true
+                        }).ShowDialog(this);
+                        return;
+                    }
+                }
+                catch (PackageCorruptException ex)
+                {
+                    await MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams
+                    {
+                        ButtonDefinitions = ButtonEnum.Ok,
+                        CanResize = false,
+                        ContentHeader = "Package is corrupt",
+                        ContentTitle = "Error",
+                        Icon = MBIcon.Error,
+                        ContentMessage = $"Can't open {folderPath} because its corrupt.{Environment.NewLine}Additional information: {ex.Message}",
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                        ShowInCenter = true
+                    }).ShowDialog(this);
+                    return;
+                }
+                await p.Tidy();
+                await MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams
+                {
+                    ButtonDefinitions = ButtonEnum.Ok,
+                    CanResize = false,
+                    ContentHeader = "Finished tidying",
+                    ContentTitle = "Done",
+                    Icon = MBIcon.Info,
+                    ContentMessage = $"Finished tidying package {p.PackageDirectoryPath}.",
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    ShowInCenter = true
+                }).ShowDialog(this);
+            }
+            finally
+            {
+                p?.Dispose();
+                EnableInputs();
+            }
+        }
         private async void BtnOpenPack_Click(object? sender, RoutedEventArgs e)
         {
             var folderOfd = new OpenFolderDialog { Title = "Package Folder" };
             var folderPath = await folderOfd.ShowAsync(this);
             if (string.IsNullOrWhiteSpace(folderPath)) { return; }
-            CommodityPackage p = null;
+            CommodityPackage? p = null;
             try
             {
                 p = await CommodityPackage.TryOpen(folderPath);
@@ -101,43 +180,9 @@ namespace MainUI
             using var p = CommodityPackage.Create(folderPath);
         }
 
-        private async void BtnSettings_Click(object? sender, RoutedEventArgs e)
+        private void BtnSettings_Click(object? sender, RoutedEventArgs e)
         {
             btnSettings.Content = "NOT IMPLEMENTED YET!";
-            if (File.Exists($@"{RepoFiles}\NewRepo\pkg000.lckxy"))
-            {
-                File.Delete($@"{RepoFiles}\NewRepo\pkg000.lckxy");
-            }
-            var p = await CommodityPackage.TryOpen($@"{RepoFiles}\NewRepo")!;
-            //int pos = 0;
-            //foreach (var img in p.Images.OrderBy(i => i.Commodities.Min(c => c.Position)).ToArray())
-            //{
-            //    foreach (var c in img.Commodities)
-            //    {
-            //        await c.SetPosition(pos);
-            //        await c.Save();
-            //        pos++;
-            //    }
-            //}
-            var proc = new DirectoryImagesCatalogProcessor(p.Images.ToArray(), $@"{RepoFiles}\ProcessedRepo", null);
-            proc.Do(x => System.Diagnostics.Debug.WriteLine($"Processed Image {x.Image.Id}\t{x.Count} Images Processed."))
-                .Finally(async () =>
-            {
-                p.Dispose();
-                await MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams
-                {
-                    ButtonDefinitions = ButtonEnum.Ok,
-                    CanResize = false,
-                    ContentHeader = "DONE",
-                    ContentTitle = "DONE",
-                    Icon = MBIcon.Error,
-                    ContentMessage = $"DDDDOONNNEE.",
-                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                    ShowInCenter = true
-                }).ShowDialog(this);
-            }).Subscribe();
-            proc.Start();
-            GC.Collect();
         }
     }
 }

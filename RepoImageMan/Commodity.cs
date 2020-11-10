@@ -115,7 +115,7 @@ namespace RepoImageMan
         /// <summary>
         /// Only will change CURRENT INSTANCE position and raise related events.
         /// </summary>
-        private async Task ChangePosition(int newPosition, SQLiteConnection con)
+        internal async Task ChangePosition(int newPosition, SQLiteConnection con)
         {
             await con.ExecuteAsync("UPDATE Commodity SET position = @newPosition WHERE id = @Id", new { Id, newPosition }).ConfigureAwait(false);
             Position = newPosition;
@@ -144,7 +144,7 @@ namespace RepoImageMan
         /// <summary>
         /// Id of this <see cref="Commodity"/> in <see cref="Package"/>.
         /// </summary>
-        public int Id { get; }
+        public int Id { get; private set; }
 
         private string _name;
 
@@ -171,7 +171,7 @@ namespace RepoImageMan
             {
                 if (value < 0m)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), WholePrice, $"{nameof(WholePrice)} can't < 0.");
+                    throw new ArgumentOutOfRangeException(nameof(value), value, $"{nameof(WholePrice)} can't < 0.");
                 }
 
                 if (value == _wholePrice) { return; }
@@ -190,12 +190,31 @@ namespace RepoImageMan
             {
                 if (value < 0m)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), PartialPrice, $"{nameof(PartialPrice)} can't < 0.");
+                    throw new ArgumentOutOfRangeException(nameof(value), value, $"{nameof(PartialPrice)} can't < 0.");
                 }
 
                 if (value == _partialPrice) { return; }
 
                 _partialPrice = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private decimal _cashPrice;
+
+        public decimal CashPrice
+        {
+            get => _cashPrice;
+            set
+            {
+                if (value < 0m)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, $"{nameof(CashPrice)} can't < 0.");
+                }
+
+                if (value == _cashPrice) { return; }
+
+                _cashPrice = value;
                 OnPropertyChanged();
             }
         }
@@ -207,7 +226,7 @@ namespace RepoImageMan
             get => _cost;
             set
             {
-                if (value < 0m) { throw new ArgumentOutOfRangeException(nameof(value), Cost, $"{nameof(Cost)} can't < 0."); }
+                if (value < 0m) { throw new ArgumentOutOfRangeException(nameof(value), value, $"{nameof(Cost)} can't < 0."); }
 
                 if (value == _cost) { return; }
 
@@ -239,7 +258,7 @@ namespace RepoImageMan
         {
             await using var con = Package.GetConnection();
             await con
-                .ExecuteAsync("UPDATE Commodity SET name = @Name, wholePrice = @WholePrice, partialPrice = @PartialPrice, cost = @Cost, isExported = @IsExported WHERE id = @Id", this)
+                .ExecuteAsync("UPDATE Commodity SET name = @Name, wholePrice = @WholePrice, partialPrice = @PartialPrice, cashPrice = @CashPrice, cost = @Cost, isExported = @IsExported WHERE id = @Id", this)
                 .ConfigureAwait(false);
         }
 
@@ -254,6 +273,7 @@ namespace RepoImageMan
             Name = dbFields.Name;
             WholePrice = (decimal)(double)dbFields.WholePrice;
             PartialPrice = (decimal)(double)dbFields.PartialPrice;
+            CashPrice = (decimal)(double)dbFields.CashPrice;
             Cost = (decimal)(double)dbFields.Cost;
             Position = (int)dbFields.Position;
             IsExported = (bool)dbFields.IsExported;
@@ -261,6 +281,11 @@ namespace RepoImageMan
 
         public override string ToString() => $"{Id}: {Name}";
 
+        internal async Task Tidy(int newId, SQLiteConnection con)
+        {
+            await con.ExecuteAsync("UPDATE Commodity SET id = @newId WHERE id = @Id", new { Id, newId }).ConfigureAwait(false);
+            Id = newId;
+        }
         #region IDisposable Support
 
         private bool _disposedValue = false; // To detect redundant calls

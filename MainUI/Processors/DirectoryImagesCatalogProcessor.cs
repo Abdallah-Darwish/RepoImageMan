@@ -17,7 +17,7 @@ namespace MainUI.Processors
         private readonly int _imageQuality;
         private readonly string _savingDir;
 
-        public DirectoryImagesCatalogProcessor(ReadOnlyMemory<CImage> images, string savingDir, PixelSize? maxImageSize = default, int imageQuality = 75) : base(images, true)
+        public DirectoryImagesCatalogProcessor(ReadOnlyMemory<CImage> images, string savingDir, PixelSize? maxImageSize = default, int imageQuality = 75, bool rotate = true) : base(images, rotate)
         {
             if (maxImageSize.HasValue && maxImageSize?.Width <= 0 || maxImageSize?.Height <= 0)
             {

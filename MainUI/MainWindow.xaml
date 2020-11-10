@@ -6,13 +6,21 @@
         x:Class="MainUI.MainWindow"
         Title="Repo Image Man(Alpha)"
         WindowStartupLocation="CenterScreen"
-        MinWidth="400" MaxWidth="400" MinHeight="130" MaxHeight="130" CanResize="False">
-  <Grid>
-    <Button Name="btnOpenPack" Content="Open Package" Margin="15, 15, 0, 0" VerticalAlignment="Top"
-            HorizontalAlignment="Left" ToolTip.Tip="Opens an already existing package." Click="BtnOpenPack_Click" />
-    <Button Name="btnCreatePack" Content="Create Package" Margin="0, 15, 15, 0" VerticalAlignment="Top"
-            HorizontalAlignment="Right" ToolTip.Tip="Creates a new package." Click="BtnCreatePack_Click"/>
-    <Button Name="btnSettings" Content="Settings" Margin="0, 0, 0, 15" VerticalAlignment="Bottom"
-            HorizontalAlignment="Center" Click="BtnSettings_Click"/>
-  </Grid>
+        MinWidth="400" MaxWidth="400" MinHeight="200" MaxHeight="200" CanResize="False">
+  <StackPanel Spacing="5" Margin="4">
+    <Border BorderThickness="1" BorderBrush="Black" Padding="4">
+      <StackPanel  Spacing="5">
+        <Button Name="btnOpenPack" Content="Open Package" ToolTip.Tip="Opens an already existing package."
+                Click="BtnOpenPack_Click" />
+        <Button Name="btnCreatePack" Content="Create Package"
+                ToolTip.Tip="Creates a new package." Click="BtnCreatePack_Click"/>
+        <Button Name="btnTidyPack" Content="Tidy Package"
+                ToolTip.Tip="Comapct and sort package images and commodities, and remove not used files."
+                Click="BtnTidyPack_Click"/>
+      </StackPanel>
+    </Border>
+    <Border BorderThickness="1" BorderBrush="Black" Padding="4">
+      <Button Name="btnSettings" Content="Settings" Click="BtnSettings_Click"/>
+    </Border>
+  </StackPanel>
 </Window>

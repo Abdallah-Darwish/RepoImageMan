@@ -15,31 +15,15 @@ namespace Scratch
 {
     public class MainWindow : Window
     {
-        private readonly Button btn;
         public MainWindow()
         {
             InitializeComponent();
 #if DEBUG
             this.AttachDevTools();
 #endif
-            btn = this.FindControl<Button>(nameof(btn));
-
         }
 
-        private void GO(object sender, RoutedEventArgs e)
-        {
-            const string dir = @"C:\Users\Darwish\Desktop\RepoFiles\NewRepo";
-            Parallel.ForEach(System.IO.Directory.GetFiles(dir, "*.jpg"), f =>
-            {
-                var nf = Path.ChangeExtension(f, ".bmp");
-                using (var img = SixLabors.ImageSharp.Image.Load(f))
-                using (var fs = new FileStream(nf, FileMode.Create, FileAccess.ReadWrite))
-                {
-                    img.SaveAsBmp(fs);
-                }
-                File.Delete(f);
-            });
-        }
+     
 
         private void InitializeComponent()
         {

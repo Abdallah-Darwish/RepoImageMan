@@ -27,6 +27,8 @@
     <PackageReference Include="Avalonia" Version="0.9.12" />
     <PackageReference Include="Avalonia.Controls.DataGrid" Version="0.9.12" />
     <PackageReference Include="Avalonia.Desktop" Version="0.9.12" />
+    <PackageReference Include="EPPlus" Version="5.4.0" />
+    <PackageReference Include="mameolan.Avalonia.ExtendedToolkit" Version="1.0.0-CI-20200523-051541" />
     <PackageReference Include="MessageBox.Avalonia" Version="0.9.6.1" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" />
   </ItemGroup>

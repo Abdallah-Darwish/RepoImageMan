@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace RepoImageMan.Processors
@@ -20,7 +21,7 @@ namespace RepoImageMan.Processors
         protected virtual Stream GetImageStream(CImage image, int pos) => new MemoryStream();
         protected virtual CImage[] SortAndFilter(ReadOnlyMemory<CImage> images) => images
             .ToArray()
-            .Where(i => i.IsExported == true)
+            .Where(i => i.IsExported)
             .OrderBy(i => i.Commodities.Count > 0 ? i.Commodities.Min(c => c.Position) : int.MaxValue)
             .ThenBy(i => i.Id)
             .ToArray();
@@ -95,14 +96,14 @@ namespace RepoImageMan.Processors
 
         public void Start()
         {
-            if (_started == true) { throw new InvalidOperationException("This processor has already started."); }
+            if (_started) { throw new InvalidOperationException("This processor has already started."); }
             try
             {
                 _started = true;
                 var sortedImages = SortAndFilter(_images);
                 _commoditiesLabels = ImmutableDictionary<int, string>.Empty.AddRange(
                     sortedImages.SelectMany(i => i.Commodities)
-                    .Where(c => c.IsExported == true)
+                    .Where(c => c.IsExported)
                     .OrderBy(c => c.Position)
                     .Select((com, pos) => new KeyValuePair<int, string>(com.Id, (pos + 1).ToString())));
                 Parallel.ForEach(sortedImages.Select((img, idx) => (Image: img, Index: idx + 1)), x => ProcessImage1(x.Image, x.Index));

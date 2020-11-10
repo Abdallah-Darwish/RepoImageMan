@@ -13,115 +13,126 @@ namespace RepoImageMan
     public sealed partial class CommodityPackage
     {
         public const string DbExtension = "sqlite", DbName = "db000.sqlite", LockName = "pkg000.lckxy";
-        private static string GetConnectionString(string dbPath) => $"Data Source={dbPath};Version=3;";
+        private static string GetConnectionString(string dbPath) => $"Data Source={dbPath};Version=3;foreign keys=True;";
         public static string GetPackageLockPath(string packageDirectoryPath) => Path.Combine(packageDirectoryPath, LockName);
         internal static string GetPackageDbPath(string packageDirectoryPath) => Path.Combine(packageDirectoryPath, DbName);
         internal static async Task VerifyPackage(string pd)
         {
-            if (Directory.Exists(pd) == false)
+            try
             {
-                throw new PackageCorruptException("Package folder doesn't exist.");
-            }
-            if (File.Exists(GetPackageDbPath(pd)) == false)
-            {
-                throw new PackageCorruptException(
- $@"Can't find package Database.
+                if (Directory.Exists(pd) == false)
+                {
+                    throw new PackageCorruptException("Package folder doesn't exist.");
+                }
+                if (File.Exists(GetPackageDbPath(pd)) == false)
+                {
+                    throw new PackageCorruptException(
+     $@"Can't find package Database.
 Expected Database path is {GetPackageDbPath(pd)}.");
-            }
-            await using var con = new SQLiteConnection(GetConnectionString(GetPackageDbPath(pd)));
-            var images = (await con.QueryAsync("SELECT * FROM CImage;").ConfigureAwait(false)).ToArray();
+                }
+                await using var con = new SQLiteConnection(GetConnectionString(GetPackageDbPath(pd)));
+                var images = (await con.QueryAsync("SELECT * FROM CImage;").ConfigureAwait(false)).ToArray();
 
-            var systemFonstNames = Avalonia.Media.FontFamily.SystemFontFamilies.Select(f => f.Name.ToUpperInvariant()).ToHashSet();
-            foreach (var img in images)
-            {
-                if (img.Contrast < 0)
+                var systemFonstNames = Avalonia.Media.FontFamily.SystemFontFamilies.Select(f => f.Name.ToUpperInvariant()).ToHashSet();
+                foreach (var img in images)
                 {
-                    throw new PackageCorruptException($"Image(Id: {img.Id}) has invalid contrast");
+                    if (img.Contrast < 0)
+                    {
+                        throw new PackageCorruptException($"Image(Id: {img.Id}) has invalid contrast");
+                    }
+                    if (img.Brightness < 0)
+                    {
+                        throw new PackageCorruptException($"Image(Id :{img.Id}) has invalid brightness");
+                    }
+                    var imgComs = (await con.QueryAsync("SELECT * FROM ImageCommodity WHERE imageId = @imageId;",
+                        new { imageId = img.Id }).ConfigureAwait(false)).ToArray();
+                    var imgPath = CImage.GetCImagePackageFilePath(pd, (int)img.Id);
+                    if (File.Exists(imgPath) == false)
+                    {
+                        throw new PackageCorruptException($"Image(Id: {img.Id}) file doesn't exist.");
+                    }
+                    IImageInfo? imgInfo = null;
+                    using (var imgStream = File.OpenRead(imgPath))
+                    {
+                        try
+                        {
+                            imgInfo = Image.Identify(imgStream);
+                        }
+                        catch { }
+                    }
+                    if (imgInfo == null) { throw new PackageCorruptException($"Image(id: {img.Id}) isn't a valid image."); }
+                    foreach (var com in imgComs)
+                    {
+                        if (com.LocationX < 0 || com.LocationX > imgInfo.Width || com.LocationY < 0 || com.LoactionY > imgInfo.Height)
+                        {
+                            throw new PackageCorruptException($"Commodity(Id: {com.Id}) coordinates is out of bounds.");
+                        }
+                        if (com.FontSize <= 0)
+                        {
+                            throw new PackageCorruptException($"Commodity(Id: {com.Id}) font size is <= 0.");
+                        }
+                        if (com.FontStyle < 0 || com.FontStyle > 3)
+                        {
+                            throw new PackageCorruptException($"Commodity(Id: {com.Id}) has invalid style.");
+                        }
+                        try
+                        {
+                            Avalonia.Media.Color.Parse(com.LabelColor);
+                        }
+                        catch
+                        {
+                            throw new PackageCorruptException($"Commodity(id: {com.Id}) has invalid color.");
+                        }
+                        if (systemFonstNames.Contains((com.FontFamilyName as string)!.ToUpperInvariant()) == false)
+                        {
+                            throw new PackageCorruptException($"Commodity(Id: {com.Id}) has a non-exisiting font.");
+                        }
+                    }
                 }
-                if (img.Brightness < 0)
+                var coms = (await con.QueryAsync("SELECT * FROM Commodity;").ConfigureAwait(false)).ToArray();
+                var comsPositions = new HashSet<int>();
+                foreach (var com in coms)
                 {
-                    throw new PackageCorruptException($"Image(Id :{img.Id}) has invalid brightness");
-                }
-                var imgComs = (await con.QueryAsync("SELECT * FROM ImageCommodity WHERE imageId = @imageId;",
-                    new { imageId = img.Id }).ConfigureAwait(false)).ToArray();
-                var imgPath = CImage.GetCImagePackageFilePath(pd, (int)img.Id);
-                if (File.Exists(imgPath) == false)
-                {
-                    throw new PackageCorruptException($"Image(Id: {img.Id}) file doesn't exist.");
-                }
-                IImageInfo imgInfo = null;
-                using (var imgStream = File.OpenRead(imgPath))
-                {
-                    try
+                    if (com.Cost < 0)
                     {
-                        imgInfo = Image.Identify(imgStream);
+                        throw new PackageCorruptException($"Commodity(Id: {com.Id}) cost is < 0.");
                     }
-                    catch { }
-                }
-                if (imgInfo == null) { throw new PackageCorruptException($"Image(id: {img.Id}) isn't a valid image."); }
-                foreach (var com in imgComs)
-                {
-                    if (com.LocationX < 0 || com.LocationX > imgInfo.Width || com.LocationY < 0 || com.LoactionY > imgInfo.Height)
+                    if (com.WholePrice < 0)
                     {
-                        throw new PackageCorruptException($"Commodity(Id: {com.Id}) coordinates is out of bounds.");
+                        throw new PackageCorruptException($"Commodity(Id: {com.Id}) whole price is < 0.");
                     }
-                    if (com.FontSize <= 0)
+                    if (com.PartialPrice < 0)
                     {
-                        throw new PackageCorruptException($"Commodity(Id: {com.Id}) font size is <= 0.");
+                        throw new PackageCorruptException($"Commodity(Id: {com.Id}) partial price is < 0.");
                     }
-                    if (com.FontStyle < 0 || com.FontStyle > 3)
+                    if (com.CashPrice < 0)
                     {
-                        throw new PackageCorruptException($"Commodity(Id: {com.Id}) has invalid style.");
+                        throw new PackageCorruptException($"Commodity(Id: {com.Id}) cash price is < 0.");
                     }
-                    try
+                    if (string.IsNullOrWhiteSpace(com.Name))
                     {
-                        Avalonia.Media.Color.Parse(com.LabelColor);
+                        throw new PackageCorruptException($"Commodity(Id: {com.Id}) name is empty or invalid.");
                     }
-                    catch
+                    if (com.Position < 0)
                     {
-                        throw new PackageCorruptException($"Commodity(id: {com.Id}) has invalid color.");
+                        throw new PackageCorruptException($"Commodity(Id: {com.Id}) position is < 0.");
                     }
-                    if (systemFonstNames.Contains((com.FontFamilyName as string)!.ToUpperInvariant()) == false)
+                    if (comsPositions.Add((int)com.Position) == false)
                     {
-                        throw new PackageCorruptException($"Commodity(Id: {com.Id}) has a non-exisiting font.");
+                        throw new PackageCorruptException($"Commodity(Id: {com.Id}) position is duplicate.");
                     }
                 }
             }
-            var coms = (await con.QueryAsync("SELECT * FROM Commodity;").ConfigureAwait(false)).ToArray();
-            var comsPositions = new HashSet<int>();
-            foreach (var com in coms)
+            catch (Exception ex)
             {
-                if (com.Cost < 0)
-                {
-                    throw new PackageCorruptException($"Commodity(Id: {com.Id}) cost is < 0.");
-                }
-                if (com.WholePrice < 0)
-                {
-                    throw new PackageCorruptException($"Commodity(Id: {com.Id}) whole price is < 0.");
-                }
-                if (com.PartialPrice < 0)
-                {
-                    throw new PackageCorruptException($"Commodity(Id: {com.Id}) partial price is < 0.");
-                }
-                if (string.IsNullOrWhiteSpace(com.Name))
-                {
-                    throw new PackageCorruptException($"Commodity(Id: {com.Id}) name is empty or invalid.");
-                }
-                if (com.Position < 0)
-                {
-                    throw new PackageCorruptException($"Commodity(Id: {com.Id}) position is < 0.");
-                }
-                if (comsPositions.Add((int)com.Position) == false)
-                {
-                    throw new PackageCorruptException($"Commodity(Id: {com.Id}) position is duplicate.");
-                }
+                throw new PackageCorruptException("Some error occured while validating the package.", ex);
             }
         }
         public static async Task<CommodityPackage?> TryOpen(string packageDirectoryPath)
         {
-            await VerifyPackage(packageDirectoryPath);
+            await VerifyPackage(packageDirectoryPath).ConfigureAwait(false);
             //created lock as a stream so other apps can't delete it
-            FileStream lck = null;
+            FileStream? lck = null;
             try
             {
                 lck = new FileStream(GetPackageLockPath(packageDirectoryPath), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
@@ -169,6 +180,7 @@ WHERE ic.id IS NULL;").ConfigureAwait(false);
     Cost REAL NOT NULL DEFAULT(0.0) CHECK(Cost >= 0.0),
     WholePrice REAL NOT NULL DEFAULT(0.0) CHECK(WholePrice >= 0.0),
     PartialPrice REAL NOT NULL DEFAULT(0.0) CHECK(PartialPrice >= 0.0),
+    CashPrice REAL NOT NULL DEFAULT(0.0) CHECK(CashPrice >= 0.0),
     IsExported BOOLEAN NOT NULL DEFAULT(FALSE)
 );
 CREATE TABLE CImage (
@@ -178,8 +190,8 @@ CREATE TABLE CImage (
     IsExported BOOLEAN NOT NULL DEFAULT(FALSE)
 );
 CREATE TABLE ImageCommodity (
-    Id INTEGER NOT NULL PRIMARY KEY REFERENCES Commodity(Id),
-    ImageId INTEGER NOT NULL REFERENCES CImage(Id),
+    Id INTEGER NOT NULL PRIMARY KEY REFERENCES Commodity(Id) ON UPDATE CASCADE,
+    ImageId INTEGER NOT NULL REFERENCES CImage(Id) ON UPDATE CASCADE,
     FontFamilyName TEXT NOT NULL DEFAULT('Arial'),
     FontStyle INTEGER NOT NULL DEFAULT(0) CHECK(FontStyle >= 0 AND FontStyle <= 3),
     FontSize REAL NOT NULL DEFAULT(100) CHECK(FontSize > 0.0),
@@ -203,7 +215,7 @@ CREATE INDEX IDX_ImageCommodity_ImageId ON ImageCommodity (ImageId);
         {
             package.Dispose();
             File.Delete(package._dbPath);
-            Directory.Delete(package._packageDirectoryPath);
+            Directory.Delete(package.PackageDirectoryPath);
         }
     }
 }
