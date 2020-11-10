@@ -23,8 +23,6 @@ namespace RepoImageMan.Processors
             // Replace 0 characters with zero-width spaces (200B)
             Text = Text.Replace((char)0, (char)0x200B);
 
-
-
             _paint = font.ToSKPaint();
             _paint.Color = new SKColor(color.ToUint32());
             //currently Skia does not measure properly with Utf8 !!!
@@ -32,9 +30,6 @@ namespace RepoImageMan.Processors
 
             _wrapping = TextWrapping.NoWrap;
             _constraint = Size.Infinity;
-            
-
-
             Rebuild();
         }
 
@@ -170,20 +165,89 @@ namespace RepoImageMan.Processors
             return Text;
         }
 
-        internal void Draw(
-            SKCanvas canvas,
-            SKPoint origin
-            )
+        internal void Draw(SKCanvas canvas, SKPoint origin)
         {
+            /* TODO: This originated from Native code, it might be useful for debugging character positions as
+             * we improve the FormattedText support. Will need to port this to C# obviously. Rmove when
+             * not needed anymore.
 
-            using var paint = _paint.Clone();
-            for (int c = 0; c < _skiaLines.Count; c++)
+                SkPaint dpaint;
+                ctx->Canvas->save();
+                ctx->Canvas->translate(origin.fX, origin.fY);
+                for (int c = 0; c < Lines.size(); c++)
+                {
+                    dpaint.setARGB(255, 0, 0, 0);
+                    SkRect rc;
+                    rc.fLeft = 0;
+                    rc.fTop = Lines[c].Top;
+                    rc.fRight = Lines[c].Width;
+                    rc.fBottom = rc.fTop + LineOffset;
+                    ctx->Canvas->drawRect(rc, dpaint);
+                }
+                for (int c = 0; c < Length; c++)
+                {
+                    dpaint.setARGB(255, c % 10 * 125 / 10 + 125, (c * 7) % 10 * 250 / 10, (c * 13) % 10 * 250 / 10);
+                    dpaint.setStyle(SkPaint::kFill_Style);
+                    ctx->Canvas->drawRect(Rects[c], dpaint);
+                }
+                ctx->Canvas->restore();
+            */
+            using (var paint = _paint.Clone())
             {
-                AvaloniaFormattedTextLine line = _skiaLines[c];
+                bool hasCusomFGBrushes = _foregroundBrushes.Any();
 
-                float x = TransformX(origin.X, 0, paint.TextAlign);
-                var subString = Text.Substring(line.Start, line.Length);
-                canvas.DrawText(subString, x, origin.Y + line.Top + _lineOffset, paint);
+                for (int c = 0; c < _skiaLines.Count; c++)
+                {
+                    AvaloniaFormattedTextLine line = _skiaLines[c];
+
+                    float x = TransformX(origin.X, 0, paint.TextAlign);
+
+                    if (!hasCusomFGBrushes)
+                    {
+                        var subString = Text.Substring(line.Start, line.Length);
+                        canvas.DrawText(subString, x, origin.Y + line.Top + _lineOffset, paint);
+                    }
+                    else
+                    {
+                        float currX = x;
+                        string subStr;
+                        float measure;
+                        int len;
+                        float factor;
+                        switch (paint.TextAlign)
+                        {
+                            case SKTextAlign.Left:
+                                factor = 0;
+                                break;
+                            case SKTextAlign.Center:
+                                factor = 0.5f;
+                                break;
+                            case SKTextAlign.Right:
+                                factor = 1;
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
+
+                        var textLine = Text.Substring(line.Start, line.Length);
+                        currX -= textLine.Length == 0 ? 0 : paint.MeasureText(textLine) * factor;
+
+                        for (int i = line.Start; i < line.Start + line.Length;)
+                        {
+                            GetNextForegroundBrush(ref line, i, out len);
+
+                            subStr = Text.Substring(i, len);
+                            measure = paint.MeasureText(subStr);
+                            currX += measure * factor;
+
+                            canvas.DrawText(subStr, currX, origin.Y + line.Top + _lineOffset, paint);
+
+                            i += len;
+                            currX += measure * (1 - factor);
+                        }
+                    }
+                }
+
             }
         }
 
@@ -201,8 +265,6 @@ namespace RepoImageMan.Processors
         private float _lineOffset = 0;
         private Rect _bounds;
         private List<AvaloniaFormattedTextLine> _skiaLines;
-
-
 
         private static bool IsBreakChar(char c)
         {
