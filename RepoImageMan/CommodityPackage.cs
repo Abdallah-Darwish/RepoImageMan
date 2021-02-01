@@ -183,6 +183,10 @@ namespace RepoImageMan
         public async Task Tidy()
         {
             using var con = GetConnection();
+
+            await con.OpenAsync().ConfigureAwait(false);
+            using var trans = await con.BeginTransactionAsync().ConfigureAwait(false);
+
             await _imagesLock.WaitAsync().ConfigureAwait(false);
             await _commoditiesLock.WaitAsync().ConfigureAwait(false);
             try
@@ -224,7 +228,7 @@ namespace RepoImageMan
                     }
 
 
-                    //contains ids of images that we already processed there commodities
+                    //contains ids of images that we already processed their commodities
                     var processedImages = new HashSet<int>();
                     pos = 0;
                     foreach (var com in orderedCommodites)
@@ -244,11 +248,19 @@ namespace RepoImageMan
                             await com.ChangePosition(pos++, con).ConfigureAwait(false);
                         }
                     }
+                    //Shift all of the commodities Ids to end then back to where they belong
+                    pos = await con.ExecuteScalarAsync<int>("SELECT MAX(Id) FROM Commodity;").ConfigureAwait(false) + 1;
+                    foreach (var com in Commodities)
+                    {
+                        await com.Tidy(pos++, con).ConfigureAwait(false);
+                    }
                     foreach (var com in Commodities)
                     {
                         await com.Tidy(com.Position, con).ConfigureAwait(false);
                     }
                 }
+
+                await trans.CommitAsync().ConfigureAwait(false);
             }
             finally
             {
