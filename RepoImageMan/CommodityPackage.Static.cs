@@ -33,7 +33,7 @@ Expected Database path is {GetPackageDbPath(pd)}.");
                 await using var con = new SQLiteConnection(GetConnectionString(GetPackageDbPath(pd)));
                 var images = (await con.QueryAsync("SELECT * FROM CImage;").ConfigureAwait(false)).ToArray();
 
-                var systemFonstNames = Avalonia.Media.FontFamily.SystemFontFamilies.Select(f => f.Name.ToUpperInvariant()).ToHashSet();
+                var systemFonstNames = Avalonia.Media.FontManager.Current.GetInstalledFontFamilyNames().Select(f => f.ToUpperInvariant()).ToHashSet();
                 foreach (var img in images)
                 {
                     if (img.Contrast < 0)

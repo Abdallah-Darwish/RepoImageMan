@@ -21,7 +21,6 @@ namespace RepoImageMan.Controls
 
         private IBitmap _resizedBmp, _modedBmp;
 
-
         private void ApplyContrastBrightness()
         {
             _modedBmp?.Dispose();
@@ -51,7 +50,8 @@ namespace RepoImageMan.Controls
             _resizedBmp?.Dispose();
             var newBmp = new RenderTargetBitmap(new Avalonia.PixelSize((int)InstanceSize.Width, (int)InstanceSize.Height));
             using var ctx = newBmp.CreateDrawingContext(null);
-            ctx.DrawImage(_modedBmp.PlatformImpl, 1.0,
+
+            ctx.DrawBitmap(_modedBmp.PlatformImpl, 1.0,
                 new Avalonia.Rect(new Avalonia.Point(), _modedBmp.PixelSize.ToSize(1.0)),
                 new Avalonia.Rect(new Avalonia.Point(), newBmp.PixelSize.ToSize(1.0)));
             _resizedBmp = newBmp;

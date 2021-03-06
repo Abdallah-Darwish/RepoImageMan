@@ -35,9 +35,9 @@ namespace RepoImageMan.Controls
             {
                 ResizeBmp();
             }
-            ctx!.DrawImage(_resizedBmp, 1.0,
+            ctx!.DrawImage(_resizedBmp,
                 new Rect(0, 0, _resizedBmp.PixelSize.Width, _resizedBmp.PixelSize.Height),
-                new Rect(new Point(0, 0), _resizedBmp.PixelSize.ToSize(1.0)), Avalonia.Visuals.Media.Imaging.BitmapInterpolationMode.LowQuality);
+                new Rect(new Point(0, 0), _resizedBmp.PixelSize.ToSize(1.0)));
             foreach (var com in _coms)
             {
                 ctx.DrawText(com.RenderingBrush, com.Location, com.Text);

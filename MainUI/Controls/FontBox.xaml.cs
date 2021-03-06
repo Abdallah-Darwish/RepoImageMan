@@ -9,7 +9,7 @@ namespace MainUI.Controls
 {
     public class FontBox : UserControl
     {
-        public static readonly AvaloniaProperty<FontFamily> SelectedFontFamilyProperty
+        public static readonly StyledProperty<FontFamily> SelectedFontFamilyProperty
             = AvaloniaProperty.Register<FontBox, FontFamily>(nameof(SelectedFontFamily), FontFamily.Default);
         public FontFamily SelectedFontFamily
         {
@@ -23,8 +23,10 @@ namespace MainUI.Controls
                     throw new ArgumentOutOfRangeException(nameof(value), value, $"Unsupported font family, please select a value from {nameof(SupportedFonts)} .");
             }
         }
-        public static FontFamily[] SupportedFonts { get; } = FontFamily.SystemFontFamilies
-            .Where(f => SixLabors.Fonts.SystemFonts.TryFind(f.Name, out var _))
+        public static FontFamily[] SupportedFonts { get; } =
+            FontManager.Current.GetInstalledFontFamilyNames()
+            .Where(f => SixLabors.Fonts.SystemFonts.TryFind(f, out var _))
+            .Select(f => new FontFamily(f))
             .ToArray();
         private readonly ComboBox cbxFonts;
         public FontBox()

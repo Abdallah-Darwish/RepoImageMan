@@ -32,11 +32,12 @@ namespace MainUI
             static TvImagesImageModel()
             {
                 var p = new Pen(Colors.Red.ToUint32(), 4.0f);
+
                 using var defaultThumb = new RenderTargetBitmap(ThumbnailSize);
 
                 using (var ctx = defaultThumb.CreateDrawingContext(null))
                 {
-                    ctx.DrawRectangle(p, new Rect(default, ThumbnailSize.ToSize(1.0)));
+                    ctx.DrawRectangle(p.Brush, p, new Rect(default, ThumbnailSize.ToSize(1.0)));
                     ctx.DrawLine(p, new Point(0, ThumbnailSize.Height), new Point(0, ThumbnailSize.Width));
                 }
                 using var ms = new MemoryStream();

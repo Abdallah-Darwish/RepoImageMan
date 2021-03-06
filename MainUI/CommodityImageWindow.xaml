@@ -23,6 +23,7 @@
             <DataGridTextColumn Header="Name" Binding="{Binding Name, Mode=OneWay}" />
             <DataGridTextColumn Header="Cost" Binding="{Binding Cost, Mode=OneWay}" />
             <DataGridTextColumn Header="Whole Price" Binding="{Binding WholePrice, Mode=OneWay}" />
+            <DataGridTextColumn Header="Cash Price" Binding="{Binding CashPrice, Mode=OneWay}" />
             <DataGridTextColumn Header="Partial Price" Binding="{Binding PartialPrice, Mode=OneWay}" />
           </DataGrid.Columns>
           <DataGrid.ContextMenu>

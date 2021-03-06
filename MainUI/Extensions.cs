@@ -22,7 +22,7 @@ namespace MainUI
             using var img = new Bitmap(originalImageStream);
             var res = new RenderTargetBitmap(sz);
             using var ctx = res.CreateDrawingContext(null);
-            ctx.DrawImage(img.PlatformImpl, 1.0, new Avalonia.Rect(default, img.PixelSize.ToSize(1.0)), new Avalonia.Rect(default, sz.ToSize(1.0)));
+            ctx.DrawBitmap(img.PlatformImpl, 1.0, new Avalonia.Rect(default, img.PixelSize.ToSize(1.0)), new Avalonia.Rect(default, sz.ToSize(1.0)));
             return res;
         }
 

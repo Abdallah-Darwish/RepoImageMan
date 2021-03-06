@@ -46,7 +46,7 @@ namespace RepoImageMan
         public override int GetHashCode() => HashCode.Combine(FamilyName, Size, Style);
 
         public static explicit operator Typeface?(Font? f) => f?.ToTypeFace();
-        public Typeface ToTypeFace() => new Typeface(FamilyName, Size,
+        public Typeface ToTypeFace() => new Typeface(FamilyName,
                 Style.HasFlag(FontStyle.Italic) ? Avalonia.Media.FontStyle.Italic : Avalonia.Media.FontStyle.Normal,
                 Style.HasFlag(FontStyle.Bold) ? FontWeight.Bold : FontWeight.Regular);
 

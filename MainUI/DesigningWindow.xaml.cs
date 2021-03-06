@@ -65,9 +65,7 @@ namespace MainUI
             _imageTab = imageTab;
             _commodityTab = commodityTab;
             InitializeComponent();
-#if DEBUG
-            this.AttachDevTools();
-#endif
+
             playground = this.FindControl<DesignCImage>(nameof(playground));
 
             imgPlaygroundCTXMenu = this.FindControl<ContextMenu>(nameof(imgPlaygroundCTXMenu));

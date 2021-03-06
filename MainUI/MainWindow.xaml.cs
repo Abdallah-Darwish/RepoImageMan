@@ -25,9 +25,7 @@ namespace MainUI
         public MainWindow()
         {
             InitializeComponent();
-#if DEBUG
-            this.AttachDevTools();
-#endif
+
             btnOpenPack = this.Get<Button>(nameof(btnOpenPack));
             btnCreatePack = this.Get<Button>(nameof(btnCreatePack));
             btnSettings = this.Get<Button>(nameof(btnSettings));

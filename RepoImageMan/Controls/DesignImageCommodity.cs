@@ -20,8 +20,9 @@ namespace RepoImageMan.Controls
             {
                 Text = "000",
                 TextAlignment = TextAlignment.Left,
-                Typeface = Commodity.Font.Scale((float)_img.ToDesignMappingScale.Average()).ToTypeFace(),
-                Wrapping = TextWrapping.NoWrap
+                Typeface = Commodity.Font.ToTypeFace(),
+                TextWrapping = TextWrapping.NoWrap,
+                FontSize = Commodity.Font.Scale((float)_img.ToDesignMappingScale.Average()).Size,
             };
         }
         private void UpdateBrush() => RenderingBrush = new SolidColorBrush(Commodity.LabelColor);
