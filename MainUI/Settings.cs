@@ -28,8 +28,8 @@ namespace MainUI
             {
                 return new Settings();
             }
-            using var settingsFileStream = new FileStream(SettingsFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            return await JsonSerializer.DeserializeAsync<Settings>(settingsFileStream).ConfigureAwait(false);
+            using FileStream settingsFileStream = new(SettingsFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return (await JsonSerializer.DeserializeAsync<Settings>(settingsFileStream).ConfigureAwait(false))!;
         }
         public async ValueTask Save()
         {
