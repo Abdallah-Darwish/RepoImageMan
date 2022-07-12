@@ -1,57 +1,57 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net5.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
-  <ItemGroup>
-    <Compile Update="**\*.xaml.cs">
-      <DependentUpon>%(Filename)</DependentUpon>
-    </Compile>
-    <AvaloniaResource Include="**\*.xaml">
-      <SubType>Designer</SubType>
-    </AvaloniaResource>
-  </ItemGroup>
-  <ItemGroup>
-    <AvaloniaResource Remove="ColorBox.xaml" />
-    <AvaloniaResource Remove="Controls\FontBox.xaml" />
-    <AvaloniaResource Remove="DesigningWindow.xaml" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Remove="ColorBox.xaml" />
-    <None Remove="Controls\FontBox.xaml" />
-    <None Remove="DesigningWindow.xaml" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Avalonia" Version="0.10.0" />
-    <PackageReference Include="Avalonia.Controls.DataGrid" Version="0.10.0" />
-    <PackageReference Include="Avalonia.Desktop" Version="0.10.0" />
-    <PackageReference Include="EPPlus" Version="5.5.5" />
-    <PackageReference Include="mameolan.Avalonia.ExtendedToolkit" Version="1.0.0-CI-20200523-051541" />
-    <PackageReference Include="MessageBox.Avalonia" Version="1.0.5" />
-    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="5.0.3">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="5.0.0" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="DesigningWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Controls\ColorBox.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Controls\FontBox.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\RepoImageMan\RepoImageMan.csproj" />
-  </ItemGroup>
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net6.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+	<ItemGroup>
+		<Compile Update="**\*.xaml.cs">
+			<DependentUpon>%(Filename)</DependentUpon>
+		</Compile>
+		<AvaloniaResource Include="**\*.xaml">
+			<SubType>Designer</SubType>
+		</AvaloniaResource>
+	</ItemGroup>
+	<ItemGroup>
+		<AvaloniaResource Remove="ColorBox.xaml"/>
+		<AvaloniaResource Remove="Controls\FontBox.xaml"/>
+		<AvaloniaResource Remove="DesigningWindow.xaml"/>
+	</ItemGroup>
+	<ItemGroup>
+		<None Remove="ColorBox.xaml"/>
+		<None Remove="Controls\FontBox.xaml"/>
+		<None Remove="DesigningWindow.xaml"/>
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Avalonia" Version="0.10.16"/>
+		<PackageReference Include="Avalonia.Controls.DataGrid" Version="0.10.16"/>
+		<PackageReference Include="Avalonia.Desktop" Version="0.10.16"/>
+		<PackageReference Include="EPPlus" Version="6.0.6"/>
+		<PackageReference Include="mameolan.Avalonia.ExtendedToolkit" Version="1.0.0-ci-20220410-063959"/>
+		<PackageReference Include="MessageBox.Avalonia" Version="2.0.1"/>
+		<PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="6.0.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0"/>
+	</ItemGroup>
+	<ItemGroup>
+		<EmbeddedResource Include="DesigningWindow.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</EmbeddedResource>
+	</ItemGroup>
+	<ItemGroup>
+		<EmbeddedResource Include="Controls\ColorBox.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</EmbeddedResource>
+	</ItemGroup>
+	<ItemGroup>
+		<EmbeddedResource Include="Controls\FontBox.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</EmbeddedResource>
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\RepoImageMan\RepoImageMan.csproj"/>
+	</ItemGroup>
 </Project>
