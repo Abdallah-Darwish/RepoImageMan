@@ -1,9 +1,9 @@
-﻿using Avalonia;
+﻿using System;
+using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
-using System;
-using System.Linq;
 
 namespace MainUI.Controls
 {
@@ -25,7 +25,7 @@ namespace MainUI.Controls
         }
         public static FontFamily[] SupportedFonts { get; } =
             FontManager.Current.GetInstalledFontFamilyNames()
-            .Where(f => SixLabors.Fonts.SystemFonts.TryFind(f, out var _))
+            .Where(f => SixLabors.Fonts.SystemFonts.TryGet(f, out var _))
             .Select(f => new FontFamily(f))
             .ToArray();
         private readonly ComboBox cbxFonts;

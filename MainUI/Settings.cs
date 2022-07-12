@@ -1,9 +1,8 @@
-﻿using RepoImageMan;
-using SixLabors.Primitives;
-using System;
+﻿using System;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp;
 
 namespace MainUI
 {
@@ -23,7 +22,6 @@ namespace MainUI
 
         public static async ValueTask<Settings> Load()
         {
-            
             if (File.Exists(SettingsFilePath) == false)
             {
                 return new Settings();

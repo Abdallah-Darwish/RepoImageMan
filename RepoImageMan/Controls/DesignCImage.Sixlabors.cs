@@ -1,14 +1,14 @@
-﻿using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp;
-using Avalonia.Media.Imaging;
-using System;
-using SixLabors.ImageSharp.Processing;
-using TPixel = SixLabors.ImageSharp.PixelFormats.Rgba32;
+﻿using System;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Buffers;
-using SixLabors.ImageSharp.Advanced;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using TPixel = SixLabors.ImageSharp.PixelFormats.Rgba32;
 
 namespace RepoImageMan.Controls
 {
@@ -27,7 +27,7 @@ namespace RepoImageMan.Controls
             using var modBmp = _bmp.Clone(c => c.Contrast(Image.Contrast)
                                                  .Brightness(Image.Brightness)
                                                  .Resize((int)InstanceSize.Width, (int)InstanceSize.Height));
-            var modBmpMem = modBmp.GetPixelRowMemory(0);
+            Memory<TPixel> modBmpMem = modBmp.DangerousGetPixelRowMemory<TPixel>(0);
             var newBmp = new WriteableBitmap(new Avalonia.PixelSize(modBmp.Width, modBmp.Height), default, Avalonia.Platform.PixelFormat.Rgba8888);
             using (var newBmpBuffer = newBmp.Lock())
             {

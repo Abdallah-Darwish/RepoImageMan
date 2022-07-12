@@ -1,21 +1,11 @@
 using System;
 using System.IO;
-using System.Linq;
-using System.Text.Encodings.Web;
-using System.Text.Json;
-using System.Text.Unicode;
-using System.Threading.Tasks;
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Direct2D1;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using Avalonia.Media.Imaging;
 using RepoImageMan;
-using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 using Image = Avalonia.Controls.Image;
 
 namespace Tester
@@ -66,13 +56,9 @@ namespace Tester
         }
 
         private void BindImage(object? sender, RoutedEventArgs e)
-        {
-           
-        }
+        { }
 
         private void OnImageClicked(object? sender, PointerPressedEventArgs e)
-        {
-            
-        }
+        { }
     }
 }

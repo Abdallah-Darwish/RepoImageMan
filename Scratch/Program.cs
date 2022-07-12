@@ -1,8 +1,4 @@
-﻿using System;
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Logging.Serilog;
-using Avalonia.Media;
+﻿using Avalonia;
 
 namespace Scratch
 {
@@ -18,7 +14,7 @@ namespace Scratch
         public static AppBuilder BuildAvaloniaApp()
             => AppBuilder.Configure<App>()
                 .UsePlatformDetect()
-                .LogToDebug();
+                .LogToTrace();
 
     }
 }

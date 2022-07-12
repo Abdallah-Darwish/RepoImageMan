@@ -1,22 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection.Metadata;
+using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Media.Imaging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
-using System.Threading;
 using IBitmap = Avalonia.Media.Imaging.IBitmap;
-using Avalonia.Media.Imaging;
-using System.Reflection.Metadata;
 
 namespace MainUI
 {
     public static class Extensions
     {
-      
-        
-        public static SixLabors.Primitives.PointF ToSixLabors(this in Avalonia.Point p) => new SixLabors.Primitives.PointF((float)p.X, (float)p.Y);
-        public static SixLabors.Primitives.SizeF ToSixLabors(this in Avalonia.Size sz) => new SixLabors.Primitives.SizeF((float)sz.Width, (float)sz.Height);
+        public static SixLabors.ImageSharp.PointF ToSixLabors(this in Avalonia.Point p) => new((float)p.X, (float)p.Y);
+        public static SixLabors.ImageSharp.PointF ToSixLabors(this in Avalonia.Size sz) => new((float)sz.Width, (float)sz.Height);
         public static IBitmap LoadResizedBitmap(this Stream originalImageStream, Avalonia.PixelSize sz)
         {
             using var img = new Bitmap(originalImageStream);
