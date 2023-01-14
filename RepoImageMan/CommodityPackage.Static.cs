@@ -123,7 +123,11 @@ Expected Database path is {GetPackageDbPath(pd)}.");
                     }
                 }
             }
-            catch (Exception ex) when (ex is not PackageCorruptException)
+            catch (PackageCorruptException)
+            {
+                throw;
+            }
+            catch (Exception ex)
             {
                 throw new PackageCorruptException("Some error occured while validating the package.", ex);
             }

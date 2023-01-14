@@ -1,3 +1,7 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Reactive.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -8,10 +12,6 @@ using MessageBox.Avalonia;
 using MessageBox.Avalonia.DTO;
 using MessageBox.Avalonia.Enums;
 using RepoImageMan;
-using System;
-using System.IO;
-using System.Linq;
-using System.Reactive.Linq;
 using MBIcon = MessageBox.Avalonia.Enums.Icon;
 
 namespace MainUI
@@ -55,7 +55,7 @@ namespace MainUI
                 var folderOfd = new OpenFolderDialog { Title = "Package Folder" };
                 var folderPath = await folderOfd.ShowAsync(this);
                 if (string.IsNullOrWhiteSpace(folderPath)) { return; }
-                
+
                 try
                 {
                     p = await CommodityPackage.TryOpen(folderPath);
@@ -137,6 +137,7 @@ namespace MainUI
             catch (PackageCorruptException ex)
             {
                 p?.Dispose();
+                File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "ImagesError.txt"), ex.Message);
                 await MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams
                 {
                     ButtonDefinitions = ButtonEnum.Ok,
