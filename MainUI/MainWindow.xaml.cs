@@ -137,8 +137,11 @@ namespace MainUI
             catch (PackageCorruptException ex)
             {
                 p?.Dispose();
-                File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "ImagesError.txt"), ex.Message);
-                File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "ImagesErrorInner.txt"), ex.InnerException?.Message ?? "NULL");
+                var msg = $"Can't open {folderPath} because its corrupt.{Environment.NewLine}Additional information: {ex.Message}.";
+                if (ex.InnerException is not null)
+                {
+                    msg += Environment.NewLine + $"More Information: {ex.InnerException.Message}.";
+                }
                 await MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams
                 {
                     ButtonDefinitions = ButtonEnum.Ok,
@@ -146,7 +149,7 @@ namespace MainUI
                     ContentHeader = "Package is corrupt",
                     ContentTitle = "Error",
                     Icon = MBIcon.Error,
-                    ContentMessage = $"Can't open {folderPath} because its corrupt.{Environment.NewLine}Additional information: {ex.Message}",
+                    ContentMessage = msg,
                     WindowStartupLocation = WindowStartupLocation.CenterOwner,
                     ShowInCenter = true
                 }).ShowDialog(this);
