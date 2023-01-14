@@ -9,7 +9,7 @@ using RepoImageMan;
 using RepoImageMan.Processors;
 namespace MainUI.Processors
 {
-    //If there is any new requirments just rewrite this
+    //If there is any new requirements just rewrite this
     class DirectoryImagesCatalogProcessor : ImagesCatalogProcessorBase, IObservable<(CImage Image, int Count)>
     {
         private readonly ISubject<(CImage Image, int Count)> _subj = new Subject<(CImage Image, int Count)>();
@@ -19,7 +19,7 @@ namespace MainUI.Processors
 
         public DirectoryImagesCatalogProcessor(ReadOnlyMemory<CImage> images, string savingDir, PixelSize? maxImageSize = default, int imageQuality = 75, bool rotate = true) : base(images, rotate)
         {
-            if (maxImageSize.HasValue && maxImageSize?.Width <= 0 || maxImageSize?.Height <= 0)
+            if (maxImageSize is {Width: <= 0} or {Height: <= 0})
             {
                 throw new ArgumentOutOfRangeException(nameof(maxImageSize), $"{nameof(maxImageSize)} must be > [0, 0].");
             }
@@ -43,11 +43,11 @@ namespace MainUI.Processors
 
 
         protected override int GetImageQuality(CImage image) => _imageQuality;
-        protected override PixelSize GetImageSize(CImage image) => new PixelSize(Math.Min(image.Size.Width, _maxImageSize.Width), Math.Min(image.Size.Height, _maxImageSize.Height));
+        protected override PixelSize GetImageSize(CImage image) => new(Math.Min(image.Size.Width, _maxImageSize.Width), Math.Min(image.Size.Height, _maxImageSize.Height));
 
         protected override Stream GetImageStream(CImage image, int pos)
         {
-            string imagePath = Path.Combine(_savingDir, $"{pos}.jpg");
+            var imagePath = Path.Combine(_savingDir, $"{pos}.jpg");
             if (File.Exists(imagePath)) { File.Delete(imagePath); }
             return new FileStream(imagePath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read);
         }

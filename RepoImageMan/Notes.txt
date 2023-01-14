@@ -1,1 +1,1 @@
-﻿1- since Avavlonia is a refernce to this project I am going to use its DataTypes like (point, Rect..) and only use SixLabors when neccessary like in processors.
+﻿1- since Avavlonia is a reference to this project I am going to use its DataTypes like (point, Rect..) and only use SixLabors when necessary like in processors.

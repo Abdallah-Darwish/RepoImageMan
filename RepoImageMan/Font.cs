@@ -60,7 +60,7 @@ namespace RepoImageMan
               FontStyle.Italic => SixLabors.Fonts.FontStyle.Italic,
               _ => SixLabors.Fonts.FontStyle.Regular
           });
-        public SKPaint ToSKPaint() => new SKPaint
+        public SKPaint ToSKPaint() => new()
         {
             Typeface = SKTypeface.FromFamilyName(FamilyName, Style.ToSK()),
             TextSize = Size,

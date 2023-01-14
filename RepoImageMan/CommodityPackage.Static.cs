@@ -1,12 +1,12 @@
-﻿using Dapper;
-using SixLabors.ImageSharp;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Dapper;
+using SixLabors.ImageSharp;
 
 namespace RepoImageMan
 {
@@ -15,7 +15,7 @@ namespace RepoImageMan
         public const string DbExtension = "sqlite", DbName = "db000.sqlite", LockName = "pkg000.lckxy";
         private static string GetConnectionString(string dbPath) => $"Data Source={dbPath};Version=3;foreign keys=True;";
         public static string GetPackageLockPath(string packageDirectoryPath) => Path.Combine(packageDirectoryPath, LockName);
-        internal static string GetPackageDbPath(string packageDirectoryPath) => Path.Combine(packageDirectoryPath, DbName);
+        private static string GetPackageDbPath(string packageDirectoryPath) => Path.Combine(packageDirectoryPath, DbName);
         internal static async Task VerifyPackage(string pd)
         {
             try
@@ -33,7 +33,7 @@ Expected Database path is {GetPackageDbPath(pd)}.");
                 await using var con = new SQLiteConnection(GetConnectionString(GetPackageDbPath(pd)));
                 var images = (await con.QueryAsync("SELECT * FROM CImage;").ConfigureAwait(false)).ToArray();
 
-                var systemFonstNames = Avalonia.Media.FontManager.Current.GetInstalledFontFamilyNames().Select(f => f.ToUpperInvariant()).ToHashSet();
+                var systemFontsNames = Avalonia.Media.FontManager.Current.GetInstalledFontFamilyNames().Select(f => f.ToUpperInvariant()).ToHashSet();
                 foreach (var img in images)
                 {
                     if (img.Contrast < 0)
@@ -83,9 +83,9 @@ Expected Database path is {GetPackageDbPath(pd)}.");
                         {
                             throw new PackageCorruptException($"Commodity(id: {com.Id}) has invalid color.");
                         }
-                        if (systemFonstNames.Contains((com.FontFamilyName as string)!.ToUpperInvariant()) == false)
+                        if (systemFontsNames.Contains((com.FontFamilyName as string)!.ToUpperInvariant()) == false)
                         {
-                            throw new PackageCorruptException($"Commodity(Id: {com.Id}) has a non-exisiting font.");
+                            throw new PackageCorruptException($"Commodity(Id: {com.Id}) has a non-existing font.");
                         }
                     }
                 }
@@ -123,7 +123,7 @@ Expected Database path is {GetPackageDbPath(pd)}.");
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not PackageCorruptException)
             {
                 throw new PackageCorruptException("Some error occured while validating the package.", ex);
             }

@@ -28,8 +28,7 @@ namespace RepoImageMan.Controls
 
         public override void Render(DrawingContext ctx)
         {
-            if (_bmp == null) { return; }
-            if (_resizedBmp == null) { return; }
+            if (_bmp is null || _resizedBmp is null) { return; }
             base.Render(ctx!);
             if (_resizedBmp.PixelSize.ToSize(1.0) != InstanceSize)
             {
@@ -43,7 +42,7 @@ namespace RepoImageMan.Controls
                 ctx.DrawText(com.RenderingBrush, com.Location, com.Text);
             }
             var sc = GetDesignImageCommodity(SelectedCommodity);
-            if (sc != null)
+            if (sc is not null)
             {
                 ctx.DrawRectangle(sc.RenderingPen, sc.Box);
                 ctx.FillRectangle(Brushes.Blue, sc.HandleBox);
@@ -127,12 +126,12 @@ namespace RepoImageMan.Controls
             }
             Image.CommodityAdded += AddCommodity;
             Image.CommodityRemoved += RemoveCommodity;
-            Image.Deleting += HandleImageDeleteing; ;
+            Image.Deleting += HandleImageDeleting; ;
             Image.FileUpdated += UpdateBmp;
             _subs = new IDisposable[]
             {
                 Image.AsObservable()
-                    .Where(pn => pn == nameof(CImage.Contrast) || pn == nameof(CImage.Brightness))
+                    .Where(pn => pn is nameof(CImage.Contrast) or nameof(CImage.Brightness))
                     .Subscribe(_ =>
                     {
                         ApplyContrastBrightness();
@@ -146,8 +145,8 @@ namespace RepoImageMan.Controls
             UpdateBmp(null);
         }
 
-        private void HandleImageDeleteing(CImage sender) => throw new InvalidOperationException("YOU CAN'T DELETE AN IMAGE WHILE ITS BEING DESIGNED");
-        protected async override void OnKeyDown(KeyEventArgs e)
+        private void HandleImageDeleting(CImage sender) => throw new InvalidOperationException("YOU CAN'T DELETE AN IMAGE WHILE ITS BEING DESIGNED");
+        protected override async void OnKeyDown(KeyEventArgs e)
         {
             base.OnKeyDown(e);
             switch (e.Key)
@@ -187,7 +186,7 @@ namespace RepoImageMan.Controls
             {
                 com.Dispose();
             }
-            Image.Deleting -= HandleImageDeleteing;
+            Image.Deleting -= HandleImageDeleting;
             Image.CommodityAdded -= AddCommodity;
             Image.CommodityRemoved -= RemoveCommodity;
             Image.FileUpdated -= UpdateBmp;
