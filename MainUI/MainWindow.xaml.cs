@@ -138,6 +138,7 @@ namespace MainUI
             {
                 p?.Dispose();
                 File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "ImagesError.txt"), ex.Message);
+                File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "ImagesErrorInner.txt"), ex.InnerException?.Message ?? "NULL");
                 await MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams
                 {
                     ButtonDefinitions = ButtonEnum.Ok,
