@@ -51,7 +51,7 @@ Expected Database path is {GetPackageDbPath(pd)}.");
                     {
                         throw new PackageCorruptException($"Image(Id: {img.Id}) file doesn't exist.");
                     }
-                    IImageInfo? imgInfo = null;
+                    ImageInfo? imgInfo = null;
                     using (var imgStream = File.OpenRead(imgPath))
                     {
                         try
