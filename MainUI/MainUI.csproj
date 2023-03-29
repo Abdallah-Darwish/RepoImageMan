@@ -24,13 +24,13 @@
 		<None Remove="DesigningWindow.xaml" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Avalonia" Version="0.10.18" />
-		<PackageReference Include="Avalonia.Controls.DataGrid" Version="0.10.18" />
-		<PackageReference Include="Avalonia.Desktop" Version="0.10.16" />
-		<PackageReference Include="EPPlus" Version="6.1.1" />
+		<PackageReference Include="Avalonia" Version="0.10.19" />
+		<PackageReference Include="Avalonia.Controls.DataGrid" Version="0.10.19" />
+		<PackageReference Include="Avalonia.Desktop" Version="0.10.19" />
+		<PackageReference Include="EPPlus" Version="6.2.0" />
 		<PackageReference Include="mameolan.Avalonia.ExtendedToolkit" Version="1.0.0-ci-20220410-063959" />
-		<PackageReference Include="MessageBox.Avalonia" Version="2.1.0" />
-		<PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="6.0.0">
+		<PackageReference Include="MessageBox.Avalonia" Version="2.2.0" />
+		<PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="7.0.1">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
