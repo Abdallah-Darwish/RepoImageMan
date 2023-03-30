@@ -79,7 +79,7 @@ namespace RepoImageMan.Processors
             foreach (var com in image.Commodities)
             {
                 if (com.IsExported == false) { continue; }
-                var comText = new SkiaFormattedTextImpl(GetCommodityLabel(com), com.Font.ToTypeFace(), com.Font.Size, TextAlignment.Left);
+                var comText = new SkiaFormattedTextImpl(GetCommodityLabel(com), com.Font.ToTypeFace(), com.Font.Size, TextAlignment.Left, com.LabelColor);
                 comText.Draw(sur.Canvas, com.Location.ToSKPoint());
             }
             sur.Canvas.Flush();

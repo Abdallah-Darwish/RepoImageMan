@@ -41,7 +41,8 @@ internal class SkiaFormattedTextImpl : IFormattedTextImpl
         string text,
         Typeface typeface,
         double fontSize,
-        TextAlignment textAlignment)
+        TextAlignment textAlignment,
+        Color color)
     {
         Text = text;
 
@@ -57,7 +58,8 @@ internal class SkiaFormattedTextImpl : IFormattedTextImpl
             IsLinearText = true,
             Typeface = ((GlyphTypefaceImpl)typeface.GlyphTypeface.PlatformImpl).Typeface,
             TextSize = (float)fontSize,
-            TextAlign = textAlignment.ToSKTextAlign()
+            TextAlign = textAlignment.ToSKTextAlign(),
+            Color = new SKColor(color.ToUint32())
         };
 
         //currently Skia does not measure properly with Utf8 !!!
