@@ -1,20 +1,19 @@
-using Avalonia.Skia;
-using SkiaSharp;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Media;
+using Avalonia.Skia;
+using SkiaSharp;
 
 namespace RepoImageMan.Processors
 {
     public abstract class ImagesCatalogProcessorBase
     {
         private readonly ReadOnlyMemory<CImage> _images;
-
 
         protected virtual int GetImageQuality(CImage image) => 75;
         protected virtual Avalonia.PixelSize GetImageSize(CImage image) => image.Size;
@@ -80,7 +79,7 @@ namespace RepoImageMan.Processors
             foreach (var com in image.Commodities)
             {
                 if (com.IsExported == false) { continue; }
-                var comText = new FormattedTextImpl(GetCommodityLabel(com), com.Font, com.LabelColor);
+                var comText = new SkiaFormattedTextImpl(GetCommodityLabel(com), com.Font.ToTypeFace(), com.Font.Size, TextAlignment.Left);
                 comText.Draw(sur.Canvas, com.Location.ToSKPoint());
             }
             sur.Canvas.Flush();

@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Dialogs;
 using Avalonia.ReactiveUI;
+using Avalonia.Skia;
 using OfficeOpenXml;
 
 namespace MainUI
@@ -15,6 +16,7 @@ namespace MainUI
         // yet and stuff might break.
         public static void Main(string[] args)
         {
+            SkiaPlatform.Initialize();
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args, ShutdownMode.OnMainWindowClose);

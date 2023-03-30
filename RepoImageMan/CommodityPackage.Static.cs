@@ -117,6 +117,10 @@ Expected Database path is {GetPackageDbPath(pd)}.");
                     {
                         throw new PackageCorruptException($"Commodity(Id: {com.Id}) position is < 0.");
                     }
+                    if (com.Position is null)
+                    {
+                        throw new PackageCorruptException($"Commodity(Id: {com.Id}) position is null.");
+                    }
                     if (comsPositions.Add((int)com.Position) == false)
                     {
                         throw new PackageCorruptException($"Commodity(Id: {com.Id}) position is duplicate.");
