@@ -23,7 +23,7 @@ namespace MainUI
 
         public static async ValueTask<Settings> Load()
         {
-            if (File.Exists(SettingsFilePath) == false)
+            if (!File.Exists(SettingsFilePath))
             {
                 return new Settings();
             }

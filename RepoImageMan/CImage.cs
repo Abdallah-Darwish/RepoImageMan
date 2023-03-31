@@ -1,20 +1,20 @@
-﻿using Dapper;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data.SQLite;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Avalonia;
+using Dapper;
 using RepoImageMan.Controls;
 using SkiaSharp;
-using System.Diagnostics;
-using System.Reactive.Linq;
-using System.Data.SQLite;
 
 namespace RepoImageMan
 {
@@ -260,7 +260,7 @@ namespace RepoImageMan
             {
                 //If the stream is empty(it will be when we create a new image) the returned 'IImageInfo' would be null
                 var imageInfo = SixLabors.ImageSharp.Image.Identify(imgStream);
-                Size = imageInfo == null ? new PixelSize(0, 0) : new PixelSize(imageInfo.Width, imageInfo.Height);
+                Size = imageInfo is null ? new PixelSize(0, 0) : new PixelSize(imageInfo.Width, imageInfo.Height);
                 foreach (var com in Commodities)
                 {
                     com.Location = new Point(Math.Min(Size.Width, com.Location.X), Math.Min(Size.Height, com.Location.Y));
@@ -288,7 +288,7 @@ namespace RepoImageMan
             }
             var originalStreamPos = newFile.Position;
             var imageInfo = SixLabors.ImageSharp.Image.Identify(newFile);
-            if (imageInfo == null)
+            if (imageInfo is null)
             {
                 throw new ArgumentException("Invalid image stream.", nameof(newFile));
             }
@@ -345,12 +345,11 @@ namespace RepoImageMan
         }
 
         /// <summary>
-        /// Just a lock to prevent the image from being designed by multiple <see cref="DesignCImage{TPixel}"/>s.
+        /// Just a lock to prevent the image from being designed by multiple <see cref="DesignCImage"/>s.
         /// </summary>
         private int _designInstancesCount = 0;
 
         internal bool TryEnterDesign() => Interlocked.CompareExchange(ref _designInstancesCount, 1, 0) == 0;
-
 
         internal void ExitDesign()
         {
@@ -397,8 +396,6 @@ namespace RepoImageMan
             _commodities.Clear();
             _commoditiesLock.Dispose();
         }
-
-
         #endregion
     }
 }

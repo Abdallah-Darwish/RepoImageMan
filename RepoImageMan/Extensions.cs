@@ -28,7 +28,7 @@ namespace RepoImageMan
                         T sourceItem;
                         try
                         {
-                            if (sourceEnum.MoveNext() == false) { return; }
+                            if (!sourceEnum.MoveNext()) { return; }
                             sourceItem = sourceEnum.Current;
                         }
                         finally { sourceLock.Exit(); }

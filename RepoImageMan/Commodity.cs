@@ -1,11 +1,11 @@
-﻿using Dapper;
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.Data.SQLite;
 using System.Linq;
 using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Dapper;
 
 namespace RepoImageMan
 {
@@ -37,7 +37,6 @@ namespace RepoImageMan
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected void OnPropertyChanged([CallerMemberName] string propName = null) => _notificationsSubject.OnNext(propName);
 
-
         ///<summary>
         /// Order or position of this <see cref="Commodity"/> in the <see cref="Package"/>.
         /// Its unique and has no gaps.
@@ -46,6 +45,13 @@ namespace RepoImageMan
         /// <remarks>Gave position to <see cref="Commodity"/> instead of <see cref="CImage"/> because of the commodities with no images.</remarks>
         public int Position { get; private set; }
 
+        /*
+        Only the affected commodity should move
+        Only the affected Image should move
+
+        for the in betweens we can just update the property without collections
+        - One way to do so is by signaling set position from inside the image
+        */
 
         /// <summary>
         /// ONLY ONE OPERATION ACCROSS <see cref="CommodityPackage"/> AT A TIME.
@@ -62,7 +68,6 @@ namespace RepoImageMan
         /// <remarks>
         /// One operation across pkg because of the UNIQUE constraint on column Position.
         /// The first position in package is 0.
-        /// 
         /// </remarks>
         public async ValueTask SetPosition(int newPosition)
         {
@@ -78,7 +83,6 @@ namespace RepoImageMan
                 if (newPosition > maxPosition) { newPosition = maxPosition; }
 
                 if (newPosition == Position) { return; }
-
 
                 await con.ExecuteAsync("UPDATE Commodity SET position = NULL WHERE id = @Id", new { Id }).ConfigureAwait(false);
                 if (newPosition < Position)
@@ -113,7 +117,7 @@ namespace RepoImageMan
         }
 
         /// <summary>
-        /// Only will change CURRENT INSTANCE position and raise related events.
+        /// Only will changes CURRENT INSTANCE position and raise related events.
         /// </summary>
         internal async Task ChangePosition(int newPosition, SQLiteConnection con)
         {
@@ -249,7 +253,6 @@ namespace RepoImageMan
         /// The <see cref="CommodityPackage"/> that this <see cref="Commodity"/> belongs to.
         /// </summary>
         public CommodityPackage Package { get; }
-
 
         /// <summary>
         /// Saves all the properties of the <see cref="Commodity"/> to the <see cref="CommodityPackage"/>.

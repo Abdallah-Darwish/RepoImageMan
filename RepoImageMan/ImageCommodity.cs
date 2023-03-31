@@ -1,8 +1,8 @@
-﻿using Avalonia;
+﻿using System;
+using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Media;
 using Dapper;
-using System;
-using System.Threading.Tasks;
 
 namespace RepoImageMan
 {
@@ -50,7 +50,7 @@ namespace RepoImageMan
             get => _font;
             set
             {
-                if (value == null) { throw new ArgumentNullException(nameof(value)); }
+                if (value is null) { throw new ArgumentNullException(nameof(value)); }
                 if (value.Equals(/*_font maybe null on initialization*/_font)) { return; }
                 _font = value;
                 OnPropertyChanged();
@@ -120,6 +120,5 @@ namespace RepoImageMan
             await base.Delete().ConfigureAwait(false);
             await Image.RemoveCommodity(this).ConfigureAwait(false);
         }
-
     }
 }

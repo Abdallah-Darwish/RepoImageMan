@@ -1,4 +1,9 @@
-﻿using Avalonia;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Reactive.Linq;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
@@ -6,11 +11,6 @@ using Avalonia.Threading;
 using MainUI.Controls;
 using RepoImageMan;
 using RepoImageMan.Controls;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Reactive.Linq;
 namespace MainUI
 {
     public class DesigningWindow : Window
@@ -36,7 +36,7 @@ namespace MainUI
             {
                 sub.Dispose();
             }
-            if (com == null) { return; }
+            if (com is null) { return; }
 
             _selectedCommodityNotificationSubs = new IDisposable[]
             {
@@ -95,13 +95,13 @@ namespace MainUI
 
             _eventsSubscriptions.Add(cbLabelColor.GetObservable(ColorBox.SelectedColorProperty).Subscribe(c =>
             {
-                if (playground.SelectedCommodity == null) { return; }
+                if (playground.SelectedCommodity is null) { return; }
                 playground.SelectedCommodity.LabelColor = c;
             }));
             _eventsSubscriptions.Add(fbLabelFont.GetObservable(FontBox.SelectedFontFamilyProperty).Subscribe(f =>
             {
                 var sc = playground.SelectedCommodity;
-                if (sc == null) { return; }
+                if (sc is null) { return; }
                 playground.SelectedCommodity.Font = new Font(f.Name, sc.Font.Size, sc.Font.Style);
             }));
             nudImageContrast.Value = _image.Contrast;
@@ -173,7 +173,7 @@ namespace MainUI
         private void NudLabelSize_ValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
         {
             var sc = playground.SelectedCommodity;
-            if (sc == null) { return; }
+            if (sc is null) { return; }
             sc.Font = new Font(sc.Font.FamilyName, (float)e.NewValue, sc.Font.Style);
         }
 

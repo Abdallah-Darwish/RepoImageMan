@@ -20,11 +20,11 @@ namespace RepoImageMan
         {
             try
             {
-                if (Directory.Exists(pd) == false)
+                if (!Directory.Exists(pd))
                 {
                     throw new PackageCorruptException("Package folder doesn't exist.");
                 }
-                if (File.Exists(GetPackageDbPath(pd)) == false)
+                if (!File.Exists(GetPackageDbPath(pd)))
                 {
                     throw new PackageCorruptException(
      $@"Can't find package Database.
@@ -47,7 +47,7 @@ Expected Database path is {GetPackageDbPath(pd)}.");
                     var imgComs = (await con.QueryAsync("SELECT * FROM ImageCommodity WHERE imageId = @imageId;",
                         new { imageId = img.Id }).ConfigureAwait(false)).ToArray();
                     var imgPath = CImage.GetCImagePackageFilePath(pd, (int)img.Id);
-                    if (File.Exists(imgPath) == false)
+                    if (!File.Exists(imgPath))
                     {
                         throw new PackageCorruptException($"Image(Id: {img.Id}) file doesn't exist.");
                     }
@@ -60,7 +60,7 @@ Expected Database path is {GetPackageDbPath(pd)}.");
                         }
                         catch { }
                     }
-                    if (imgInfo == null) { throw new PackageCorruptException($"Image(id: {img.Id}) isn't a valid image."); }
+                    if (imgInfo is null) { throw new PackageCorruptException($"Image(id: {img.Id}) isn't a valid image."); }
                     foreach (var com in imgComs)
                     {
                         if (com.LocationX < 0 || com.LocationX > imgInfo.Width || com.LocationY < 0 || com.LoactionY > imgInfo.Height)
@@ -83,7 +83,7 @@ Expected Database path is {GetPackageDbPath(pd)}.");
                         {
                             throw new PackageCorruptException($"Commodity(id: {com.Id}) has invalid color.");
                         }
-                        if (systemFontsNames.Contains((com.FontFamilyName as string)!.ToUpperInvariant()) == false)
+                        if (!systemFontsNames.Contains((com.FontFamilyName as string)!.ToUpperInvariant()))
                         {
                             throw new PackageCorruptException($"Commodity(Id: {com.Id}) has a non-existing font.");
                         }
@@ -121,7 +121,7 @@ Expected Database path is {GetPackageDbPath(pd)}.");
                     {
                         throw new PackageCorruptException($"Commodity(Id: {com.Id}) position is null.");
                     }
-                    if (comsPositions.Add((int)com.Position) == false)
+                    if (!comsPositions.Add((int)com.Position))
                     {
                         throw new PackageCorruptException($"Commodity(Id: {com.Id}) position is duplicate.");
                     }

@@ -24,8 +24,10 @@ namespace RepoImageMan.Processors
             .OrderBy(i => i.Commodities.Count > 0 ? i.Commodities.Min(c => c.Position) : int.MaxValue)
             .ThenBy(i => i.Id)
             .ToArray();
-        protected virtual string GetCommodityLabel(Commodity com) => _commoditiesLabels[com.Id];
-        //must support concurrent calls
+        protected virtual string GetCommodityLabel(Commodity com) => _commoditiesLabels![com.Id];
+        /// <summary>
+        /// must support concurrent calls
+        /// </summary>
         protected abstract void OnImageProcessed(CImage image, int pos, Stream imageStream);
         protected virtual void OnCompleted() { }
         private readonly bool _rotate = false;
@@ -38,7 +40,7 @@ namespace RepoImageMan.Processors
             _rotate = rotate;
             _images = images;
         }
-        private IImmutableDictionary<int, string> _commoditiesLabels;
+        private IImmutableDictionary<int, string>? _commoditiesLabels;
 
         private void ProcessImage1(CImage image, int pos)
         {
@@ -78,7 +80,7 @@ namespace RepoImageMan.Processors
             sur.Canvas.DrawBitmap(orgImg, new SKPoint(0, 0));
             foreach (var com in image.Commodities)
             {
-                if (com.IsExported == false) { continue; }
+                if (!com.IsExported) { continue; }
                 var comText = new SkiaFormattedTextImpl(GetCommodityLabel(com), com.Font.ToTypeFace(), com.Font.Size, TextAlignment.Left, com.LabelColor);
                 comText.Draw(sur.Canvas, com.Location.ToSKPoint());
             }
@@ -106,7 +108,6 @@ namespace RepoImageMan.Processors
                     .OrderBy(c => c.Position)
                     .Select((com, pos) => new KeyValuePair<int, string>(com.Id, (pos + 1).ToString())));
                 Parallel.ForEach(sortedImages.Select((img, idx) => (Image: img, Index: idx + 1)), x => ProcessImage1(x.Image, x.Index));
-
             }
             finally
             {
@@ -114,7 +115,5 @@ namespace RepoImageMan.Processors
                 OnCompleted();
             }
         }
-
-
     }
 }

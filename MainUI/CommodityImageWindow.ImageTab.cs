@@ -1,3 +1,12 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.IO;
+using System.Linq;
+using System.Reactive.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Collections;
 using Avalonia.Controls;
@@ -12,15 +21,6 @@ using MessageBox.Avalonia.DTO;
 using MessageBox.Avalonia.Enums;
 using RepoImageMan;
 using RepoImageMan.Controls;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.IO;
-using System.Linq;
-using System.Reactive.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 namespace MainUI
 {
     namespace ImageTabModels
@@ -266,7 +266,7 @@ namespace MainUI
 
             private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
             {
-                if (PropertyChanged == null) { return; }
+                if (PropertyChanged is null) { return; }
                 if (Dispatcher.UIThread.CheckAccess()) { PropertyChanged.Invoke(this, new PropertyChangedEventArgs(propertyName)); }
                 else { Dispatcher.UIThread.Post(() => PropertyChanged.Invoke(this, new PropertyChangedEventArgs(propertyName))); }
 
@@ -435,7 +435,7 @@ namespace MainUI
                     return;
                 }
                 await using var imgStream = new FileStream(newImagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                if (IsValidImage(imgStream) == false)
+                if (!IsValidImage(imgStream))
                 {
                     await MessageBoxManager.GetMessageBoxStandardWindow("Invalid Image", "The selected file doesn't represent a valid image.", ButtonEnum.Ok, MessageBox.Avalonia.Enums.Icon.Error).ShowDialog(_hostingWindow);
                     return;
@@ -503,7 +503,7 @@ namespace MainUI
                     return;
                 }
                 await using var imgStream = new FileStream(newImagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                if (IsValidImage(imgStream) == false)
+                if (!IsValidImage(imgStream))
                 {
                     await MessageBoxManager.GetMessageBoxStandardWindow("Invalid Image", "The selected file doesn't represent a valid image.", ButtonEnum.Ok, MessageBox.Avalonia.Enums.Icon.Error).ShowDialog(_hostingWindow);
                     return;
@@ -530,7 +530,7 @@ namespace MainUI
                     return;
                 }
 
-                if (_imageToMove == null || _imageToMove == selectedImage) { return; }
+                if (_imageToMove is null || _imageToMove == selectedImage) { return; }
 
                 int newPos = _imageToMove.Position < selectedImage.Position
                                  ? selectedImage.Position
@@ -558,7 +558,7 @@ namespace MainUI
                     return;
                 }
 
-                if (_imageToMove == null || _imageToMove == selectedImage) { return; }
+                if (_imageToMove is null || _imageToMove == selectedImage) { return; }
 
                 int newPos = _imageToMove.Position > selectedImage.Position
                                  ? selectedImage.Position
@@ -679,7 +679,7 @@ namespace MainUI
             }
             private async void DesignImage(TvImagesImageModel img)
             {
-                if (img == null) { return; }
+                if (img is null) { return; }
                 var dWin = new DesigningWindow(img.Image, this, _hostingWindow._commodityTab);
                 try
                 {
@@ -741,7 +741,7 @@ namespace MainUI
             public void TvImages_ImageRightClicked(object? sender, PointerPressedEventArgs e)
             {
                 if (!((sender as IDataContextProvider)?.DataContext is TvImagesImageModel clickedImage)) return;
-                if (tvImages.SelectedItems.Contains(clickedImage) == false)
+                if (!tvImages.SelectedItems.Contains(clickedImage))
                 {
                     tvImages.SelectedItems.Add(clickedImage);
                 }
