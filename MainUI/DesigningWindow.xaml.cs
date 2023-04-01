@@ -133,8 +133,20 @@ namespace MainUI
 
         private async void MiSaveImage_Click(object? sender, RoutedEventArgs e) => await playground.Image.Save();
 
-        private async void MiSaveAllCommodities_Click(object? sender, RoutedEventArgs e) => await playground.Image.Commodities.ForEachAsync(com => com.Save());
-        private async void MiReloadAllCommodities_Click(object? sender, RoutedEventArgs e) => await playground.Image.Commodities.ForEachAsync(com => com.Reload());
+        private async void MiSaveAllCommodities_Click(object? sender, RoutedEventArgs e)
+        {
+            foreach (var com in playground.Image.Commodities)
+            {
+                await com.Save();
+            }
+        }
+        private async void MiReloadAllCommodities_Click(object? sender, RoutedEventArgs e)
+        {
+            foreach (var com in playground.Image.Commodities)
+            {
+                await com.Reload();
+            }
+        }
 
         private async void MiSaveSelectedCommodity_Click(object? sender, RoutedEventArgs e) => await playground.SelectedCommodity!.Save();
 

@@ -28,8 +28,7 @@ namespace RepoImageMan
         {
             Deleting?.Invoke(this);
             await Package.RemoveCommodity(this).ConfigureAwait(false);
-            await using var con = Package.GetConnection();
-            await con.ExecuteAsync(@"DELETE FROM Commodity WHERE id = @id;", new { Id }).ConfigureAwait(false);
+            await Package.DbConnection.ExecuteAsync(@"DELETE FROM Commodity WHERE id = @id;", new { Id }).ConfigureAwait(false);
         }
         private readonly ISubject<string> _notificationsSubject = new Subject<string>();
 
@@ -73,77 +72,66 @@ namespace RepoImageMan
         /// </remarks>
         public async ValueTask SetPosition(int newPosition)
         {
-            await Package._imageRepositinningLock.WaitAsync().ConfigureAwait(false);
-            try
+            if (newPosition < 1) { newPosition = 0; }
+
+            int maxPosition = Package.Commodities.Any() ? Package.Commodities.Max(c => c.Position) : 0;
+            if (newPosition > maxPosition) { newPosition = maxPosition; }
+
+            if (newPosition == Position) { return; }
+
+            List<(Commodity Commodity, int Position)> comsPositions = new();
+            StringBuilder queryBuilder = new();
+            DynamicParameters queryParams = new();
+            queryBuilder.AppendLine("UPDATE Commodity SET position = NULL WHERE id = @targetId;");
+            queryParams.Add("@targetId", Id);
+            queryParams.Add("@newPosition", newPosition);
+            if (newPosition < Position)
             {
-                await using var con = Package.GetConnection();
-                con.Open();
-
-                if (newPosition < 1) { newPosition = 0; }
-
-                int maxPosition = Package.Commodities.Any() ? Package.Commodities.Max(c => c.Position) : 0;
-                if (newPosition > maxPosition) { newPosition = maxPosition; }
-
-                if (newPosition == Position) { return; }
-
-                List<(Commodity Commodity, int Position)> comsPositions = new();
-                StringBuilder queryBuilder = new();
-                DynamicParameters queryParams = new();
-                queryBuilder.AppendLine("UPDATE Commodity SET position = NULL WHERE id = @targetId;");
-                queryParams.Add("@targetId", Id);
-                queryParams.Add("@newPosition", newPosition);
-                if (newPosition < Position)
+                var comsToMove = Package.Commodities
+                                        .Where(c => c.Position >= newPosition && c.Position <= Position && c.Id != Id)
+                                        .OrderByDescending(c => c.Position)
+                                        .ToArray();
+                foreach (var com in comsToMove)
                 {
-                    var comsToMove = Package.Commodities
-                                            .Where(c => c.Position >= newPosition && c.Position <= Position && c.Id != Id)
-                                            .OrderByDescending(c => c.Position)
-                                            .ToArray();
-                    foreach (var com in comsToMove)
-                    {
-                        comsPositions.Add((com, com.Position + 1));
-                    }
+                    comsPositions.Add((com, com.Position + 1));
                 }
-                else
-                {
-                    var comsToMove = Package.Commodities
-                                            .Where(c => c.Position >= Position && c.Position <= newPosition && c.Id != Id)
-                                            .OrderBy(c => c.Position)
-                                            .ToArray();
-                    foreach (var com in comsToMove)
-                    {
-                        comsPositions.Add((com, com.Position - 1));
-                    }
-                }
-                foreach (var (c, p) in comsPositions)
-                {
-                    queryBuilder.Append("UPDATE Commodity SET position = @pos").Append(c.Id).Append(" WHERE id = @id").Append(c.Id).AppendLine(";");
-                    queryParams.Add($"@id{c.Id}", c.Id);
-                    queryParams.Add($"@pos{c.Id}", p);
-                }
-                queryBuilder.AppendLine("UPDATE Commodity SET position = @newPosition WHERE id = @targetId;");
-                var cmd = queryBuilder.ToString();
-                await con.ExecuteAsync(cmd, queryParams).ConfigureAwait(false);
-
-                foreach (var (c, p) in comsPositions)
-                {
-                    c.ChangePosition(p);
-                }
-
-                ChangePosition(newPosition);
-                OnPropertyChanged(UIPositionChangedPropertyName);
             }
-            finally
+            else
             {
-                Package._imageRepositinningLock.Release();
+                var comsToMove = Package.Commodities
+                                        .Where(c => c.Position >= Position && c.Position <= newPosition && c.Id != Id)
+                                        .OrderBy(c => c.Position)
+                                        .ToArray();
+                foreach (var com in comsToMove)
+                {
+                    comsPositions.Add((com, com.Position - 1));
+                }
             }
+            foreach (var (c, p) in comsPositions)
+            {
+                queryBuilder.Append("UPDATE Commodity SET position = @pos").Append(c.Id).Append(" WHERE id = @id").Append(c.Id).AppendLine(";");
+                queryParams.Add($"@id{c.Id}", c.Id);
+                queryParams.Add($"@pos{c.Id}", p);
+            }
+            queryBuilder.AppendLine("UPDATE Commodity SET position = @newPosition WHERE id = @targetId;");
+            var cmd = queryBuilder.ToString();
+            await Package.DbConnection.ExecuteAsync(cmd, queryParams).ConfigureAwait(false);
+
+            foreach (var (c, p) in comsPositions)
+            {
+                c.ChangePosition(p);
+            }
+
+            ChangePosition(newPosition);
+            OnPropertyChanged(UIPositionChangedPropertyName);
         }
 
         /// <summary>
         /// Only will changes CURRENT INSTANCE position and raise related events.
         /// </summary>
-        internal async Task ChangePosition(int newPosition, SQLiteConnection con)
+        internal async Task ChangePositionInDb(int newPosition)
         {
-            await con.ExecuteAsync("UPDATE Commodity SET position = @newPosition WHERE id = @Id", new { Id, newPosition }).ConfigureAwait(false);
+            await Package.DbConnection.ExecuteAsync("UPDATE Commodity SET position = @newPosition WHERE id = @Id", new { Id, newPosition }).ConfigureAwait(false);
             Position = newPosition;
             OnPropertyChanged(nameof(Position));
         }
@@ -290,8 +278,7 @@ namespace RepoImageMan
         /// </summary>
         public virtual async Task Save()
         {
-            await using var con = Package.GetConnection();
-            await con
+            await Package.DbConnection
                 .ExecuteAsync("UPDATE Commodity SET name = @Name, wholePrice = @WholePrice, partialPrice = @PartialPrice, cashPrice = @CashPrice, cost = @Cost, isExported = @IsExported WHERE id = @Id", this)
                 .ConfigureAwait(false);
         }
@@ -302,8 +289,7 @@ namespace RepoImageMan
         /// </summary>
         public virtual async Task Reload()
         {
-            await using var con = Package.GetConnection();
-            var dbFields = await con.QueryFirstAsync("SELECT * FROM Commodity WHERE id = @Id", new { Id }).ConfigureAwait(false);
+            var dbFields = await Package.DbConnection.QueryFirstAsync("SELECT * FROM Commodity WHERE id = @Id", new { Id }).ConfigureAwait(false);
             Name = dbFields.Name;
             WholePrice = (decimal)(double)dbFields.WholePrice;
             PartialPrice = (decimal)(double)dbFields.PartialPrice;
@@ -315,9 +301,9 @@ namespace RepoImageMan
 
         public override string ToString() => $"{Id}: {Name}";
 
-        internal async Task Tidy(int newId, SQLiteConnection con)
+        internal async Task Tidy(int newId)
         {
-            await con.ExecuteAsync("UPDATE Commodity SET id = @newId WHERE id = @Id", new { Id, newId }).ConfigureAwait(false);
+            await Package.DbConnection.ExecuteAsync("UPDATE Commodity SET id = @newId WHERE id = @Id", new { Id, newId }).ConfigureAwait(false);
             Id = newId;
         }
         #region IDisposable Support

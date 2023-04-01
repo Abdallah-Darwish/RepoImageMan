@@ -63,7 +63,7 @@ Expected Database path is {GetPackageDbPath(pd)}.");
                     if (imgInfo is null) { throw new PackageCorruptException($"Image(id: {img.Id}) isn't a valid image."); }
                     foreach (var com in imgComs)
                     {
-                        if (com.LocationX < 0 || com.LocationX > imgInfo.Width || com.LocationY < 0 || com.LoactionY > imgInfo.Height)
+                        if (com.LocationX < 0 || com.LocationX > imgInfo.Width || com.LocationY < 0 || com.LocationY > imgInfo.Height)
                         {
                             throw new PackageCorruptException($"Commodity(Id: {com.Id}) coordinates is out of bounds.");
                         }
@@ -151,28 +151,22 @@ Expected Database path is {GetPackageDbPath(pd)}.");
                 return null;
             }
             var res = new CommodityPackage(packageDirectoryPath, lck);
-            await using var con = res.GetConnection();
-            var nonImageCommoditiesIds = await con.QueryAsync<int>(
+            var nonImageCommoditiesIds = await res.DbConnection.QueryAsync<int>(
 @"SELECT c.id FROM Commodity c
 LEFT JOIN ImageCommodity ic
 ON c.id = ic.id
 WHERE ic.id IS NULL;").ConfigureAwait(false);
-            await nonImageCommoditiesIds.ForEachAsync(async cid =>
+            foreach (var cid in nonImageCommoditiesIds)
             {
                 var com = await Commodity.Load(cid, res).ConfigureAwait(false);
-                await res._commoditiesLock.WaitAsync().ConfigureAwait(false);
                 res._commodities.Add(com);
-                res._commoditiesLock.Release();
-            }).ConfigureAwait(false);
-
-            var imagesIds = await con.QueryAsync<int>("SELECT id FROM CImage;").ConfigureAwait(false);
-            await imagesIds.ForEachAsync(async iid =>
+            }
+            var imagesIds = await res.DbConnection.QueryAsync<int>("SELECT id FROM CImage;").ConfigureAwait(false);
+            foreach (var iid in imagesIds)
             {
                 var img = await CImage.Load(iid, res).ConfigureAwait(false);
-                await res._imagesLock.WaitAsync().ConfigureAwait(false);
                 res._images.Add(img);
-                res._imagesLock.Release();
-            }).ConfigureAwait(false);
+            }
             return res;
         }
 

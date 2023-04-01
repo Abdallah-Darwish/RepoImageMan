@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Reactive.Linq;
@@ -14,7 +13,6 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using MessageBox.Avalonia;
-using MessageBox.Avalonia.DTO;
 using RepoImageMan;
 
 namespace MainUI
@@ -292,22 +290,34 @@ namespace MainUI
 
             private async void MiReloadSelectedCommoditiesToDb_Click(object? sender, RoutedEventArgs e)
             {
-                await dgCommodities.SelectedItems.Cast<DgCommoditiesModel>().ForEachAsync(com => com.Commodity.Reload());
+                foreach (var com in dgCommodities.SelectedItems.Cast<DgCommoditiesModel>())
+                {
+                    await com.Commodity.Reload();
+                }
             }
 
             private async void MiReloadAllCommoditiesFromDb_Click(object? sender, RoutedEventArgs e)
             {
-                await _dgCommoditiesItems.ForEachAsync(com => com.Commodity.Reload());
+                foreach (var com in _dgCommoditiesItems)
+                {
+                    await com.Commodity.Reload();
+                }
             }
 
             private async void MiSaveSelectedCommoditiesToDb_Click(object? sender, RoutedEventArgs e)
             {
-                await dgCommodities.SelectedItems.Cast<DgCommoditiesModel>().ForEachAsync(com => com.Commodity.Save());
+                foreach (var com in dgCommodities.SelectedItems.Cast<DgCommoditiesModel>())
+                {
+                    await com.Commodity.Save();
+                }
             }
 
             private async void MiSaveAllCommoditiesToDb_Click(object? sender, RoutedEventArgs e)
             {
-                await _dgCommoditiesItems.ForEachAsync(com => com.Commodity.Save());
+                foreach (var com in _dgCommoditiesItems)
+                {
+                    await com.Commodity.Reload();
+                }
             }
 
             private void MiUnExportSelectedCommodities_Click(object? sender, RoutedEventArgs e)

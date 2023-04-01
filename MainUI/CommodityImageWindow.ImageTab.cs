@@ -388,38 +388,50 @@ namespace MainUI
 
             private async void MiReloadSelectedImagesAndCommoditiesToDb_Click(object? sender, RoutedEventArgs e)
             {
-                await tvImages.SelectedItems.OfType<TvImagesImageModel>().ForEachAsync(img => img.Image.Reload());
-                await tvImages.SelectedItems.OfType<TvImagesCommodityModel>().ForEachAsync(com => com.Commodity.Reload());
+                foreach (var img in tvImages.SelectedItems.OfType<TvImagesImageModel>())
+                {
+                    await img.Image.Reload();
+                }
+                foreach (var com in tvImages.SelectedItems.OfType<TvImagesCommodityModel>())
+                {
+                    await com.Commodity.Reload();
+                }
             }
 
             private async void MiReloadAllImagesAndCommoditiesFromDb_Click(object? sender, RoutedEventArgs e)
             {
-                await _tvImagesModels.ForEachAsync(async img =>
+                foreach (var img in _tvImagesModels)
                 {
                     await img.Image.Reload();
                     foreach (var com in img.Image.Commodities)
                     {
                         await com.Reload();
                     }
-                });
+                }
             }
 
             private async void MiSaveSelectedImagesAndCommoditiesToDb_Click(object? sender, RoutedEventArgs e)
             {
-                await tvImages.SelectedItems.OfType<TvImagesImageModel>().ForEachAsync(img => img.Image.Save());
-                await tvImages.SelectedItems.OfType<TvImagesCommodityModel>().ForEachAsync(com => com.Commodity.Save());
+                foreach (var img in tvImages.SelectedItems.OfType<TvImagesImageModel>())
+                {
+                    await img.Image.Save();
+                }
+                foreach (var com in tvImages.SelectedItems.OfType<TvImagesCommodityModel>())
+                {
+                    await com.Commodity.Save();
+                }
             }
 
             private async void MiSaveAllImagesAndCommoditiesToDb_Click(object? sender, RoutedEventArgs e)
             {
-                await _tvImagesModels.ForEachAsync(async img =>
+                foreach (var img in _tvImagesModels)
                 {
                     await img.Image.Save();
                     foreach (var com in img.Image.Commodities)
                     {
                         await com.Save();
                     }
-                });
+                }
             }
 
             private async void MiCreateImageCommodity_Click(object? sender, RoutedEventArgs e)
@@ -732,15 +744,27 @@ namespace MainUI
                     case Key.S:
                         if (e.KeyModifiers == KeyModifiers.Control)
                         {
-                            await tvImages.SelectedItems.OfType<TvImagesImageModel>().ForEachAsync(img => img.Image.Save());
-                            await tvImages.SelectedItems.OfType<TvImagesCommodityModel>().ForEachAsync(com => com.Commodity.Save());
+                            foreach (var img in tvImages.SelectedItems.OfType<TvImagesImageModel>())
+                            {
+                                await img.Image.Save();
+                            }
+                            foreach (var com in tvImages.SelectedItems.OfType<TvImagesCommodityModel>())
+                            {
+                                await com.Commodity.Save();
+                            }
                         }
                         break;
                     case Key.R:
                         if (e.KeyModifiers == KeyModifiers.Control)
                         {
-                            await tvImages.SelectedItems.OfType<TvImagesImageModel>().ForEachAsync(img => img.Image.Reload());
-                            await tvImages.SelectedItems.OfType<TvImagesCommodityModel>().ForEachAsync(com => com.Commodity.Reload());
+                            foreach (var img in tvImages.SelectedItems.OfType<TvImagesImageModel>())
+                            {
+                                await img.Image.Reload();
+                            }
+                            foreach (var com in tvImages.SelectedItems.OfType<TvImagesCommodityModel>())
+                            {
+                                await com.Commodity.Reload();
+                            }
                         }
                         break;
 
