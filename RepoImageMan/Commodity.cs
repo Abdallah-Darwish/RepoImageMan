@@ -86,8 +86,12 @@ namespace RepoImageMan
 
                 if (newPosition == Position) { return; }
 
-                await con.ExecuteAsync("UPDATE Commodity SET position = NULL WHERE id = @Id", new { Id }).ConfigureAwait(false);
-                Dictionary<Commodity, int> comsPositions = new();
+                List<(Commodity Commodity, int Position)> comsPositions = new();
+                StringBuilder queryBuilder = new();
+                DynamicParameters queryParams = new();
+                queryBuilder.AppendLine("UPDATE Commodity SET position = NULL WHERE id = @targetId;");
+                queryParams.Add("@targetId", Id);
+                queryParams.Add("@newPosition", newPosition);
                 if (newPosition < Position)
                 {
                     var comsToMove = Package.Commodities
@@ -96,7 +100,7 @@ namespace RepoImageMan
                                             .ToArray();
                     foreach (var com in comsToMove)
                     {
-                        comsPositions.Add(com, com.Position + 1);
+                        comsPositions.Add((com, com.Position + 1));
                     }
                 }
                 else
@@ -107,28 +111,25 @@ namespace RepoImageMan
                                             .ToArray();
                     foreach (var com in comsToMove)
                     {
-                        comsPositions.Add(com, com.Position - 1);
+                        comsPositions.Add((com, com.Position - 1));
                     }
                 }
-
-                StringBuilder updateQuery = new();
-                DynamicParameters queryParams = new();
-                int queryParamIndex = 0;
                 foreach (var (c, p) in comsPositions)
                 {
-                    updateQuery.Append("UPDATE Commodity SET position = @pos").Append(queryParamIndex).Append(" WHERE id = @id").Append(queryParamIndex).AppendLine(";");
-                    queryParams.Add($"@id{queryParamIndex}", c.Id);
-                    queryParams.Add($"@pos{queryParamIndex}", p);
-                    queryParamIndex++;
+                    queryBuilder.Append("UPDATE Commodity SET position = @pos").Append(c.Id).Append(" WHERE id = @id").Append(c.Id).AppendLine(";");
+                    queryParams.Add($"@id{c.Id}", c.Id);
+                    queryParams.Add($"@pos{c.Id}", p);
                 }
-                await con.ExecuteAsync(updateQuery.ToString(), queryParams).ConfigureAwait(false);
+                queryBuilder.AppendLine("UPDATE Commodity SET position = @newPosition WHERE id = @targetId;");
+                var cmd = queryBuilder.ToString();
+                await con.ExecuteAsync(cmd, queryParams).ConfigureAwait(false);
 
                 foreach (var (c, p) in comsPositions)
                 {
                     c.ChangePosition(p);
                 }
 
-                await ChangePosition(newPosition, con).ConfigureAwait(false);
+                ChangePosition(newPosition);
                 OnPropertyChanged(UIPositionChangedPropertyName);
             }
             finally

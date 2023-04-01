@@ -68,7 +68,6 @@ namespace RepoImageMan
             res.Refresh();
             await using var con = package.GetConnection();
 
-
             var comsIds = (await con.QueryAsync<int>("SELECT id FROM ImageCommodity WHERE imageId = @id", new { id }).ConfigureAwait(false)).AsList();
             res._commodities.Capacity = comsIds.Count;
             foreach (var comId in comsIds)

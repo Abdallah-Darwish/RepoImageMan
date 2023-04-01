@@ -194,9 +194,14 @@ namespace RepoImageMan
                 var orderedImages = Images.OrderBy(i => i.Commodities.Count > 0 ? i.Commodities.Max(c => c.Position) : int.MaxValue).ToArray();
                 if (Images.Count > 0)
                 {
-                    var maxImgId = await con.ExecuteScalarAsync<int>("SELECT MAX(Id) FROM CImage;").ConfigureAwait(false) + 1;
+                    var maxImgId = await con.ExecuteScalarAsync<int>("SELECT MAX(Id) FROM CImage;").ConfigureAwait(false) + 5;
                     foreach (var img in orderedImages)
                     {
+                        var newImgPath = CImage.GetCImagePackageFilePath(PackageDirectoryPath, maxImgId);
+                        if (File.Exists(newImgPath))
+                        {
+                            File.Delete(newImgPath);
+                        }
                         await img.Tidy(maxImgId++, con).ConfigureAwait(false);
                     }
                     var pkgFiles = Images.Select(i => i.PackageFileName).ToHashSet();

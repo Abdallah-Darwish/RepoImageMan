@@ -165,8 +165,6 @@ WHERE ic.id IS NULL;").ConfigureAwait(false);
                 res._commoditiesLock.Release();
             }).ConfigureAwait(false);
 
-
-
             var imagesIds = await con.QueryAsync<int>("SELECT id FROM CImage;").ConfigureAwait(false);
             await imagesIds.ForEachAsync(async iid =>
             {
