@@ -227,7 +227,6 @@ namespace RepoImageMan
                         await com.ChangePosition(pos++, con).ConfigureAwait(false);
                     }
 
-
                     //contains ids of images that we already processed their commodities
                     var processedImages = new HashSet<int>();
                     pos = 0;

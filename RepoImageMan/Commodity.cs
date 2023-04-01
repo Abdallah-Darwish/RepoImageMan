@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data.SQLite;
 using System.Linq;
 using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading.Tasks;
 using Dapper;
 
@@ -52,7 +54,7 @@ namespace RepoImageMan
         for the in betweens we can just update the property without collections
         - One way to do so is by signaling set position from inside the image
         */
-
+        public const string UIPositionChangedPropertyName = "__hehe__";
         /// <summary>
         /// ONLY ONE OPERATION ACCROSS <see cref="CommodityPackage"/> AT A TIME.
         /// Changes the position of this <see cref="Commodity"/> and adjusts the positions of other <see cref="Commodity"/>s.
@@ -85,6 +87,7 @@ namespace RepoImageMan
                 if (newPosition == Position) { return; }
 
                 await con.ExecuteAsync("UPDATE Commodity SET position = NULL WHERE id = @Id", new { Id }).ConfigureAwait(false);
+                Dictionary<Commodity, int> comsPositions = new();
                 if (newPosition < Position)
                 {
                     var comsToMove = Package.Commodities
@@ -93,7 +96,7 @@ namespace RepoImageMan
                                             .ToArray();
                     foreach (var com in comsToMove)
                     {
-                        await com.ChangePosition(com.Position + 1, con).ConfigureAwait(false);
+                        comsPositions.Add(com, com.Position + 1);
                     }
                 }
                 else
@@ -104,11 +107,29 @@ namespace RepoImageMan
                                             .ToArray();
                     foreach (var com in comsToMove)
                     {
-                        await com.ChangePosition(com.Position - 1, con).ConfigureAwait(false);
+                        comsPositions.Add(com, com.Position - 1);
                     }
                 }
 
+                StringBuilder updateQuery = new();
+                DynamicParameters queryParams = new();
+                int queryParamIndex = 0;
+                foreach (var (c, p) in comsPositions)
+                {
+                    updateQuery.Append("UPDATE Commodity SET position = @pos").Append(queryParamIndex).Append(" WHERE id = @id").Append(queryParamIndex).AppendLine(";");
+                    queryParams.Add($"@id{queryParamIndex}", c.Id);
+                    queryParams.Add($"@pos{queryParamIndex}", p);
+                    queryParamIndex++;
+                }
+                await con.ExecuteAsync(updateQuery.ToString(), queryParams).ConfigureAwait(false);
+
+                foreach (var (c, p) in comsPositions)
+                {
+                    c.ChangePosition(p);
+                }
+
                 await ChangePosition(newPosition, con).ConfigureAwait(false);
+                OnPropertyChanged(UIPositionChangedPropertyName);
             }
             finally
             {
@@ -122,6 +143,15 @@ namespace RepoImageMan
         internal async Task ChangePosition(int newPosition, SQLiteConnection con)
         {
             await con.ExecuteAsync("UPDATE Commodity SET position = @newPosition WHERE id = @Id", new { Id, newPosition }).ConfigureAwait(false);
+            Position = newPosition;
+            OnPropertyChanged(nameof(Position));
+        }
+
+        /// <summary>
+        /// Only will changes CURRENT INSTANCE position and raise related events.
+        /// </summary>
+        internal void ChangePosition(int newPosition)
+        {
             Position = newPosition;
             OnPropertyChanged(nameof(Position));
         }

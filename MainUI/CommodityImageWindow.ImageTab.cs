@@ -58,18 +58,21 @@ namespace MainUI
             /// </summary>
             private int _position = -1;
 
-            public int Position
+            public int Position => _position;
+            private void UpdatePosition(bool reposition)
             {
-                get => _position;
-                private set
+                var val = Image.Commodities.DefaultIfEmpty().Min(c => c?.Position ?? int.MaxValue - 100);
+                if (val != _position)
                 {
-                    if (value == _position) { return; }
-
-                    _position = value;
-                    RePositionInTvItems();
+                    _position = val;
                     OnPropertyChanged();
                 }
+                if (reposition)
+                {
+                    RePositionInTvItems();
+                }
             }
+
             public string ShortName
             {
                 get
@@ -115,7 +118,7 @@ namespace MainUI
                 _hostingTab = hostingTab;
                 _hostingTab._tvImagesModels.Add(this);
                 Image = image;
-                UpdatePosition();
+                UpdatePosition(true);
                 Commodities = new AvaloniaList<TvImagesCommodityModel>(Image.Commodities.Select(c => new TvImagesCommodityModel(c, this)));
                 Image.FileUpdated += ImageOnFileUpdated;
                 Image.CommodityAdded += ImageOnCommodityAdded;
@@ -129,6 +132,10 @@ namespace MainUI
                 _eventsSubscriptions.Add(Image
                     .Where(pn => pn == nameof(CImage.IsExported))
                     .Subscribe(pn => OnPropertyChanged(pn)));
+                _eventsSubscriptions.AddRange(Commodities
+                    .Select(com => com.Commodity.Where(pn => pn == Commodity.UIPositionChangedPropertyName)
+                        .Select(pn => com)
+                        .Subscribe(CommodityOnUIPositionChanged)));
                 Image.Deleting += Image_Deleting;
             }
 
@@ -138,14 +145,15 @@ namespace MainUI
             {
                 foreach (var com in Commodities.Reverse()) { await com.Commodity.SetPosition(newPosition); }
             }
-
-            private void UpdatePosition() => Position = Image.Commodities.DefaultIfEmpty().Min(c => c?.Position ?? int.MaxValue - 100);
-
-            private void CommodityOnPositionChanged(TvImagesCommodityModel comModel)
+            private void CommodityOnPositionChanged(TvImagesCommodityModel _)
+            {
+                UpdatePosition(false);
+            }
+            private void CommodityOnUIPositionChanged(TvImagesCommodityModel comModel)
             {
                 Commodities.Remove(comModel);
                 AddToCommodities(new[] { comModel });
-                UpdatePosition();
+                UpdatePosition(true);
             }
 
             private void ImageOnCommodityRemoved(CImage sender, ImageCommodity commodity)
@@ -156,7 +164,7 @@ namespace MainUI
                     Commodities.Remove(GetCommodityModel(commodity));
                     if (Commodities.Count == 0 && _hostingTab._imageToMove == this) { _hostingTab.ResetImageToMove(); }
 
-                    UpdatePosition();
+                    UpdatePosition(true);
                 }
                 Dispatcher.UIThread.Invoke(Work);
             }
@@ -190,8 +198,12 @@ namespace MainUI
                     .Where(pn => pn == nameof(Commodity.Position))
                     .Select(pn => comModel)
                     .Subscribe(CommodityOnPositionChanged));
+                _eventsSubscriptions.AddRange(Commodities
+                    .Select(com => com.Commodity.Where(pn => pn == Commodity.UIPositionChangedPropertyName)
+                        .Select(pn => com)
+                        .Subscribe(CommodityOnUIPositionChanged)));
                 AddToCommodities(new[] { comModel });
-                UpdatePosition();
+                UpdatePosition(true);
             }
 
             /// <summary>
