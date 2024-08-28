@@ -59,7 +59,7 @@ namespace MainUI
                 try
                 {
                     p = await CommodityPackage.TryOpen(folderPath);
-                    if (p == null)
+                    if (p is null)
                     {
                         await MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams
                         {
@@ -118,7 +118,7 @@ namespace MainUI
             try
             {
                 p = await CommodityPackage.TryOpen(folderPath);
-                if (p == null)
+                if (p is null)
                 {
                     await MessageBoxManager.GetMessageBoxStandardWindow(new MessageBoxStandardParams
                     {

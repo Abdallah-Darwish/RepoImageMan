@@ -6,8 +6,6 @@ using Avalonia.Media.Imaging;
 using System.Linq;
 using System.Reflection;
 using System;
-using System.Numerics;
-using System.Diagnostics;
 
 namespace MainUI.Controls
 {
@@ -66,7 +64,7 @@ namespace MainUI.Controls
             {
                 if (value.Equals(SelectedColor)) { return; }
                 //value of this property will be set down in the SelectionChanged event
-                cbxColors.SelectedItem = Colors.FirstOrDefault(i => i.Color.Equals(value)) ?? 
+                cbxColors.SelectedItem = Colors.FirstOrDefault(i => i.Color.Equals(value)) ??
                     throw new ArgumentOutOfRangeException(nameof(value), value, $"Unsupported color, please choose color from {nameof(Colors)} .");
             }
         }

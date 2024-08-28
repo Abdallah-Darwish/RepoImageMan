@@ -14,27 +14,23 @@
 		</AvaloniaResource>
 	</ItemGroup>
 	<ItemGroup>
-		<AvaloniaResource Remove="ColorBox.xaml"/>
-		<AvaloniaResource Remove="Controls\FontBox.xaml"/>
-		<AvaloniaResource Remove="DesigningWindow.xaml"/>
+		<AvaloniaResource Remove="ColorBox.xaml" />
+		<AvaloniaResource Remove="Controls\FontBox.xaml" />
+		<AvaloniaResource Remove="DesigningWindow.xaml" />
 	</ItemGroup>
 	<ItemGroup>
-		<None Remove="ColorBox.xaml"/>
-		<None Remove="Controls\FontBox.xaml"/>
-		<None Remove="DesigningWindow.xaml"/>
+		<None Remove="ColorBox.xaml" />
+		<None Remove="Controls\FontBox.xaml" />
+		<None Remove="DesigningWindow.xaml" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Avalonia" Version="0.10.19"/>
-		<PackageReference Include="Avalonia.Controls.DataGrid" Version="0.10.19"/>
-		<PackageReference Include="Avalonia.Desktop" Version="0.10.19"/>
-		<PackageReference Include="EPPlus" Version="6.2.0"/>
-		<PackageReference Include="mameolan.Avalonia.ExtendedToolkit" Version="1.0.0-ci-20220410-063959"/>
-		<PackageReference Include="MessageBox.Avalonia" Version="2.0.2"/>
-		<PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="7.0.1">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
-		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0"/>
+		<PackageReference Include="Avalonia" Version="0.10.19" />
+		<PackageReference Include="Avalonia.Controls.DataGrid" Version="0.10.19" />
+		<PackageReference Include="Avalonia.Desktop" Version="0.10.19" />
+		<PackageReference Include="EPPlus" Version="7.3.0" />
+		<PackageReference Include="mameolan.Avalonia.ExtendedToolkit" Version="1.0.0-ci-20220410-063959" />
+		<PackageReference Include="MessageBox.Avalonia" Version="2.0.2" />
+		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
 	</ItemGroup>
 	<ItemGroup>
 		<EmbeddedResource Include="DesigningWindow.xaml">
@@ -52,6 +48,6 @@
 		</EmbeddedResource>
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\RepoImageMan\RepoImageMan.csproj"/>
+		<ProjectReference Include="..\RepoImageMan\RepoImageMan.csproj" />
 	</ItemGroup>
 </Project>

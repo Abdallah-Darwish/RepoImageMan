@@ -1,4 +1,10 @@
-﻿using Avalonia;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reactive.Linq;
+using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
@@ -6,14 +12,8 @@ using MainUI.Processors;
 using MessageBox.Avalonia;
 using MessageBox.Avalonia.DTO;
 using MessageBox.Avalonia.Enums;
-using RepoImageMan;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reactive.Linq;
 using OfficeOpenXml;
-using System.Threading.Tasks;
+using RepoImageMan;
 
 namespace MainUI
 {
@@ -206,7 +206,7 @@ namespace MainUI
                     Title = "Excel File",
                 };
                 var filePath = await fileSfd.ShowAsync(_hostingWindow);
-                txtExportExcelPath.Text = filePath == null ? "" : filePath;
+                txtExportExcelPath.Text = filePath is null ? "" : filePath;
             }
 
             private void DisableInputs()
@@ -296,7 +296,7 @@ namespace MainUI
             {
                 var folderOfd = new OpenFolderDialog { Title = "Catalog Folder" };
                 var folderPath = await folderOfd.ShowAsync(_hostingWindow);
-                txtExportCatalogPath.Text = folderPath == null ? "" : folderPath;
+                txtExportCatalogPath.Text = folderPath is null ? "" : folderPath;
             }
         }
     }

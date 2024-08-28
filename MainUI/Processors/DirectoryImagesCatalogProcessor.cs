@@ -19,7 +19,7 @@ namespace MainUI.Processors
 
         public DirectoryImagesCatalogProcessor(ReadOnlyMemory<CImage> images, string savingDir, PixelSize? maxImageSize = default, int imageQuality = 75, bool rotate = true) : base(images, rotate)
         {
-            if (maxImageSize is {Width: <= 0} or {Height: <= 0})
+            if (maxImageSize is { Width: <= 0 } or { Height: <= 0 })
             {
                 throw new ArgumentOutOfRangeException(nameof(maxImageSize), $"{nameof(maxImageSize)} must be > [0, 0].");
             }
@@ -31,7 +31,7 @@ namespace MainUI.Processors
             {
                 throw new ArgumentException($"{nameof(savingDir)} can't be null or empty.");
             }
-            if (Directory.Exists(savingDir) == false)
+            if (!Directory.Exists(savingDir))
             {
                 throw new DirectoryNotFoundException($"Can't find directory {savingDir}.");
             }
@@ -39,8 +39,6 @@ namespace MainUI.Processors
             _imageQuality = imageQuality;
             _savingDir = savingDir;
         }
-
-
 
         protected override int GetImageQuality(CImage image) => _imageQuality;
         protected override PixelSize GetImageSize(CImage image) => new(Math.Min(image.Size.Width, _maxImageSize.Width), Math.Min(image.Size.Height, _maxImageSize.Height));
@@ -54,7 +52,7 @@ namespace MainUI.Processors
         private volatile int _processedImagesCount = 0;
         protected override void OnImageProcessed(CImage image, int pos, Stream imageStream)
         {
-            imageStream.SetLength(imageStream.Position);
+            //imageStream.SetLength(imageStream.Position);
             imageStream.Flush();
             imageStream.Dispose();
             var cnt = Interlocked.Increment(ref _processedImagesCount);

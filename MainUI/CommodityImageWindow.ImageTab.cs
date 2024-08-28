@@ -1,3 +1,12 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.IO;
+using System.Linq;
+using System.Reactive.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Collections;
 using Avalonia.Controls;
@@ -12,15 +21,6 @@ using MessageBox.Avalonia.DTO;
 using MessageBox.Avalonia.Enums;
 using RepoImageMan;
 using RepoImageMan.Controls;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.IO;
-using System.Linq;
-using System.Reactive.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 namespace MainUI
 {
     namespace ImageTabModels
@@ -58,18 +58,21 @@ namespace MainUI
             /// </summary>
             private int _position = -1;
 
-            public int Position
+            public int Position => _position;
+            private void UpdatePosition(bool reposition)
             {
-                get => _position;
-                private set
+                var val = Image.Commodities.DefaultIfEmpty().Min(c => c?.Position ?? int.MaxValue - 100);
+                if (val != _position)
                 {
-                    if (value == _position) { return; }
-
-                    _position = value;
-                    RePositionInTvItems();
+                    _position = val;
                     OnPropertyChanged();
                 }
+                if (reposition)
+                {
+                    RePositionInTvItems();
+                }
             }
+
             public string ShortName
             {
                 get
@@ -115,7 +118,7 @@ namespace MainUI
                 _hostingTab = hostingTab;
                 _hostingTab._tvImagesModels.Add(this);
                 Image = image;
-                UpdatePosition();
+                UpdatePosition(true);
                 Commodities = new AvaloniaList<TvImagesCommodityModel>(Image.Commodities.Select(c => new TvImagesCommodityModel(c, this)));
                 Image.FileUpdated += ImageOnFileUpdated;
                 Image.CommodityAdded += ImageOnCommodityAdded;
@@ -129,6 +132,10 @@ namespace MainUI
                 _eventsSubscriptions.Add(Image
                     .Where(pn => pn == nameof(CImage.IsExported))
                     .Subscribe(pn => OnPropertyChanged(pn)));
+                _eventsSubscriptions.AddRange(Commodities
+                    .Select(com => com.Commodity.Where(pn => pn == Commodity.UIPositionChangedPropertyName)
+                        .Select(pn => com)
+                        .Subscribe(CommodityOnUIPositionChanged)));
                 Image.Deleting += Image_Deleting;
             }
 
@@ -138,14 +145,15 @@ namespace MainUI
             {
                 foreach (var com in Commodities.Reverse()) { await com.Commodity.SetPosition(newPosition); }
             }
-
-            private void UpdatePosition() => Position = Image.Commodities.DefaultIfEmpty().Min(c => c?.Position ?? int.MaxValue - 100);
-
-            private void CommodityOnPositionChanged(TvImagesCommodityModel comModel)
+            private void CommodityOnPositionChanged(TvImagesCommodityModel _)
+            {
+                UpdatePosition(false);
+            }
+            private void CommodityOnUIPositionChanged(TvImagesCommodityModel comModel)
             {
                 Commodities.Remove(comModel);
                 AddToCommodities(new[] { comModel });
-                UpdatePosition();
+                UpdatePosition(true);
             }
 
             private void ImageOnCommodityRemoved(CImage sender, ImageCommodity commodity)
@@ -156,7 +164,7 @@ namespace MainUI
                     Commodities.Remove(GetCommodityModel(commodity));
                     if (Commodities.Count == 0 && _hostingTab._imageToMove == this) { _hostingTab.ResetImageToMove(); }
 
-                    UpdatePosition();
+                    UpdatePosition(true);
                 }
                 Dispatcher.UIThread.Invoke(Work);
             }
@@ -190,8 +198,12 @@ namespace MainUI
                     .Where(pn => pn == nameof(Commodity.Position))
                     .Select(pn => comModel)
                     .Subscribe(CommodityOnPositionChanged));
+                _eventsSubscriptions.AddRange(Commodities
+                    .Select(com => com.Commodity.Where(pn => pn == Commodity.UIPositionChangedPropertyName)
+                        .Select(pn => com)
+                        .Subscribe(CommodityOnUIPositionChanged)));
                 AddToCommodities(new[] { comModel });
-                UpdatePosition();
+                UpdatePosition(true);
             }
 
             /// <summary>
@@ -266,7 +278,7 @@ namespace MainUI
 
             private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
             {
-                if (PropertyChanged == null) { return; }
+                if (PropertyChanged is null) { return; }
                 if (Dispatcher.UIThread.CheckAccess()) { PropertyChanged.Invoke(this, new PropertyChangedEventArgs(propertyName)); }
                 else { Dispatcher.UIThread.Post(() => PropertyChanged.Invoke(this, new PropertyChangedEventArgs(propertyName))); }
 
@@ -376,38 +388,50 @@ namespace MainUI
 
             private async void MiReloadSelectedImagesAndCommoditiesToDb_Click(object? sender, RoutedEventArgs e)
             {
-                await tvImages.SelectedItems.OfType<TvImagesImageModel>().ForEachAsync(img => img.Image.Reload());
-                await tvImages.SelectedItems.OfType<TvImagesCommodityModel>().ForEachAsync(com => com.Commodity.Reload());
+                foreach (var img in tvImages.SelectedItems.OfType<TvImagesImageModel>())
+                {
+                    await img.Image.Reload();
+                }
+                foreach (var com in tvImages.SelectedItems.OfType<TvImagesCommodityModel>())
+                {
+                    await com.Commodity.Reload();
+                }
             }
 
             private async void MiReloadAllImagesAndCommoditiesFromDb_Click(object? sender, RoutedEventArgs e)
             {
-                await _tvImagesModels.ForEachAsync(async img =>
+                foreach (var img in _tvImagesModels)
                 {
                     await img.Image.Reload();
                     foreach (var com in img.Image.Commodities)
                     {
                         await com.Reload();
                     }
-                });
+                }
             }
 
             private async void MiSaveSelectedImagesAndCommoditiesToDb_Click(object? sender, RoutedEventArgs e)
             {
-                await tvImages.SelectedItems.OfType<TvImagesImageModel>().ForEachAsync(img => img.Image.Save());
-                await tvImages.SelectedItems.OfType<TvImagesCommodityModel>().ForEachAsync(com => com.Commodity.Save());
+                foreach (var img in tvImages.SelectedItems.OfType<TvImagesImageModel>())
+                {
+                    await img.Image.Save();
+                }
+                foreach (var com in tvImages.SelectedItems.OfType<TvImagesCommodityModel>())
+                {
+                    await com.Commodity.Save();
+                }
             }
 
             private async void MiSaveAllImagesAndCommoditiesToDb_Click(object? sender, RoutedEventArgs e)
             {
-                await _tvImagesModels.ForEachAsync(async img =>
+                foreach (var img in _tvImagesModels)
                 {
                     await img.Image.Save();
                     foreach (var com in img.Image.Commodities)
                     {
                         await com.Save();
                     }
-                });
+                }
             }
 
             private async void MiCreateImageCommodity_Click(object? sender, RoutedEventArgs e)
@@ -435,7 +459,7 @@ namespace MainUI
                     return;
                 }
                 await using var imgStream = new FileStream(newImagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                if (IsValidImage(imgStream) == false)
+                if (!IsValidImage(imgStream))
                 {
                     await MessageBoxManager.GetMessageBoxStandardWindow("Invalid Image", "The selected file doesn't represent a valid image.", ButtonEnum.Ok, MessageBox.Avalonia.Enums.Icon.Error).ShowDialog(_hostingWindow);
                     return;
@@ -503,7 +527,7 @@ namespace MainUI
                     return;
                 }
                 await using var imgStream = new FileStream(newImagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                if (IsValidImage(imgStream) == false)
+                if (!IsValidImage(imgStream))
                 {
                     await MessageBoxManager.GetMessageBoxStandardWindow("Invalid Image", "The selected file doesn't represent a valid image.", ButtonEnum.Ok, MessageBox.Avalonia.Enums.Icon.Error).ShowDialog(_hostingWindow);
                     return;
@@ -530,7 +554,7 @@ namespace MainUI
                     return;
                 }
 
-                if (_imageToMove == null || _imageToMove == selectedImage) { return; }
+                if (_imageToMove is null || _imageToMove == selectedImage) { return; }
 
                 int newPos = _imageToMove.Position < selectedImage.Position
                                  ? selectedImage.Position
@@ -558,7 +582,7 @@ namespace MainUI
                     return;
                 }
 
-                if (_imageToMove == null || _imageToMove == selectedImage) { return; }
+                if (_imageToMove is null || _imageToMove == selectedImage) { return; }
 
                 int newPos = _imageToMove.Position > selectedImage.Position
                                  ? selectedImage.Position
@@ -679,7 +703,7 @@ namespace MainUI
             }
             private async void DesignImage(TvImagesImageModel img)
             {
-                if (img == null) { return; }
+                if (img is null) { return; }
                 var dWin = new DesigningWindow(img.Image, this, _hostingWindow._commodityTab);
                 try
                 {
@@ -720,15 +744,27 @@ namespace MainUI
                     case Key.S:
                         if (e.KeyModifiers == KeyModifiers.Control)
                         {
-                            await tvImages.SelectedItems.OfType<TvImagesImageModel>().ForEachAsync(img => img.Image.Save());
-                            await tvImages.SelectedItems.OfType<TvImagesCommodityModel>().ForEachAsync(com => com.Commodity.Save());
+                            foreach (var img in tvImages.SelectedItems.OfType<TvImagesImageModel>())
+                            {
+                                await img.Image.Save();
+                            }
+                            foreach (var com in tvImages.SelectedItems.OfType<TvImagesCommodityModel>())
+                            {
+                                await com.Commodity.Save();
+                            }
                         }
                         break;
                     case Key.R:
                         if (e.KeyModifiers == KeyModifiers.Control)
                         {
-                            await tvImages.SelectedItems.OfType<TvImagesImageModel>().ForEachAsync(img => img.Image.Reload());
-                            await tvImages.SelectedItems.OfType<TvImagesCommodityModel>().ForEachAsync(com => com.Commodity.Reload());
+                            foreach (var img in tvImages.SelectedItems.OfType<TvImagesImageModel>())
+                            {
+                                await img.Image.Reload();
+                            }
+                            foreach (var com in tvImages.SelectedItems.OfType<TvImagesCommodityModel>())
+                            {
+                                await com.Commodity.Reload();
+                            }
                         }
                         break;
 
@@ -741,7 +777,7 @@ namespace MainUI
             public void TvImages_ImageRightClicked(object? sender, PointerPressedEventArgs e)
             {
                 if (!((sender as IDataContextProvider)?.DataContext is TvImagesImageModel clickedImage)) return;
-                if (tvImages.SelectedItems.Contains(clickedImage) == false)
+                if (!tvImages.SelectedItems.Contains(clickedImage))
                 {
                     tvImages.SelectedItems.Add(clickedImage);
                 }

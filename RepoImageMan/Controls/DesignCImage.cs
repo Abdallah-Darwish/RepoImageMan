@@ -88,7 +88,7 @@ public sealed partial class DesignCImage : Control, IDisposable
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
-        if (_isSelectedCommodityHooked == false) { return; }
+        if (!_isSelectedCommodityHooked) { return; }
         var p = e.GetCurrentPoint(this).Position;
         try
         {
@@ -111,7 +111,7 @@ public sealed partial class DesignCImage : Control, IDisposable
     public void Init(CImage img)
     {
         Focusable = true;
-        if (img.TryEnterDesign() == false)
+        if (!img.TryEnterDesign())
         {
             throw new InvalidOperationException("Image is currently opened for design in another window.");
         }
@@ -171,7 +171,7 @@ public sealed partial class DesignCImage : Control, IDisposable
 
     void Dispose(bool disposing)
     {
-        if (Image == null) { disposedValue = true; }
+        if (Image is null) { disposedValue = true; }
 
         if (disposedValue) { return; }
 

@@ -1,10 +1,10 @@
-﻿using Avalonia.Media;
-using Microsoft.VisualBasic.CompilerServices;
-using SkiaSharp;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using Avalonia.Media;
+using Microsoft.VisualBasic.CompilerServices;
+using SkiaSharp;
 
 namespace RepoImageMan
 {
@@ -37,7 +37,7 @@ namespace RepoImageMan
 
         public bool Equals(Font? other)
         {
-            if (other == null) { return false; }
+            if (other is null) { return false; }
             return FamilyName.Equals(other.FamilyName, StringComparison.OrdinalIgnoreCase) && Size == other.Size && Style == other.Style;
         }
 
@@ -68,7 +68,7 @@ namespace RepoImageMan
             IsAntialias = true,
             IsLinearText = true,
             IsStroke = false,
-            SubpixelText= true,
+            SubpixelText = true,
             FilterQuality = SKFilterQuality.High,
             TextEncoding = SKTextEncoding.Utf16,
             LcdRenderText = true,

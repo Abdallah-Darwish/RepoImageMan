@@ -1,20 +1,15 @@
-﻿using Dapper;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Avalonia;
+using Dapper;
 using RepoImageMan.Controls;
-using SkiaSharp;
-using System.Diagnostics;
-using System.Reactive.Linq;
-using System.Data.SQLite;
 
 namespace RepoImageMan
 {
@@ -49,7 +44,6 @@ namespace RepoImageMan
         //Kept as a seperate method in case I want to support INotifyPropertyChanged in the future.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void OnPropertyChanged([CallerMemberName] string propName = null) => _notificationsSubject.OnNext(propName);
-
         private CImage(int id, CommodityPackage package)
         {
             Package = package;
@@ -66,10 +60,7 @@ namespace RepoImageMan
             var res = new CImage(id, package);
             await res.Reload().ConfigureAwait(false);
             res.Refresh();
-            await using var con = package.GetConnection();
-
-
-            var comsIds = (await con.QueryAsync<int>("SELECT id FROM ImageCommodity WHERE imageId = @id", new { id }).ConfigureAwait(false)).AsList();
+            var comsIds = (await package.DbConnection.QueryAsync<int>("SELECT id FROM ImageCommodity WHERE imageId = @id", new { id }).ConfigureAwait(false)).AsList();
             res._commodities.Capacity = comsIds.Count;
             foreach (var comId in comsIds)
             {
@@ -145,13 +136,12 @@ namespace RepoImageMan
             }
         }
 
-        private readonly List<ImageCommodity> _commodities = new List<ImageCommodity>();
+        private readonly List<ImageCommodity> _commodities = new();
 
         /// <summary>
         /// List of commodities that will be rendered on this image.
         /// </summary>
         public IReadOnlyList<ImageCommodity> Commodities => _commodities;
-
 
         public delegate void CommodityModifiedEventHandler(CImage sender, ImageCommodity commodity);
 
@@ -167,28 +157,19 @@ namespace RepoImageMan
         /// </summary>
         public async Task<ImageCommodity> AddCommodity()
         {
-            await using var con = Package.GetConnection();
-            await con.OpenAsync().ConfigureAwait(false);
-            await con.ExecuteAsync(
+            await Package.DbConnection.ExecuteAsync(
                     @"INSERT INTO Commodity(position) VALUES((COALESCE((SELECT MAX(Position) FROM Commodity), 0) + 1));")
                 .ConfigureAwait(false);
-            await con.ExecuteAsync(@"INSERT INTO ImageCommodity(id, imageId) VALUES(@id, @imageId);",
-                new { id = (int)con.LastInsertRowId, imageId = Id }).ConfigureAwait(false);
+            await Package.DbConnection.ExecuteAsync(@"INSERT INTO ImageCommodity(id, imageId) VALUES(@id, @imageId);",
+                new { id = (int)Package.DbConnection.LastInsertRowId, imageId = Id }).ConfigureAwait(false);
 
-            var newCom = await ImageCommodity.Load((int)con.LastInsertRowId, Package, this).ConfigureAwait(false);
-            await _commoditiesLock.WaitAsync().ConfigureAwait(false);
-            try
+            var newCom = await ImageCommodity.Load((int)Package.DbConnection.LastInsertRowId, Package, this).ConfigureAwait(false);
+
+            if (_commodities.Count > 0)
             {
-                if (_commodities.Count > 0)
-                {
-                    await newCom.SetPosition(_commodities.Max(c => c.Position) + 1).ConfigureAwait(false);
-                }
-                _commodities.Add(newCom);
+                await newCom.SetPosition(_commodities.Max(c => c.Position) + 1).ConfigureAwait(false);
             }
-            finally
-            {
-                _commoditiesLock.Release();
-            }
+            _commodities.Add(newCom);
             newCom.Font = newCom.Font.WithSize((float)(Size.ToSize(1.0).Average() * 0.2));
             await newCom.Save().ConfigureAwait(false);
             await Package.AddImageCommodity(newCom).ConfigureAwait(false);
@@ -197,27 +178,14 @@ namespace RepoImageMan
         }
 
         /// <summary>
-        /// Because loading, removing commodities is mostly done concurrently we have to guard <see cref="_commodities"/>.
-        /// </summary>
-        private readonly SemaphoreSlim _commoditiesLock = new SemaphoreSlim(1);
-
-        /// <summary>
         /// Will be raised when a <see cref="ImageCommodity"/> that belongs to this <see cref="CImage"/> is deleted from <see cref="Package"/>.
         /// </summary>
         public event CommodityModifiedEventHandler? CommodityRemoved;
 
         internal async Task RemoveCommodity(ImageCommodity com)
         {
-            await _commoditiesLock.WaitAsync().ConfigureAwait(false);
-            try
-            {
-                _commodities.Remove(com);
-                CommodityRemoved?.Invoke(this, com);
-            }
-            finally
-            {
-                _commoditiesLock.Release();
-            }
+            _commodities.Remove(com);
+            CommodityRemoved?.Invoke(this, com);
         }
 
         /// <summary>
@@ -226,8 +194,7 @@ namespace RepoImageMan
         /// </summary>
         public async Task Save()
         {
-            await using var con = Package.GetConnection();
-            await con.ExecuteAsync("UPDATE CImage SET contrast = @Contrast, brightness = @Brightness, isExported = @IsExported WHERE id = @Id", this).ConfigureAwait(false);
+            await Package.DbConnection.ExecuteAsync("UPDATE CImage SET contrast = @Contrast, brightness = @Brightness, isExported = @IsExported WHERE id = @Id", this).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -236,9 +203,7 @@ namespace RepoImageMan
         /// </summary>
         public async Task Reload()
         {
-            await using var con = Package.GetConnection();
-
-            var fields = await con.QueryFirstAsync("SELECT * FROM CImage WHERE id = @Id", new { Id }).ConfigureAwait(false);
+            var fields = await Package.DbConnection.QueryFirstAsync("SELECT * FROM CImage WHERE id = @Id", new { Id }).ConfigureAwait(false);
             Contrast = (float)fields.Contrast;
             Brightness = (float)fields.Brightness;
             IsExported = (bool)fields.IsExported;
@@ -258,9 +223,13 @@ namespace RepoImageMan
         {
             using (var imgStream = new FileStream(PackageFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
+                Size = new PixelSize(0, 0);
+                if (imgStream.Length > 0)
+                {
+                    var imageInfo = SixLabors.ImageSharp.Image.Identify(imgStream);
+                    Size = imageInfo is null ? new PixelSize(0, 0) : new PixelSize(imageInfo.Width, imageInfo.Height);
+                }
                 //If the stream is empty(it will be when we create a new image) the returned 'IImageInfo' would be null
-                var imageInfo = SixLabors.ImageSharp.Image.Identify(imgStream);
-                Size = imageInfo == null ? new PixelSize(0, 0) : new PixelSize(imageInfo.Width, imageInfo.Height);
                 foreach (var com in Commodities)
                 {
                     com.Location = new Point(Math.Min(Size.Width, com.Location.X), Math.Min(Size.Height, com.Location.Y));
@@ -288,7 +257,7 @@ namespace RepoImageMan
             }
             var originalStreamPos = newFile.Position;
             var imageInfo = SixLabors.ImageSharp.Image.Identify(newFile);
-            if (imageInfo == null)
+            if (imageInfo is null)
             {
                 throw new ArgumentException("Invalid image stream.", nameof(newFile));
             }
@@ -297,8 +266,9 @@ namespace RepoImageMan
             using (var fs = new FileStream(PackageFilePath, FileMode.Create, FileAccess.ReadWrite))
             using (var img = SixLabors.ImageSharp.Image.Load(newFile))
             {
+                fs.SetLength(0);
                 SixLabors.ImageSharp.ImageExtensions.SaveAsBmp(img, fs);
-                fs.SetLength(fs.Position);
+                await fs.FlushAsync().ConfigureAwait(false);
             }
             var oldSize = Size;
             Refresh();
@@ -323,34 +293,22 @@ namespace RepoImageMan
         /// </summary>
         public async Task Delete()
         {
-            //I had to lock on the collection to prevent the commodities from modifying _commodities then its iterator will become invalid 
-            System.Runtime.CompilerServices.ConfiguredTaskAwaitable comsDeletingTask;
-
-            await _commoditiesLock.WaitAsync().ConfigureAwait(false);
-            try
+            //Here the iterator can become invalid
+            while (Commodities.Count != 0)
             {
-                //Here the iterator can become invalid
-                comsDeletingTask = Task.WhenAll(Commodities.Select(c => c.Delete()).ToArray()).ConfigureAwait(false);
+                await Commodities[0].Delete().ConfigureAwait(false);
             }
-            finally
-            {
-                _commoditiesLock.Release();
-            }
-
-            await comsDeletingTask;
             Deleting?.Invoke(this);
-            await using var con = Package.GetConnection();
             await Package.RemoveImage(this).ConfigureAwait(false);
-            await con.ExecuteAsync("DELETE FROM CImage WHERE id = @Id", new { Id }).ConfigureAwait(false);
+            await Package.DbConnection.ExecuteAsync("DELETE FROM CImage WHERE id = @Id", new { Id }).ConfigureAwait(false);
         }
 
         /// <summary>
-        /// Just a lock to prevent the image from being designed by multiple <see cref="DesignCImage{TPixel}"/>s.
+        /// Just a lock to prevent the image from being designed by multiple <see cref="DesignCImage"/>s.
         /// </summary>
         private int _designInstancesCount = 0;
 
         internal bool TryEnterDesign() => Interlocked.CompareExchange(ref _designInstancesCount, 1, 0) == 0;
-
 
         internal void ExitDesign()
         {
@@ -360,18 +318,18 @@ namespace RepoImageMan
             }
         }
 
-        internal async Task Tidy(int newId, SQLiteConnection con)
+        internal async Task Tidy(int newId)
         {
             var newImagePath = GetCImagePackageFilePath(Package, newId);
             if (File.Exists(newImagePath))
             {
                 throw new InvalidOperationException($"Can't change image id because there exists another file with same expected path for this image when the change is done.\n{newImagePath}");
             }
-            if ((await con.ExecuteScalarAsync<int?>("SELECT id FROM CImage WHERE id = @newId", new { newId }).ConfigureAwait(false)) != null)
+            if ((await Package.DbConnection.ExecuteScalarAsync<int?>("SELECT id FROM CImage WHERE id = @newId", new { newId }).ConfigureAwait(false)) != null)
             {
                 throw new InvalidOperationException("Can't change image id because there exists another image with same id.");
             }
-            await con.ExecuteAsync("UPDATE CImage SET id = @newId WHERE id = @Id", new { Id, newId }).ConfigureAwait(false);
+            await Package.DbConnection.ExecuteAsync("UPDATE CImage SET id = @newId WHERE id = @Id", new { Id, newId }).ConfigureAwait(false);
             File.Move(PackageFilePath, GetCImagePackageFilePath(Package, newId));
             Id = newId;
         }
@@ -395,10 +353,7 @@ namespace RepoImageMan
             }
 
             _commodities.Clear();
-            _commoditiesLock.Dispose();
         }
-
-
         #endregion
     }
 }

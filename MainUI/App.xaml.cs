@@ -10,7 +10,7 @@ namespace MainUI
         {
             AvaloniaXamlLoader.Load(this);
         }
-        
+
         public override void OnFrameworkInitializationCompleted()
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
@@ -20,5 +20,5 @@ namespace MainUI
 
             base.OnFrameworkInitializationCompleted();
         }
-   }
+    }
 }

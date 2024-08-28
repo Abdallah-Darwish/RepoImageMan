@@ -1,3 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Reactive.Linq;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Collections;
 using Avalonia.Controls;
@@ -5,17 +13,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using MessageBox.Avalonia;
-using MessageBox.Avalonia.DTO;
 using RepoImageMan;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Linq;
-using System.Reactive.Linq;
-using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace MainUI
 {
@@ -67,7 +65,7 @@ namespace MainUI
                     {
                         try
                         {
-                            if (Regex.IsMatch(Name, _hostingTab.txtSearch.Text) == false) { return; }
+                            if (!Regex.IsMatch(Name, _hostingTab.txtSearch.Text)) { return; }
                         }
                         catch { return; }
                     }
@@ -255,7 +253,7 @@ namespace MainUI
             internal void GoToCommodity(Commodity com)
             {
                 var comModel = _dgCommoditiesItems.FirstOrDefault<DgCommoditiesModel?>(c => c.Commodity.Id == com.Id);
-                if (comModel == null) { return; }
+                if (comModel is null) { return; }
                 _hostingWindow.Activate();
                 tabCommodities.IsSelected = true;
                 dgCommodities.SelectedItems.Clear();
@@ -292,22 +290,34 @@ namespace MainUI
 
             private async void MiReloadSelectedCommoditiesToDb_Click(object? sender, RoutedEventArgs e)
             {
-                await dgCommodities.SelectedItems.Cast<DgCommoditiesModel>().ForEachAsync(com => com.Commodity.Reload());
+                foreach (var com in dgCommodities.SelectedItems.Cast<DgCommoditiesModel>())
+                {
+                    await com.Commodity.Reload();
+                }
             }
 
             private async void MiReloadAllCommoditiesFromDb_Click(object? sender, RoutedEventArgs e)
             {
-                await _dgCommoditiesItems.ForEachAsync(com => com.Commodity.Reload());
+                foreach (var com in _dgCommoditiesItems)
+                {
+                    await com.Commodity.Reload();
+                }
             }
 
             private async void MiSaveSelectedCommoditiesToDb_Click(object? sender, RoutedEventArgs e)
             {
-                await dgCommodities.SelectedItems.Cast<DgCommoditiesModel>().ForEachAsync(com => com.Commodity.Save());
+                foreach (var com in dgCommodities.SelectedItems.Cast<DgCommoditiesModel>())
+                {
+                    await com.Commodity.Save();
+                }
             }
 
             private async void MiSaveAllCommoditiesToDb_Click(object? sender, RoutedEventArgs e)
             {
-                await _dgCommoditiesItems.ForEachAsync(com => com.Commodity.Save());
+                foreach (var com in _dgCommoditiesItems)
+                {
+                    await com.Commodity.Save();
+                }
             }
 
             private void MiUnExportSelectedCommodities_Click(object? sender, RoutedEventArgs e)
@@ -334,7 +344,7 @@ namespace MainUI
             {
                 var selectedCom = GetSelectedCommodity()!;
 
-                if (_commodityToMove == null || _commodityToMove == selectedCom) { return; }
+                if (_commodityToMove is null || _commodityToMove == selectedCom) { return; }
 
                 int newPos = _commodityToMove.Position < selectedCom.Position
                                  ? selectedCom.Position
@@ -348,7 +358,7 @@ namespace MainUI
             {
                 var selectedCom = GetSelectedCommodity()!;
 
-                if (_commodityToMove == null || _commodityToMove == selectedCom) { return; }
+                if (_commodityToMove is null || _commodityToMove == selectedCom) { return; }
 
                 int newPos = _commodityToMove.Position > selectedCom.Position
                                  ? selectedCom.Position
@@ -396,11 +406,9 @@ namespace MainUI
                 _commodityToMoveSelectionTime = DateTime.UtcNow - (CommodityMovingWindow * 2);
             }
 
-
             private DgCommoditiesModel? GetSelectedCommodity() => dgCommodities.SelectedItems.Count == 0
                                                                       ? null
                                                                       : dgCommodities.SelectedItems[0] as DgCommoditiesModel;
-
 
             private void BtnSaveCommodityToMemory_Click(object? sender, RoutedEventArgs e) => GetSelectedCommodity()?.SaveToMemory();
 
@@ -427,7 +435,7 @@ namespace MainUI
             {
                 e.Handled = true;
                 var selectedCommodity = GetSelectedCommodity();
-                if (selectedCommodity == null)
+                if (selectedCommodity is null)
                 {
                     txtCommodityName.Text = "";
                     nudCommodityCost.Value = nudCommodityWholePrice.Value = nudCommodityPartialPrice.Value = nudCommodityCashPrice.Value = 0;
@@ -462,7 +470,6 @@ namespace MainUI
                 if (confRes != MessageBox.Avalonia.Enums.ButtonResult.Yes) { return; }
                 foreach (var com in selectedComs)
                 {
-
                     await com.Commodity.Delete();
                 }
             }

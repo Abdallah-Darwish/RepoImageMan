@@ -1,8 +1,8 @@
-﻿using Avalonia;
+﻿using System;
+using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Media;
 using Dapper;
-using System;
-using System.Threading.Tasks;
 
 namespace RepoImageMan
 {
@@ -50,7 +50,7 @@ namespace RepoImageMan
             get => _font;
             set
             {
-                if (value == null) { throw new ArgumentNullException(nameof(value)); }
+                if (value is null) { throw new ArgumentNullException(nameof(value)); }
                 if (value.Equals(/*_font maybe null on initialization*/_font)) { return; }
                 _font = value;
                 OnPropertyChanged();
@@ -70,7 +70,7 @@ namespace RepoImageMan
                 if (value.X < 0 || value.Y < 0 ||
                     value.X > Image.Size.Width || value.Y > Image.Size.Height)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, $"{nameof(Location)} must be in [(0, 0), ({Image.Size.Width}, {Image.Size.Height})].");
+                    throw new ArgumentOutOfRangeException(nameof(value), value, $"ImageCommodity(Id: {Id}, {nameof(Location)}: {value}) must be in [(0, 0), ({Image.Size.Width}, {Image.Size.Height})].");
                 }
                 _location = value;
                 OnPropertyChanged();
@@ -82,8 +82,7 @@ namespace RepoImageMan
         public override async Task Save()
         {
             await base.Save().ConfigureAwait(false);
-            await using var con = Package.GetConnection();
-            await con.ExecuteAsync("UPDATE ImageCommodity SET fontFamilyName = @fontFamilyName, fontStyle = @fontStyle, fontSize = @fontSize, locationX = @locationX, locationY = @locationY, labelColor = @labelColor WHERE id = @Id",
+            await Package.DbConnection.ExecuteAsync("UPDATE ImageCommodity SET fontFamilyName = @fontFamilyName, fontStyle = @fontStyle, fontSize = @fontSize, locationX = @locationX, locationY = @locationY, labelColor = @labelColor WHERE id = @Id",
                   new
                   {
                       fontFamilyName = Font.FamilyName,
@@ -103,8 +102,7 @@ namespace RepoImageMan
         public override async Task Reload()
         {
             await base.Reload().ConfigureAwait(false);
-            await using var con = Package.GetConnection();
-            var fields = await con.QueryFirstAsync("SELECT * FROM ImageCommodity WHERE id = @Id", new { Id }).ConfigureAwait(false);
+            var fields = await Package.DbConnection.QueryFirstAsync("SELECT * FROM ImageCommodity WHERE id = @Id", new { Id }).ConfigureAwait(false);
             Font = new Font(fields.FontFamilyName, (float)fields.FontSize, (FontStyle)(int)fields.FontStyle);
             Location = new Point(fields.LocationX, fields.LocationY);
             LabelColor = Color.Parse(fields.LabelColor);
@@ -115,11 +113,9 @@ namespace RepoImageMan
         /// </summary>
         public override async Task Delete()
         {
-            await using var con = Package.GetConnection();
-            await con.ExecuteAsync("DELETE FROM ImageCommodity WHERE id = @Id", new { Id }).ConfigureAwait(false);
+            await Package.DbConnection.ExecuteAsync("DELETE FROM ImageCommodity WHERE id = @Id", new { Id }).ConfigureAwait(false);
             await base.Delete().ConfigureAwait(false);
             await Image.RemoveCommodity(this).ConfigureAwait(false);
         }
-
     }
 }

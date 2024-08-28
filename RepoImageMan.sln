@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MainUI", "MainUI\MainUI.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Scratch", "Scratch\Scratch.csproj", "{FDAB854A-EA9C-4E01-B77F-1C3DF9983EEB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScratchConsole", "ScratchConsole\ScratchConsole.csproj", "{77C0186B-5178-4F50-8525-309B0D6E9423}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{FDAB854A-EA9C-4E01-B77F-1C3DF9983EEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FDAB854A-EA9C-4E01-B77F-1C3DF9983EEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FDAB854A-EA9C-4E01-B77F-1C3DF9983EEB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{77C0186B-5178-4F50-8525-309B0D6E9423}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77C0186B-5178-4F50-8525-309B0D6E9423}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77C0186B-5178-4F50-8525-309B0D6E9423}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{77C0186B-5178-4F50-8525-309B0D6E9423}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

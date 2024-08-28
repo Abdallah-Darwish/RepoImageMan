@@ -16,7 +16,7 @@ namespace MainUI.Controls
             get => GetValue(SelectedFontFamilyProperty);
             set
             {
-                if (value == null) { throw new ArgumentNullException(nameof(value)); }
+                if (value is null) { throw new ArgumentNullException(nameof(value)); }
                 if (value.Equals(SelectedFontFamily)) { return; }
                 //value of this property will be set down in the SeectionChanged event
                 cbxFonts.SelectedItem = cbxFonts.Items.Cast<FontFamily>().FirstOrDefault(f => f.Equals(value)) ??
