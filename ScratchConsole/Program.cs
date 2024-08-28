@@ -32,13 +32,13 @@ FROM
     Commodity c
 LEFT JOIN
     ImageCommodity ic USING(id);
-""")).OrderBy(c => c.ImageId.HasValue ? imageMap[c.ImageId.Value].Position: int.MaxValue)
+""")).OrderBy(c => c.ImageId.HasValue ? imageMap[c.ImageId.Value].Position : int.MaxValue)
     .ThenBy(c => c.LocationX ?? int.MaxValue)
     .ThenBy(c => c.LocationY ?? int.MaxValue)
     .ThenBy(c => c.Position)
     .ToArray();
 int pos = 0;
-foreach(var com in commodities)
+foreach (var com in commodities)
 {
     com.Position = pos++;
 }
@@ -48,7 +48,7 @@ UPDATE
 SET
     position = NULL;
 """);
-foreach(var com in commodities)
+foreach (var com in commodities)
 {
     await com.Update(con);
 }
@@ -56,11 +56,11 @@ await con.CloseAsync();
 
 record class Commodity
 {
-    public int Id {get; set;}
-    public int? ImageId {get; set;}
-    public int Position {get; set;}
-    public double? LocationX {get; set;}
-    public double? LocationY {get; set;}
+    public int Id { get; set; }
+    public int? ImageId { get; set; }
+    public int Position { get; set; }
+    public double? LocationX { get; set; }
+    public double? LocationY { get; set; }
     public async Task Update(SQLiteConnection con)
     {
         await con.ExecuteAsync("""
@@ -70,12 +70,12 @@ record class Commodity
             position = @newPosition
         WHERE
             id = @id;
-        """, new{id = Id, newPosition = Position});
+        """, new { id = Id, newPosition = Position });
     }
 }
 
 record class Image
 {
-    public int Id {get;set;}
-    public int Position {get;set;}
+    public int Id { get; set; }
+    public int Position { get; set; }
 }

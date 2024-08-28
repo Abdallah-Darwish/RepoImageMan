@@ -7,6 +7,6 @@ namespace RepoImageMan.Processors
     {
         private readonly Stream _outputStream;
         private readonly ReadOnlyMemory<Commodity> _commodities;
-        public void Process(){}
+        public void Process() { }
     }
 }
