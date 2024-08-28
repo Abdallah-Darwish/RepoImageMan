@@ -7,16 +7,12 @@
 	<ItemGroup>
 		<PackageReference Include="Avalonia" Version="0.10.19" />
 		<PackageReference Include="Avalonia.Skia" Version="0.10.19" />
-		<PackageReference Include="Dapper" Version="2.0.123" />
+		<PackageReference Include="Dapper" Version="2.1.35" />
 		<PackageReference Include="Dapper.Contrib" Version="2.0.78" />
-		<PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="7.0.1">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
-		<PackageReference Include="SixLabors.ImageSharp" Version="3.0.1" />
-		<PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0-beta15" />
-		<PackageReference Include="SkiaSharp" Version="2.88.3" />
-		<PackageReference Include="System.Data.SQLite.Core" Version="1.0.117" />
+		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
+		<PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.4" />
+		<PackageReference Include="SkiaSharp" Version="2.88.8" />
+		<PackageReference Include="System.Data.SQLite.Core" Version="1.0.118" />
 		<PackageReference Include="System.IO.Packaging" Version="7.0.0" />
 		<PackageReference Include="System.Reactive" Version="5.0.0" />
 		<PackageReference Include="System.Threading.Channels" Version="7.0.0" />
