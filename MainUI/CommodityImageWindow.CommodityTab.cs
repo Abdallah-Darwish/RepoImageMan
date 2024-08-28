@@ -316,7 +316,7 @@ namespace MainUI
             {
                 foreach (var com in _dgCommoditiesItems)
                 {
-                    await com.Commodity.Reload();
+                    await com.Commodity.Save();
                 }
             }
 

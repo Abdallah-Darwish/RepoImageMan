@@ -223,9 +223,13 @@ namespace RepoImageMan
         {
             using (var imgStream = new FileStream(PackageFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
+                Size = new PixelSize(0, 0);
+                if (imgStream.Length > 0)
+                {
+                    var imageInfo = SixLabors.ImageSharp.Image.Identify(imgStream);
+                    Size = imageInfo is null ? new PixelSize(0, 0) : new PixelSize(imageInfo.Width, imageInfo.Height);
+                }
                 //If the stream is empty(it will be when we create a new image) the returned 'IImageInfo' would be null
-                var imageInfo = SixLabors.ImageSharp.Image.Identify(imgStream);
-                Size = imageInfo is null ? new PixelSize(0, 0) : new PixelSize(imageInfo.Width, imageInfo.Height);
                 foreach (var com in Commodities)
                 {
                     com.Location = new Point(Math.Min(Size.Width, com.Location.X), Math.Min(Size.Height, com.Location.Y));
@@ -262,8 +266,9 @@ namespace RepoImageMan
             using (var fs = new FileStream(PackageFilePath, FileMode.Create, FileAccess.ReadWrite))
             using (var img = SixLabors.ImageSharp.Image.Load(newFile))
             {
+                fs.SetLength(0);
                 SixLabors.ImageSharp.ImageExtensions.SaveAsBmp(img, fs);
-                fs.SetLength(fs.Position);
+                await fs.FlushAsync().ConfigureAwait(false);
             }
             var oldSize = Size;
             Refresh();

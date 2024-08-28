@@ -52,7 +52,7 @@ namespace MainUI.Processors
         private volatile int _processedImagesCount = 0;
         protected override void OnImageProcessed(CImage image, int pos, Stream imageStream)
         {
-            imageStream.SetLength(imageStream.Position);
+            //imageStream.SetLength(imageStream.Position);
             imageStream.Flush();
             imageStream.Dispose();
             var cnt = Interlocked.Increment(ref _processedImagesCount);
